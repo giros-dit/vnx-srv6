@@ -18,8 +18,8 @@ VNX scenarios for studying and analyzing SRv6 (Segment Routing over IPv6 datapla
 | Router A    | Router B    | Router A IPv6            | Router B IPv6              |
 |-------------|-------------|--------------------------|----------------------------|
 | r1  - eth2  | r2  - eth2  | `fcf0:0:1:2::1/64`       | `fcf0:0:1:2::2/64`         |
-| r1  - eth3  | r4  - eth2  | `fcf0:0:1:4::1/64`       | `fcf0:0:1:2::2/64`         |
-| r1  - eth4  | r11 - eth2  | `fcf0:0:1:11::1/64`      | `fcf0:0:1:2::2/64`         |
+| r1  - eth3  | r4  - eth2  | `fcf0:0:1:4::1/64`       | `fcf0:0:1:4::2/64`         |
+| r1  - eth4  | r11 - eth2  | `fcf0:0:1:11::1/64`      | `fcf0:0:1:11::2/64`        |
 | r2  - eth3  | r3  - eth2  | `fcf0:0:2:3::1/64`       | `fcf0:0:2:3::2/64`         |
 | r2  - eth4  | r5  - eth2  | `fcf0:0:2:5::1/64`       | `fcf0:0:2:5::2/64`         |
 | r2  - eth5  | r12 - eth2  | `fcf0:0:2:12::1/64`      | `fcf0:0:2:12::2/64`        |
