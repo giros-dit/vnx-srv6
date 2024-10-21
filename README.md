@@ -36,7 +36,7 @@ VNX scenarios for studying and analyzing SRv6 (Segment Routing over IPv6 datapla
 ### Routers ID
 
 | Router      | ID               |
-|--------------------------------|
+|-------------|------------------|
 | r1          | `fcff:1::1/32`   |
 | r2          | `fcff:2::1/32`   |
 | r3          | `fcff:3::1/32`   |
