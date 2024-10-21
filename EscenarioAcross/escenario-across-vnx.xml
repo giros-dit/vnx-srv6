@@ -23,14 +23,16 @@
   <net name="Net25" mode="virtual_bridge" />
   <net name="Net212" mode="virtual_bridge" />
   <net name="Net56" mode="virtual_bridge" />
-  <net name="Net3UPF" mode="virtual_bridge" />
+  <net name="Net313" mode="virtual_bridge" />
   <net name="Net312" mode="virtual_bridge" />
   <net name="Net37" mode="virtual_bridge" />
   <net name="Net67" mode="virtual_bridge" />
-  <net name="Net7UPF" mode="virtual_bridge" />
-  <net name="Net11h1" mode="virtual_bridge" />
-  <net name="Net11h2" mode="virtual_bridge" />
-  <net name="Net11h3" mode="virtual_bridge" />
+  <net name="Net713" mode="virtual_bridge" />
+  <net name="Net11gnb" mode="virtual_bridge" />
+  <net name="Netgnbh1" mode="virtual_bridge" />
+  <net name="Netgnbh2" mode="virtual_bridge" />
+  <net name="Netgnbh3" mode="virtual_bridge" />
+  <net name="Net13upf" mode="virtual_bridge" />
   <!--
   
   SISTEMAS FINALES
@@ -39,7 +41,7 @@
   <vm name="h1" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <mem>128M</mem>
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
-    <if id="1" net="Net11h1">
+    <if id="1" net="Netgnbh1">
       <ipv6>fd00:0:1::2/64</ipv6>
     </if>
     <route type="ipv6" gw="fd00:0:1::1">default</route>   
@@ -48,7 +50,7 @@
 <vm name="h2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <mem>128M</mem>
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
-    <if id="1" net="Net11h2">
+    <if id="1" net="Netgnbh2">
       <ipv6>fd00:0:2::2/64</ipv6>
     </if>
     <route type="ipv6" gw="fd00:0:2::1">default</route>  
@@ -57,8 +59,17 @@
   <vm name="h3" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <mem>128M</mem>
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
-    <if id="1" net="Net11h3">
+    <if id="1" net="Netgnbh3">
       <ipv6>fd00:0:3::2/64</ipv6>
+    </if>
+    <route type="ipv6" gw="fd00:0:3::1">default</route>   
+  </vm>
+
+  <vm name="UPF" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+    <mem>128M</mem>
+    <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
+    <if id="1" net="Net13upf">
+      <ipv6>fd00:0:4::2/64</ipv6>
     </if>
     <route type="ipv6" gw="fd00:0:3::1">default</route>   
   </vm>
@@ -77,10 +88,14 @@
     <if id="2" net="Net12">
       <ipv6>fcf0:0:1:2::1/64</ipv6>
     </if>
-    <if id="3" net="Net111">
-      <ipv6>fd00:0:11::1/64</ipv6>
+    <if id="3" net="Net14">
+      <ipv6>fcf0:0:1:4::1/64</ipv6>
+    </if>
+    <if id="4" net="Net111">
+      <ipv6>fcf0:0:1:11::1/64</ipv6>
     </if>
     <forwarding type="ip" />
+    <!--
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r1/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
@@ -89,6 +104,7 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
+    -->
   </vm>
 
   <vm name="r2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -102,10 +118,14 @@
     <if id="3" net="Net23">
       <ipv6>fcf0:0:2:3::1/64</ipv6>
     </if>
-    <if id="4" net="Net27">
-      <ipv6>fcf0:0:2:7::1/64</ipv6>
+    <if id="4" net="Net25">
+      <ipv6>fcf0:0:2:5::1/64</ipv6>
+    </if>
+    <if id="5" net="Net212">
+      <ipv6>fcf0:0:2:12::1/64</ipv6>
     </if>
     <forwarding type="ip" />
+    <!--
   <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r2/*</filetree>
   <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
@@ -113,7 +133,8 @@
       for dev in $(ip -o -6 a | awk '{ print $2 }' | grep -v "lo"); do sysctl -w net.ipv6.conf."$dev".seg6_enabled=1; done;
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
-    </exec>  
+    </exec>
+    -->  
   </vm>
 
   <vm name="r3" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -124,15 +145,17 @@
     <if id="2" net="Net23">
       <ipv6>fcf0:0:2:3::2/64</ipv6>
     </if>
-    <if id="3" net="Net34">
-      <ipv6>fcf0:0:3:4::1/64</ipv6>
+    <if id="3" net="Net37">
+      <ipv6>fcf0:0:3:7::1/64</ipv6>
     </if>
-    <if id="4" net="Net331">
-      <ipv6>fd00:0:31::1/64</ipv6>
+    <if id="4" net="Net312">
+      <ipv6>fcf0:0:3:12::1/64</ipv6>
     </if>
-
+    <if id="5" net="Net313">
+      <ipv6>fcf0:0:3:13::1/64</ipv6>
+    </if>
     <forwarding type="ip" />
-
+    <!--
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r3/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
@@ -141,6 +164,7 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
+    -->
   </vm>
 
   <vm name="r4" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -148,18 +172,18 @@
     <if net="lo" id="1">
         <ipv6>fcff:4::1/32</ipv6>
     </if>
-    <if id="2" net="Net34">
-      <ipv6>fcf0:0:3:4::2/64</ipv6>
+    <if id="2" net="Net14">
+      <ipv6>fcf0:0:1:4::2/64</ipv6>
     </if>
-    <if id="3" net="Net45">
-      <ipv6>fcf0:0:4:5::1/64</ipv6>
-    </if>
-    <if id="4" net="Net46">
+    <if id="3" net="Net46">
       <ipv6>fcf0:0:4:6::1/64</ipv6>
+    </if>
+    <if id="4" net="Net411">
+      <ipv6>fcf0:0:4:11::1/64</ipv6>
     </if>
 
     <forwarding type="ip" />
-
+    <!--
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r4/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
@@ -168,6 +192,7 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
+    -->
   </vm>
 
   <vm name="r5" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -175,15 +200,13 @@
     <if net="lo" id="1">
         <ipv6>fcff:5::1/32</ipv6>
     </if>
-    <if id="2" net="Net45">
-      <ipv6>fcf0:0:4:5::2/64</ipv6>
+    <if id="2" net="Net25">
+      <ipv6>fcf0:0:2:5::2/64</ipv6>
     </if>
     <if id="3" net="Net56">
       <ipv6>fcf0:0:5:6::1/64</ipv6>
     </if>
-    <if id="4" net="Net551">
-      <ipv6>fd00:0:51::1/64</ipv6>
-    </if>
+    <!--
     <forwarding type="ip" />
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r5/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
@@ -193,6 +216,7 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
+    -->
   </vm>
 
   <vm name="r6" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -209,12 +233,9 @@
     <if id="4" net="Net67">
       <ipv6>fcf0:0:6:7::1/64</ipv6>
     </if>
-    <if id="5" net="Net68">
-      <ipv6>fcf0:0:6:8::1/64</ipv6>
-    </if>
    
     <forwarding type="ip" />
-
+    <!--
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r6/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
@@ -223,6 +244,7 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
+    -->
   </vm>
 
   <vm name="r7" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -230,18 +252,18 @@
     <if net="lo" id="1">
         <ipv6>fcff:7::1/32</ipv6>
     </if>
-    <if id="2" net="Net27">
-      <ipv6>fcf0:0:2:7::2/64</ipv6>
+    <if id="2" net="Net37">
+      <ipv6>fcf0:0:3:7::2/64</ipv6>
     </if>
     <if id="3" net="Net67">
       <ipv6>fcf0:0:6:7::2/64</ipv6>
     </if>
-    <if id="4" net="Net78">
-      <ipv6>fcf0:0:7:8::1/64</ipv6>
+    <if id="4" net="Net713">
+      <ipv6>fcf0:0:7:13::1/64</ipv6>
     </if>
    
     <forwarding type="ip" />
-
+    <!--
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r7/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
@@ -250,24 +272,25 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
+    -->
   </vm>
 
-  <vm name="r8" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+  <vm name="r11" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025-routerwithfrr</filesystem>
     <if net="lo" id="1">
-        <ipv6>fcff:8::1/32</ipv6>
+        <ipv6>fcff:11::1/32</ipv6>
     </if>
-    <if id="2" net="Net68">
-      <ipv6>fcf0:0:6:8::2/64</ipv6>
+    <if id="2" net="Net111">
+      <ipv6>fcf0:0:1:11::2/64</ipv6>
     </if>
-    <if id="3" net="Net78">
-      <ipv6>fcf0:0:7:8::2/64</ipv6>
+    <if id="3" net="Net411">
+      <ipv6>fcf0:0:4:11::2/64</ipv6>
     </if>
-    <if id="4" net="Net881">
-      <ipv6>fd00:0:81::1/64</ipv6>
+    <if id="4" net="Net11gnb">
+      <ipv6>fcf0:0:11:14::1</ipv6>
     </if>
     <forwarding type="ip" />
-
+    <!--
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r8/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
@@ -276,5 +299,87 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
+    -->
+  </vm>
+
+  <vm name="r12" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+    <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025-routerwithfrr</filesystem>
+    <if net="lo" id="1">
+        <ipv6>fcff:12::1/32</ipv6>
+    </if>
+    <if id="2" net="Net212">
+      <ipv6>fcf0:0:2:12::2/64</ipv6>
+    </if>
+    <if id="3" net="Net312">
+      <ipv6>fcf0:0:3:12::2/64</ipv6>
+    </if>
+    <forwarding type="ip" />
+    <!--
+    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r8/*</filetree>
+    <exec seq="on_boot" type="verbatim" ostype="system">
+      sysctl -w net.ipv6.conf.all.forwarding=1
+      sysctl -w net.ipv6.conf.all.seg6_enabled=1
+      for dev in $(ip -o -6 a | awk '{ print $2 }' | grep -v "lo"); do sysctl -w net.ipv6.conf."$dev".seg6_enabled=1; done;
+      vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
+      vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
+    </exec>
+    -->
+  </vm>
+
+  <vm name="r13" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+    <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025-routerwithfrr</filesystem>
+    <if net="lo" id="1">
+        <ipv6>fcff:13::1/32</ipv6>
+    </if>
+    <if id="2" net="Net313">
+      <ipv6>fcf0:0:3:13::2/64</ipv6>
+    </if>
+    <if id="3" net="Net713">
+      <ipv6>fcf0:0:7:13::2/64</ipv6>
+    </if>
+    <if id="4" net="Net13upf">
+      <ipv6>fd00:0:4::1/64</ipv6>
+    </if>
+    <forwarding type="ip" />
+    <!--
+    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r8/*</filetree>
+    <exec seq="on_boot" type="verbatim" ostype="system">
+      sysctl -w net.ipv6.conf.all.forwarding=1
+      sysctl -w net.ipv6.conf.all.seg6_enabled=1
+      for dev in $(ip -o -6 a | awk '{ print $2 }' | grep -v "lo"); do sysctl -w net.ipv6.conf."$dev".seg6_enabled=1; done;
+      vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
+      vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
+    </exec>
+    -->
+  </vm>
+
+  <vm name="gnb" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+    <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025-routerwithfrr</filesystem>
+    <if net="lo" id="1">
+        <ipv6>fcff:14::1/32</ipv6>
+    </if>
+    <if id="2" net="Net11gnb">
+      <ipv6>fcf0:0:11:14::2/64</ipv6>
+    </if>
+    <if id="3" net="Netgnbh1">
+      <ipv6>fd00:0:1::1/64</ipv6>
+    </if>
+    <if id="4" net="Netgnbh2">
+      <ipv6>fd00:0:2::1/64</ipv6>
+    </if>
+    <if id="5" net="Netgnbh3">
+      <ipv6>fd00:0:3::1/64</ipv6>
+    </if>
+    <forwarding type="ip" />
+    <!--
+    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r8/*</filetree>
+    <exec seq="on_boot" type="verbatim" ostype="system">
+      sysctl -w net.ipv6.conf.all.forwarding=1
+      sysctl -w net.ipv6.conf.all.seg6_enabled=1
+      for dev in $(ip -o -6 a | awk '{ print $2 }' | grep -v "lo"); do sysctl -w net.ipv6.conf."$dev".seg6_enabled=1; done;
+      vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
+      vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
+    </exec>
+    -->
   </vm>
 </vnx>
