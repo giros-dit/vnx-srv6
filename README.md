@@ -62,7 +62,10 @@ Finally, restart the system or run **sysctl --system** to apply these changes.
 ## SRv6 tunnels
 
 **gNB**
+```
 ip -6 route add fd00:0:4::/64 encap seg6 mode encap segs fcff:4::1,fcff:13::1 dev eth3
-
+```
 **r13**
+```
 ip -6 route add fd00:0:1::/64 encap seg6 mode encap segs fcff:4::1,fcff:14::1 dev eth4
+```
