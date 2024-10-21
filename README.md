@@ -2,9 +2,19 @@
 VNX scenarios for studying and analyzing SRv6 (Segment Routing over IPv6 dataplane).
 
 
-## IPv6 Across
+##  Across
+To run some scenarios, it is necessary to add the following lines to the **/etc/sysctl.conf** file:
 
-### Host - router
+```
+fs.file-max = 4194304
+fs.inotify.max_queued_events = 2097152
+fs.inotify.max_user_instances = 2097152
+fs.inotify.max_user_watches = 2097152
+```
+
+Finally, restart the system or run **sysctl --system** to apply these changes.
+
+#### Host - router
 
 | Host        | Router     | Host IPv6               | Router IPv6              |
 |-------------|------------|-------------------------|--------------------------|
@@ -13,7 +23,7 @@ VNX scenarios for studying and analyzing SRv6 (Segment Routing over IPv6 datapla
 | h3 - eth1   | gNB - eth5 | `fd00:0:3::2/64`        | `fd00:0:3::1/64`         |
 | UPF - eth1  | r13 - eth4 | `fd00:0:4::2/64`        | `fd00:0:4::1/64`         |
 
-### Links router-router
+#### Links router-router
 
 | Router A    | Router B    | Router A IPv6            | Router B IPv6              |
 |-------------|-------------|--------------------------|----------------------------|
@@ -33,7 +43,7 @@ VNX scenarios for studying and analyzing SRv6 (Segment Routing over IPv6 datapla
 | r7  - eth4  | r13 - eth3  | `fcf0:0:7:13::1/64`      | `fcf0:0:7:13::2/64`        |
 | r11 - eth4  | gNB - eth2  | `fcf0:0:11:14::1/64`     | `fcf0:0:11:14::2/64`       |
 
-### Routers ID
+#### Routers ID
 
 | Router      | ID               |
 |-------------|------------------|
@@ -50,3 +60,9 @@ VNX scenarios for studying and analyzing SRv6 (Segment Routing over IPv6 datapla
 | gNB         | `fcff:14::1/32`  |
 
 ## SRv6 tunnels
+
+**gNB**
+ip -6 route add fd00:0:4::/64 encap seg6 mode encap segs fcff:4::1,fcff:13::1 dev eth3
+
+**r13**
+ip -6 route add fd00:0:1::/64 encap seg6 mode encap segs fcff:4::1,fcff:14::1 dev eth4
