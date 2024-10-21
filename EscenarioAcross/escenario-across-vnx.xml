@@ -95,7 +95,6 @@
       <ipv6>fcf0:0:1:11::1/64</ipv6>
     </if>
     <forwarding type="ip" />
-    <!--
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r1/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
@@ -104,7 +103,6 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
-    -->
   </vm>
 
   <vm name="r2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -125,7 +123,6 @@
       <ipv6>fcf0:0:2:12::1/64</ipv6>
     </if>
     <forwarding type="ip" />
-    <!--
   <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r2/*</filetree>
   <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
@@ -134,7 +131,6 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
-    -->  
   </vm>
 
   <vm name="r3" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -155,7 +151,6 @@
       <ipv6>fcf0:0:3:13::1/64</ipv6>
     </if>
     <forwarding type="ip" />
-    <!--
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r3/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
@@ -164,7 +159,6 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
-    -->
   </vm>
 
   <vm name="r4" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -183,7 +177,6 @@
     </if>
 
     <forwarding type="ip" />
-    <!--
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r4/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
@@ -192,7 +185,6 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
-    -->
   </vm>
 
   <vm name="r5" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -206,7 +198,6 @@
     <if id="3" net="Net56">
       <ipv6>fcf0:0:5:6::1/64</ipv6>
     </if>
-    <!--
     <forwarding type="ip" />
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r5/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
@@ -216,7 +207,6 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
-    -->
   </vm>
 
   <vm name="r6" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -235,7 +225,6 @@
     </if>
    
     <forwarding type="ip" />
-    <!--
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r6/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
@@ -244,7 +233,6 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
-    -->
   </vm>
 
   <vm name="r7" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -263,7 +251,6 @@
     </if>
    
     <forwarding type="ip" />
-    <!--
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r7/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
@@ -272,7 +259,6 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
-    -->
   </vm>
 
   <vm name="r11" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -290,8 +276,7 @@
       <ipv6>fcf0:0:11:14::1/64</ipv6>
     </if>
     <forwarding type="ip" />
-    <!--
-    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r8/*</filetree>
+    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r11/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
       sysctl -w net.ipv6.conf.all.seg6_enabled=1
@@ -299,7 +284,6 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
-    -->
   </vm>
 
   <vm name="r12" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -314,8 +298,7 @@
       <ipv6>fcf0:0:3:12::2/64</ipv6>
     </if>
     <forwarding type="ip" />
-    <!--
-    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r8/*</filetree>
+    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r12/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
       sysctl -w net.ipv6.conf.all.seg6_enabled=1
@@ -323,7 +306,6 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
-    -->
   </vm>
 
   <vm name="r13" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -341,8 +323,7 @@
       <ipv6>fd00:0:4::1/64</ipv6>
     </if>
     <forwarding type="ip" />
-    <!--
-    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r8/*</filetree>
+    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r13/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
       sysctl -w net.ipv6.conf.all.seg6_enabled=1
@@ -350,7 +331,6 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
-    -->
   </vm>
 
   <vm name="gNB" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -371,8 +351,7 @@
       <ipv6>fd00:0:3::1/64</ipv6>
     </if>
     <forwarding type="ip" />
-    <!--
-    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r8/*</filetree>
+    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/gNB/*</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
       sysctl -w net.ipv6.conf.all.seg6_enabled=1
@@ -380,6 +359,5 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
-    -->
   </vm>
 </vnx>
