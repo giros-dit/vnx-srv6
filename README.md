@@ -48,3 +48,5 @@ VNX scenarios for studying and analyzing SRv6 (Segment Routing over IPv6 datapla
 | r12         | `fcff:12::1/32`  |
 | r13         | `fcff:13::1/32`  |
 | gNB         | `fcff:14::1/32`  |
+
+## SRv6 tunnels
