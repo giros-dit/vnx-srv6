@@ -3,7 +3,7 @@ VNX scenarios for studying and analyzing SRv6 (Segment Routing over IPv6 datapla
 
 
 ##  Across
-To run some scenarios, it is necessary to add the following lines to the **/etc/sysctl.conf** file:
+To run the scenarios, it is necessary to add the following lines to the **/etc/sysctl.conf** file:
 
 ```
 fs.file-max = 4194304
