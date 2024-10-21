@@ -1,0 +1,17 @@
+  <net name="Net111" mode="virtual_bridge" />
+  <net name="Net411" mode="virtual_bridge" />
+  <net name="Net12" mode="virtual_bridge" />
+  <net name="Net14" mode="virtual_bridge" />
+  <net name="Net46" mode="virtual_bridge" />
+  <net name="Net23" mode="virtual_bridge" />
+  <net name="Net25" mode="virtual_bridge" />
+  <net name="Net212" mode="virtual_bridge" />
+  <net name="Net56" mode="virtual_bridge" />
+  <net name="Net3UPF" mode="virtual_bridge" />
+  <net name="Net312" mode="virtual_bridge" />
+  <net name="Net37" mode="virtual_bridge" />
+  <net name="Net67" mode="virtual_bridge" />
+  <net name="Net7UPF" mode="virtual_bridge" />
+  <net name="Net11h1" mode="virtual_bridge" />
+  <net name="Net11h2" mode="virtual_bridge" />
+  <net name="Net11h3" mode="virtual_bridge" />
