@@ -29,8 +29,10 @@
   <net name="Net67" mode="virtual_bridge" />
   <net name="Net713" mode="virtual_bridge" />
   <net name="Net11gnb" mode="virtual_bridge" />
-  <net name="Netgnbh1" mode="virtual_bridge" />
+  <net name="NetgNB" mode="virtual_bridge" />
+    <!--
   <net name="Netgnbh2" mode="virtual_bridge" />
+    -->
   <net name="Netgnbh3" mode="virtual_bridge" />
   <net name="Net13upf" mode="virtual_bridge" />
   <!--
@@ -41,28 +43,27 @@
   <vm name="h1" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <mem>128M</mem>
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
-    <if id="1" net="Netgnbh1">
+    <if id="1" net="NetgNB">
       <ipv6>fd00:0:1::2/64</ipv6>
     </if>
     <route type="ipv6" gw="fd00:0:1::1">default</route>   
   </vm>
-
 <vm name="h2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <mem>128M</mem>
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
-    <if id="1" net="Netgnbh2">
-      <ipv6>fd00:0:2::2/64</ipv6>
+    <if id="1" net="NetgNB">
+      <ipv6>fd00:0:1::3/64</ipv6>
     </if>
-    <route type="ipv6" gw="fd00:0:2::1">default</route>  
+    <route type="ipv6" gw="fd00:0:1::1">default</route>  
   </vm>
 
   <vm name="h3" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <mem>128M</mem>
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
-    <if id="1" net="Netgnbh3">
-      <ipv6>fd00:0:3::2/64</ipv6>
+    <if id="1" net="NetgNB">
+      <ipv6>fd00:0:1::4/64</ipv6>
     </if>
-    <route type="ipv6" gw="fd00:0:3::1">default</route>   
+    <route type="ipv6" gw="fd00:0:1::1">default</route>   
   </vm>
 
   <vm name="UPF" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -341,14 +342,8 @@
     <if id="2" net="Net11gnb">
       <ipv6>fcf0:0:11:14::2/64</ipv6>
     </if>
-    <if id="3" net="Netgnbh1">
+    <if id="3" net="NetgNB">
       <ipv6>fd00:0:1::1/64</ipv6>
-    </if>
-    <if id="4" net="Netgnbh2">
-      <ipv6>fd00:0:2::1/64</ipv6>
-    </if>
-    <if id="5" net="Netgnbh3">
-      <ipv6>fd00:0:3::1/64</ipv6>
     </if>
     <forwarding type="ip" />
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/gNB/*</filetree>
