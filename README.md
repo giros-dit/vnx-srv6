@@ -60,19 +60,45 @@ Finally, restart the system or run **sysctl --system** to apply these changes.
 | gNB         | `fcff:14::1/32`  |
 
 ## SRv6 tunnels
+There is a script to create SRv6 tunnels in EscenarioAcrross, to use:
 
+```
+python3 tunnelmaker.py <host_id> [id_router] [id_router]
+```
+| Host      | host_id  |         
+|-----------|----------|
+| h1        | 1        |
+| h2        | 2        |
+| h3        | 3        |
+
+| Host       | host_id   |         
+|------------|-----------|
+| r1         | 1         |
+| r2         | 2         |
+| r3         | 3         |
+| r4         | 4         |
+| r5         | 5         |
+| r6         | 6         |
+| r7         | 7         |
+| r11        | 11        |
+| r12        | 12        |
+
+Or use commands
 ### h1 - UPF
 **gNB**
 ```
-ip -6 route add fd00:0:4::/64 encap seg6 mode encap segs fcff:4::1,fcff:13::1 via fd00:0:1::2
+ip -6 route add fd00:0:4::/64 encap seg6 mode encap segs fcff:4::1,fcff:13::1 dev eth3
 ```
 **r13**
 ```
-ip -6 route add fd00:0:1::2 encap seg6 mode encap segs fcff:4::1,fcff:14::1 via fd00:0:4::2
+ip -6 route add fd00:0:1::2 encap seg6 mode encap segs fcff:4::1,fcff:14::1 dev eth4
 ```
 ### h2 - UPF
-
+**gNB**
+```
+ip -6 route add fd00:0:4::/64 encap seg6 mode encap segs fcff:4::1,fcff:13::dev eth4
+```
 **r13**
 ```
-ip -6 route add fd00:0:1::3 encap seg6 mode encap segs fcff:12::1,fcff:5::1,fcff:4::1,fcff:14::1 via fd00:0:4::2
+ip -6 route add fd00:0:1::3 encap seg6 mode encap segs fcff:12::1,fcff:5::1,fcff:4::1,fcff:14::1 dev eth4
 ```
