@@ -63,7 +63,7 @@ Finally, restart the system or run **sysctl --system** to apply these changes.
 There is a script to create SRv6 tunnels in EscenarioAcrross, to use:
 
 ```
-python3 tunnelmaker.py <host_id> [id_router] [id_router]
+python3 tunnelmaker.py <host_id> [router_id] [router_id]
 ```
 | Host      | host_id  |         
 |-----------|----------|
@@ -71,7 +71,7 @@ python3 tunnelmaker.py <host_id> [id_router] [id_router]
 | h2        | 2        |
 | h3        | 3        |
 
-| Host       | host_id   |         
+| Router     | host_id   |         
 |------------|-----------|
 | r1         | 1         |
 | r2         | 2         |
