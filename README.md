@@ -71,7 +71,7 @@ python3 tunnelmaker.py <host_id> [router_id] [router_id]
 | h2        | 2        |
 | h3        | 3        |
 
-| Router     | host_id   |         
+| Router     | router_id |         
 |------------|-----------|
 | r1         | 1         |
 | r2         | 2         |
