@@ -49,7 +49,7 @@
 <vm name="h2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <mem>128M</mem>
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
-    <if id="1" net="NetgNB">
+    <if id="1" net="NetgNBh2">
       <ipv6>fd00:0:1::3/64</ipv6>
     </if>
     <route type="ipv6" gw="fd00:0:1::1">default</route>  

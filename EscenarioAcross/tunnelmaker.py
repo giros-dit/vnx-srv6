@@ -40,14 +40,15 @@ def main():
 
     # Insertar el número del host directamente en la IP
     iphost_num = sys.argv[1]
-    iphost = f'fd00:0:{iphost_num}::2/64'
+    iphost = f'fd00:0:{iphost_num}::2'
     
     routersgnbupf = sys.argv[2:]
     routersupfgnb = routersgnbupf[::-1]  # Invertir el orden de los routers para la otra ruta
 
     # Crear scripts
-    commandgnb = createupfgnb(iphost, routersgnbupf)
-    commandr13 = creategnbupf(iphost, routersupfgnb)
+    
+    commandr13 = createupfgnb(iphost, routersgnbupf)
+    commandgnb = creategnbupf(iphost, routersupfgnb)
 
     scriptgnb = './conf/gNB/script.sh'
     scriptr13 = './conf/r13/script.sh'
@@ -57,7 +58,7 @@ def main():
     
     print(f"Scripts generados y guardados en {scriptr13} y {scriptgnb}.")
 
-    #execute()
+    execute()
 
 if __name__ == "__main__":
     main()
