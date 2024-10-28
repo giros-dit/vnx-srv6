@@ -14,14 +14,25 @@ fs.inotify.max_user_watches = 2097152
 
 Finally, restart the system or run **sysctl --system** to apply these changes.
 
-#### Host - router
+#### CORESistem - router
 
-| Host        | Router     | Host IPv6               | Router IPv6              |
-|-------------|------------|-------------------------|--------------------------|
-| h1 - eth1   | gNB - eth3 | `fd00:0:1::2/64`        | `fd00:0:1::1/64`         |
-| h2 - eth1   | gNB - eth4 | `fd00:0:2::2/64`        | `fd00:0:2::1/64`         |
-| h3 - eth1   | gNB - eth5 | `fd00:0:3::2/64`        | `fd00:0:3::1/64`         |
-| UPF - eth1  | r13 - eth4 | `fd00:0:4::2/64`        | `fd00:0:4::1/64`         |
+
+| VM   | Interface | VLAN Tag | IPv6 Address      | Connected Router | Router IPv6      |
+|------|-----------|----------|-------------------|------------------|------------------|
+| gNB1 | eth1      | 111      | `fd00:0:1::2/64`  | r11              | `fd00:0:1::1/64` |
+| gNB1 | eth2      | 112      | `fd00:0:1::3/64`  | r11              | `fd00:0:1::1/64` |
+| gNB1 | eth3      | 113      | `fd00:0:1::4/64`  | r11              | `fd00:0:1::1/64` |
+| gNB2 | eth1      | 121      | `fd00:0:2::2/64`  | r12              | `fd00:0:2::1/64` |
+| gNB2 | eth2      | 122      | `fd00:0:2::3/64`  | r12              | `fd00:0:2::1/64` |
+| gNB2 | eth3      | 123      | `fd00:0:2::4/64`  | r12              | `fd00:0:2::1/64` |
+| UPF  | eth1      | 111      | `fd00:0:4::2/64`  | r13              | `fd00:0:4::1/64` |
+| UPF  | eth2      | 112      | `fd00:0:4::3/64`  | r13              | `fd00:0:4::1/64` |
+| UPF  | eth3      | 113      | `fd00:0:4::4/64`  | r13              | `fd00:0:4::1/64` |
+| UPF  | eth4      | 121      | `fd00:0:4::5/64`  | r13              | `fd00:0:4::1/64` |
+| UPF  | eth5      | 122      | `fd00:0:4::6/64`  | r13              | `fd00:0:4::1/64` |
+| UPF  | eth6      | 123      | `fd00:0:4::7/64`  | r13              | `fd00:0:4::1/64` |
+
+
 
 #### Links router-router
 
@@ -41,7 +52,6 @@ Finally, restart the system or run **sysctl --system** to apply these changes.
 | r5  - eth3  | r6  - eth3  | `fcf0:0:5:6::1/64`       | `fcf0:0:5:6::2/64`         |
 | r6  - eth4  | r7  - eth3  | `fcf0:0:6:7::1/64`       | `fcf0:0:6:7::2/64`         |
 | r7  - eth4  | r13 - eth3  | `fcf0:0:7:13::1/64`      | `fcf0:0:7:13::2/64`        |
-| r11 - eth4  | gNB - eth2  | `fcf0:0:11:14::1/64`     | `fcf0:0:11:14::2/64`       |
 
 #### Routers ID
 
@@ -57,7 +67,7 @@ Finally, restart the system or run **sysctl --system** to apply these changes.
 | r11         | `fcff:11::1/32`  |
 | r12         | `fcff:12::1/32`  |
 | r13         | `fcff:13::1/32`  |
-| gNB         | `fcff:14::1/32`  |
+
 
 ## SRv6 tunnels
 There is a script to create SRv6 tunnels in EscenarioAcrross, to use:
