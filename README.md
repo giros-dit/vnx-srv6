@@ -19,18 +19,18 @@ Finally, restart the system or run **sysctl --system** to apply these changes.
 
 | VM   | Interface | VLAN Tag | IPv6 Address      | Connected Router | Router IPv6      |
 |------|-----------|----------|-------------------|------------------|------------------|
-| gNB1 | eth1      | 111      | `fd00:0:1::2/64`  | r11              | `fd00:0:1::1/64` |
-| gNB1 | eth2      | 112      | `fd00:0:1::3/64`  | r11              | `fd00:0:1::1/64` |
-| gNB1 | eth3      | 113      | `fd00:0:1::4/64`  | r11              | `fd00:0:1::1/64` |
-| gNB2 | eth1      | 121      | `fd00:0:2::2/64`  | r12              | `fd00:0:2::1/64` |
-| gNB2 | eth2      | 122      | `fd00:0:2::3/64`  | r12              | `fd00:0:2::1/64` |
-| gNB2 | eth3      | 123      | `fd00:0:2::4/64`  | r12              | `fd00:0:2::1/64` |
-| UPF  | eth1      | 111      | `fd00:0:4::2/64`  | r13              | `fd00:0:4::1/64` |
-| UPF  | eth2      | 112      | `fd00:0:4::3/64`  | r13              | `fd00:0:4::1/64` |
-| UPF  | eth3      | 113      | `fd00:0:4::4/64`  | r13              | `fd00:0:4::1/64` |
-| UPF  | eth4      | 121      | `fd00:0:4::5/64`  | r13              | `fd00:0:4::1/64` |
-| UPF  | eth5      | 122      | `fd00:0:4::6/64`  | r13              | `fd00:0:4::1/64` |
-| UPF  | eth6      | 123      | `fd00:0:4::7/64`  | r13              | `fd00:0:4::1/64` |
+| gNB1 | eth1.111  | 111      | `fd00:0:2::2/64`  | r11              | `fd00:0:2::1/64` |
+| gNB1 | eth1.112  | 112      | `fd00:0:2::2/64`  | r11              | `fd00:0:2::1/64` |
+| gNB1 | eth1.113  | 113      | `fd00:0:2::2/64`  | r11              | `fd00:0:2::1/64` |
+| gNB2 | eth1.121  | 121      | `fd00:0:3::2/64`  | r12              | `fd00:0:3::1/64` |
+| gNB2 | eth1.122  | 122      | `fd00:0:3::2/64`  | r12              | `fd00:0:3::1/64` |
+| gNB2 | eth1.123  | 123      | `fd00:0:3::2/64`  | r12              | `fd00:0:3::1/64` |
+| UPF  | eth1.111  | 111      | `fd00:0:1::2/64`  | r13              | `fd00:0:1::1/64` |
+| UPF  | eth1.112  | 112      | `fd00:0:1::2/64`  | r13              | `fd00:0:1::1/64` |
+| UPF  | eth1.113  | 113      | `fd00:0:1::2/64`  | r13              | `fd00:0:1::1/64` |
+| UPF  | eth1.121  | 121      | `fd00:0:1::2/64`  | r13              | `fd00:0:1::1/64` |
+| UPF  | eth1.122  | 122      | `fd00:0:1::2/64`  | r13              | `fd00:0:1::1/64` |
+| UPF  | eth1.123  | 123      | `fd00:0:1::2/64`  | r13              | `fd00:0:1::1/64` |
 
 
 
@@ -94,21 +94,12 @@ python3 tunnelmaker.py <host_id> [router_id] [router_id]
 | r12        | 12        |
 
 Or use commands
-### h1 - UPF
-**gNB**
+### gNB1 - UPF
+**r11**
 ```
-ip -6 route add fd00:0:4::/64 encap seg6 mode encap segs fcff:4::1,fcff:13::1 dev eth3
-```
-**r13**
-```
-ip -6 route add fd00:0:1::2 encap seg6 mode encap segs fcff:4::1,fcff:14::1 dev eth4
-```
-### h2 - UPF
-**gNB**
-```
-ip -6 route add fd00:0:4::/64 encap seg6 mode encap segs fcff:4::1,fcff:13::dev eth4
+ip -6 route add fd00:0:1::/64 encap seg6 mode encap segs fcff:4::1,fcff:13::1 dev eth3.111
 ```
 **r13**
 ```
-ip -6 route add fd00:0:1::3 encap seg6 mode encap segs fcff:12::1,fcff:5::1,fcff:4::1,fcff:14::1 dev eth4
+ip -6 route add fd00:0:2::/64 encap seg6 mode encap segs fcff:4::1,fcff:11::1 dev eth3.111
 ```

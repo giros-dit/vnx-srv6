@@ -40,90 +40,74 @@
     <mem>128M</mem>
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
     <if id="1" net="Net11gNB1">
-      <vlan>
-        <tag id='111'/> 
-      </vlan>
-      <ipv6>fd00:0:1::2/64</ipv6>
+     <!--  <ipv6>fd00:0:2::2/64</ipv6> -->
     </if>
-    <if id="2" net="Net11gNB1">
-      <vlan>
-        <tag id='112'/> 
-      </vlan>
-      <ipv6>fd00:0:1::3/64</ipv6>
-    </if>
-    <if id="3" net="Net11gNB1">
-      <vlan>
-        <tag id='113'/> 
-      </vlan>
-      <ipv6>fd00:0:1::4/64</ipv6>
-    </if>
-    <route type="ipv6" gw="fd00:0:1::1">default</route>   
+    <exec seq="on_boot" type="verbatim" ostype="system">
+      ip link add link eth1 name eth1.111 type vlan id 111
+      ip link add link eth1 name eth1.112 type vlan id 112
+      ip link add link eth1 name eth1.113 type vlan id 113
+      ip link set dev eth1.111 up
+      ip link set dev eth1.112 up
+      ip link set dev eth1.113 up
+    </exec>
+    <exec seq="on_boot" type="verbatim" ostype="system">
+      ip addr add fd00:0:2::2/64 dev eth1.111
+      ip addr add fd00:0:2::2/64 dev eth1.112
+      ip addr add fd00:0:2::2/64 dev eth1.113
+    </exec>
+    <route type="ipv6" gw="fd00:0:2::1">default</route>  
   </vm>
 <vm name="gNB2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <mem>128M</mem>
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
     <if id="1" net="Net12gNB2">
-      <vlan>
-        <tag id='121'/> 
-      </vlan>
-      <ipv6>fd00:0:2::2/64</ipv6>
+    <!--  <ipv6>fd00:0:3::2/64</ipv6> --> 
     </if>
-    <if id="2" net="Net12gNB2">
-      <vlan>
-        <tag id='122'/> 
-      </vlan>
-      <ipv6>fd00:0:2::3/64</ipv6>
-    </if>
-    <if id="3" net="Net12gNB2">
-      <vlan>
-        <tag id='123'/> 
-      </vlan>
-      <ipv6>fd00:0:2::4/64</ipv6>
-    </if>
-    <route type="ipv6" gw="fd00:0:2::1">default</route>  
+    <exec seq="on_boot" type="verbatim" ostype="system">
+      ip link add link eth1 name eth1.121 type vlan id 121
+      ip link add link eth1 name eth1.122 type vlan id 122
+      ip link add link eth1 name eth1.123 type vlan id 123
+      ip link set dev eth1.121 up
+      ip link set dev eth1.122 up
+      ip link set dev eth1.123 up
+    </exec>
+    <exec seq="on_boot" type="verbatim" ostype="system">
+      ip addr add fd00:0:3::2/64 dev eth1.121
+      ip addr add fd00:0:3::2/64 dev eth1.122
+      ip addr add fd00:0:3::2/64 dev eth1.123
+    </exec>
+    <route type="ipv6" gw="fd00:0:3::1">default</route>  
   </vm>
-
 
   <vm name="UPF" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <mem>128M</mem>
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
     <if id="1" net="Net13upf">
-      <vlan>
-        <tag id='111'/> 
-      </vlan>
-      <ipv6>fd00:0:4::2/64</ipv6>
+    <!-- <ipv6>fd00:0:1::2/64</ipv6> --> 
     </if>
-    <if id="2" net="Net13upf">
-      <vlan>
-        <tag id='112'/> 
-      </vlan>
-      <ipv6>fd00:0:4::3/64</ipv6>
-    </if>
-    <if id="3" net="Net13upf">
-      <vlan>
-        <tag id='113'/> 
-      </vlan>
-      <ipv6>fd00:0:4::4/64</ipv6>
-    </if>
-    <if id="4" net="Net13upf">
-      <vlan>
-        <tag id='121'/> 
-      </vlan>
-      <ipv6>fd00:0:4::5/64</ipv6>
-    </if>
-    <if id="5" net="Net13upf">
-      <vlan>
-        <tag id='122'/> 
-      </vlan>
-      <ipv6>fd00:0:4::6/64</ipv6>
-    </if>
-    <if id="6" net="Net13upf">
-      <vlan>
-        <tag id='123'/> 
-      </vlan>
-      <ipv6>fd00:0:4::7/64</ipv6>
-    </if>
-    <route type="ipv6" gw="fd00:0:4::1">default</route>   
+    <exec seq="on_boot" type="verbatim" ostype="system">
+      ip link add link eth1 name eth1.111 type vlan id 111
+      ip link add link eth1 name eth1.112 type vlan id 112
+      ip link add link eth1 name eth1.113 type vlan id 113
+      ip link add link eth1 name eth1.121 type vlan id 121
+      ip link add link eth1 name eth1.122 type vlan id 122
+      ip link add link eth1 name eth1.123 type vlan id 123
+      ip link set dev eth1.111 up
+      ip link set dev eth1.112 up
+      ip link set dev eth1.113 up
+      ip link set dev eth1.121 up
+      ip link set dev eth1.122 up
+      ip link set dev eth1.123 up
+    </exec>
+    <exec seq="on_boot" type="verbatim" ostype="system">
+      ip addr add fd00:0:1::2/64 dev eth1.111
+      ip addr add fd00:0:1::2/64 dev eth1.112
+      ip addr add fd00:0:1::2/64 dev eth1.113
+      ip addr add fd00:0:1::2/64 dev eth1.121
+      ip addr add fd00:0:1::2/64 dev eth1.122
+      ip addr add fd00:0:1::2/64 dev eth1.123
+    </exec>
+    <route type="ipv6" gw="fd00:0:1::1">default</route>   
   </vm>
 
   <!--
@@ -325,7 +309,7 @@
       <ipv6>fcf0:0:4:11::2/64</ipv6>
     </if>
     <if id="4" net="Net11gNB1">
-      <ipv6>fd00:0:1::1/64</ipv6>
+    <!--  <ipv6>fd00:0:2::1/64</ipv6> --> 
     </if>
     <forwarding type="ip" />
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r11/*</filetree>
@@ -334,8 +318,20 @@
       sysctl -w net.ipv6.conf.all.seg6_enabled=1
       for dev in $(ip -o -6 a | awk '{ print $2 }' | grep -v "lo"); do sysctl -w net.ipv6.conf."$dev".seg6_enabled=1; done;
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
-      vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
+      vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
+      ip link add link eth3 name eth3.111 type vlan id 111
+      ip link add link eth3 name eth3.112 type vlan id 112
+      ip link add link eth3 name eth3.113 type vlan id 113
+      ip link set dev eth3.111 up
+      ip link set dev eth3.112 up
+      ip link set dev eth3.113 up  
     </exec>
+    <exec seq="on_boot" type="verbatim" ostype="system">
+      ip addr add fd00:0:2::1/64 dev eth3.111
+      ip addr add fd00:0:2::1/64 dev eth3.112
+      ip addr add fd00:0:2::1/64 dev eth3.113
+    </exec>
+
   </vm>
 
   <vm name="r12" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -350,7 +346,7 @@
       <ipv6>fcf0:0:3:12::2/64</ipv6>
     </if>
     <if id="4" net="Net12gNB2">
-      <ipv6>fd00:0:2::1/64</ipv6>
+    <!--  <ipv6>fd00:0:3::1/64</ipv6> -->
     </if>
     <forwarding type="ip" />
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r12/*</filetree>
@@ -359,7 +355,18 @@
       sysctl -w net.ipv6.conf.all.seg6_enabled=1
       for dev in $(ip -o -6 a | awk '{ print $2 }' | grep -v "lo"); do sysctl -w net.ipv6.conf."$dev".seg6_enabled=1; done;
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
-      vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
+      vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
+      ip link add link eth3 name eth3.121 type vlan id 121
+      ip link add link eth3 name eth3.122 type vlan id 122
+      ip link add link eth3 name eth3.123 type vlan id 123
+      ip link set dev eth3.121 up
+      ip link set dev eth3.122 up
+      ip link set dev eth3.123 up
+    </exec>
+    <exec seq="on_boot" type="verbatim" ostype="system">
+      ip addr add fd00:0:3::1/64 dev eth3.121
+      ip addr add fd00:0:3::1/64 dev eth3.122
+      ip addr add fd00:0:3::1/64 dev eth3.123
     </exec>
     <filetree seq="createroute" root="/etc/frr" perms="640">conf/r12/script.sh</filetree>
     <exec seq="createroute" type="verbatim" ostype="system">
@@ -380,7 +387,7 @@
       <ipv6>fcf0:0:7:13::2/64</ipv6>
     </if>
     <if id="4" net="Net13upf">
-      <ipv6>fd00:0:4::1/64</ipv6>
+    <!--  <ipv6>fd00:0:1::1/64</ipv6> -->
     </if>
     <forwarding type="ip" />
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/r13/*.conf</filetree>
@@ -389,7 +396,27 @@
       sysctl -w net.ipv6.conf.all.seg6_enabled=1
       for dev in $(ip -o -6 a | awk '{ print $2 }' | grep -v "lo"); do sysctl -w net.ipv6.conf."$dev".seg6_enabled=1; done;
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
-      vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
+      vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
+      ip link add link eth3 name eth3.111 type vlan id 111
+      ip link add link eth3 name eth3.112 type vlan id 112
+      ip link add link eth3 name eth3.113 type vlan id 113
+      ip link add link eth3 name eth3.121 type vlan id 121
+      ip link add link eth3 name eth3.122 type vlan id 122
+      ip link add link eth3 name eth3.123 type vlan id 123
+      ip link set dev eth3.111 up
+      ip link set dev eth3.112 up
+      ip link set dev eth3.113 up
+      ip link set dev eth3.121 up
+      ip link set dev eth3.122 up
+      ip link set dev eth3.123 up
+    </exec>
+    <exec seq="on_boot" type="verbatim" ostype="system">
+      ip addr add fd00:0:1::1/64 dev eth3.111
+      ip addr add fd00:0:1::1/64 dev eth3.112
+      ip addr add fd00:0:1::1/64 dev eth3.113
+      ip addr add fd00:0:1::1/64 dev eth3.121
+      ip addr add fd00:0:1::1/64 dev eth3.122
+      ip addr add fd00:0:1::1/64 dev eth3.123
     </exec>
     <filetree seq="createroute" root="/etc/frr" perms="640">conf/r13/script.sh</filetree>
     <exec seq="createroute" type="verbatim" ostype="system">
