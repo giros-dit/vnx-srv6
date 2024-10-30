@@ -97,9 +97,9 @@ Or use commands
 ### gNB1 - UPF
 **r11**
 ```
-ip -6 route add fd00:0:1::/64 encap seg6 mode encap segs fcff:4::1,fcff:13::1 dev eth3.111
+ip -6 route add fd00:0:1::/64 encap seg6 mode encap segs fcff:4::1,fcff:13::1 dev eth4.111
 ```
 **r13**
 ```
-ip -6 route add fd00:0:2::/64 encap seg6 mode encap segs fcff:4::1,fcff:11::1 dev eth3.111
+ip -6 route add fd00:0:2::/64 encap seg6 mode encap segs fcff:4::1,fcff:11::1 dev eth4.111
 ```
