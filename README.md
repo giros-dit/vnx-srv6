@@ -3,6 +3,8 @@ VNX scenarios for studying and analyzing SRv6 (Segment Routing over IPv6 datapla
 
 
 ##  Across
+
+### Before running the scenarios
 To run the scenarios, it is necessary to add the following lines to the **/etc/sysctl.conf** file:
 
 ```
@@ -13,6 +15,9 @@ fs.inotify.max_user_watches = 2097152
 ```
 
 Finally, restart the system or run **sysctl --system** to apply these changes.
+---
+
+### IPv6 and interfaces Tables
 
 #### CORE Sistem - router
 
@@ -71,12 +76,12 @@ Finally, restart the system or run **sysctl --system** to apply these changes.
 ## SRv6 tunnels
 
 ### Python scritps to generate tunnels
-There is a script to create SRv6 tunnels in EscenarioAcrross, to use first (after the command, there is help sheet with numbers to use at the script):
+There is a script to create SRv6 tunnels in EscenarioAcrross. To use it, first run the command; a help sheet is append with numbers to use in the script:
 
 ```
 python3 createjson.py
 ```
-
+#### Help sheet for createjson.py
 | **router**     | **VLAN**   |         
 |----------------|------------|
 | **r1**         | 111        |
