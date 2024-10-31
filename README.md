@@ -15,6 +15,7 @@ fs.inotify.max_user_watches = 2097152
 ```
 
 Finally, restart the system or run **sysctl --system** to apply these changes.
+
 ---
 
 ### IPv6 and interfaces Tables
