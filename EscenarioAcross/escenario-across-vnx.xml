@@ -341,6 +341,11 @@
       ip link set dev eth4.112 up
       ip link set dev eth4.113 up  
     </exec>
+    <filetree seq="createroute" root="/etc/frr" perms="640">conf/r11/script.sh</filetree>
+    <exec seq="createroute" type="verbatim" ostype="system">
+      chmod +x /etc/frr/script.sh
+      /etc/frr/script.sh
+    </exec>
   </vm>
 
   <vm name="r12" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -375,6 +380,11 @@
       ip link set dev eth4.121 up
       ip link set dev eth4.122 up
       ip link set dev eth4.123 up
+    </exec>
+    <filetree seq="createroute" root="/etc/frr" perms="640">conf/r12/script.sh</filetree>
+    <exec seq="createroute" type="verbatim" ostype="system">
+      chmod +x /etc/frr/script.sh
+      /etc/frr/script.sh
     </exec>
     <filetree seq="createroute" root="/etc/frr" perms="640">conf/r12/script.sh</filetree>
     <exec seq="createroute" type="verbatim" ostype="system">

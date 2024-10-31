@@ -106,7 +106,7 @@ def main():
         save(commandgnb, scriptgnb)
         save(commandr13, scriptr13)
         
-    # execute()
+    execute()
 
 if __name__ == "__main__":
     main()
