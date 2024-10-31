@@ -13,29 +13,29 @@ else:
 
 def main():
     while True:
-        vlan = input("Introduce el valor de la VLAN (o 'q' para salir, 'c' para borrar el contenido): ")
+        vlan = input("Introduce VLAN id  (or 'q' for exit, 'c' to delete json content  ): ")
 
         if vlan.lower() == 'q':
-            print("Saliendo del programa.")
+            print("Exiting...")
             break
         elif vlan.lower() == 'c':
-            config.clear()  # Borrar contenido del JSON
-            print("Contenido del JSON borrado.")
+            config.clear()  
+            print("JSON content deleted")
             continue
 
         # Preguntar si el camino de vuelta es el mismo que el de ida
-        same_path_input = input("¿El camino de vuelta es el mismo que el de ida? (t para True, cualquier otra tecla para False): ")
+        same_path_input = input(" DOes the package follows the same path between gnBX and UPF? (t if True, any other key if False): ")
         same_path = same_path_input.lower() == 't'
 
         # Pedir las direcciones fw
-        fw_routers_input = input("Introduce los identificadores de los routers desde UPF al GNB separados por espacios: ")
+        fw_routers_input = input("Introduce the identifiers separated by spaces, in the same order that they would follow from UPF to GNB: ")
         fw_routersid = [fw.strip() for fw in fw_routers_input.split(' ') if fw.strip()]
         fw_routersip = [f'fcff:{fwid}::1' for fwid in fw_routersid] if fw_routersid else []
 
         # Si el camino de vuelta no es el mismo, pedir las direcciones rt
         rt_list = []
         if not same_path:
-            rt_routers_input = input("Introduce los identificadores de los routers desde GNB al UPF separados por espacios: ")
+            rt_routers_input = input("Introduce the identifiers separated by spaces, in the same order that they would follow from GNB to UPF: ")
             rt_routersid = [rt.strip() for rt in rt_routers_input.split(' ') if rt.strip()]
             rt_list = [f'fcff:{rtid}::1' for rtid in rt_routersid] if rt_routersid else []
 
