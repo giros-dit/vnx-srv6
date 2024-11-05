@@ -12,6 +12,9 @@ else:
     config = {}
 
 def main():
+    if os.path.exists(json_file_path):
+        os.system("cp VLANtunnels.json VLANtunnelsold.json")
+    
     while True:
         vlan = input("Introduce VLAN id  (or 'q' for exit, 'c' to delete json content  ): ")
 
@@ -49,6 +52,8 @@ def main():
         # Guardar el JSON actualizado
         with open(json_file_path, 'w') as f:
             json.dump(config, f, indent=4)
+
+    os.system("python3 tunnelmaker.py")
 
 if __name__ == "__main__":
     main()

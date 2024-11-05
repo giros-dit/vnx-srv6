@@ -15,8 +15,8 @@ def iniciaficheros():
     with open('./conf/r13/script.sh', 'w') as f:
         f.write("#!/bin/bash\n")
 
-def cargarjson():
-    with open('./VLANtunnels.json', 'r') as f:
+def cargarjson(filename):
+    with open(filename, 'r') as f:
         data = json.load(f)
     return data
 
@@ -47,7 +47,7 @@ def createupfgnb(VLAN, routers):
     
     ipgNB=VLAN_IPv6_gNB[VLAN]
     
-    comandognbupf = f"ip -6 route add {ipgNB} encap seg6 mode encap segs {','.join(segments)} dev eth3.{VLAN}"
+    comandognbupf = f"ip -6 route add {ipgNB} encap seg6 mode encap segs {','.join(segments)} dev eth4.{VLAN}"
     
     return comandognbupf
 
@@ -60,7 +60,7 @@ def creategnbupf(VLAN, routers):
 
     ipUPF=VLAN_IPv6_UPF[VLAN]
     
-    comandoupfgnb = f"ip -6 route add {ipUPF} encap seg6 mode encap segs {','.join(segments)} dev eth3.{VLAN}"
+    comandoupfgnb = f"ip -6 route add {ipUPF} encap seg6 mode encap segs {','.join(segments)} dev eth4.{VLAN}"
     
     return comandoupfgnb
 
@@ -80,13 +80,18 @@ def execute():
 
 def main():
     iniciaficheros()
-    conf = cargarjson()
+    conf = cargarjson('./VLANtunnels.json')
+    
+    # Intentar cargar VLANtunnelsold.json si existe
+    if os.path.exists('./VLANtunnelsold.json'):
+        conf_old = cargarjson('./VLANtunnelsold.json')
+    else:
+        conf_old = {}
 
     # Recorrer fichero json
     for vlan, routers in conf.items():
-        
         # Obtener VLAN y camino de routers del json de una VLAN
-        VLAN = int(vlan) 
+        VLAN = int(vlan)
         routersupfgnb = routers.get("fw", [])
         if routersupfgnb and routers.get("same_path", False):
             routersgnbupf = routersupfgnb[::-1]
@@ -103,8 +108,10 @@ def main():
         scriptr13 = './conf/r13/script.sh'
         scriptgnb = f'./conf/{routerAcceso}/script.sh'
 
-        save(commandgnb, scriptgnb)
-        save(commandr13, scriptr13)
+        # Comprobar si la configuración ha cambiado
+        if vlan not in conf_old or conf_old[vlan] != routers:
+            save(commandgnb, scriptgnb)
+            save(commandr13, scriptr13)
         
     execute()
 
