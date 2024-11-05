@@ -4,7 +4,9 @@ VNX scenarios for studying and analyzing SRv6 (Segment Routing over IPv6 datapla
 
 ##  Across
 
-### Before running the scenarios
+### Before launching the scenarios
+
+
 To run the scenarios, it is necessary to add the following lines to the **/etc/sysctl.conf** file:
 
 ```
@@ -17,6 +19,14 @@ fs.inotify.max_user_watches = 2097152
 Finally, restart the system or run **sysctl --system** to apply these changes.
 
 ---
+
+### Launch scenario
+Too launch it, run the next commands:
+
+```
+cd ./EscenarioAcross
+sudo vnx -f escenario-across-vnx.xml -t
+```
 
 ### IPv6 and interfaces Tables
 
