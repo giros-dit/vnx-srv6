@@ -25,7 +25,7 @@ Too launch it, run the next commands:
 
 ```
 cd ./EscenarioAcross
-sudo vnx -f escenario-across-vnx.xml -t
+python3 startscenario.py
 ```
 
 ### IPv6 and interfaces Tables
@@ -114,11 +114,6 @@ python3 createjson.py
 | **r11**        | 11            |
 | **r12**        | 12            |
 
-
-After finish editing JSON file, use this: 
-```
-python3 tunnelmaker.py
-```
 
 ### Linux commands for create tunnels
 Example between gNB1 - UPF:
