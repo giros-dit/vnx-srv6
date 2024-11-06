@@ -21,29 +21,40 @@ def cargarjson(filename):
     return data
 
 VLAN_IPv6_gNB = {
-    111: "fd00:0:2::/126",
-    112: "fd00:0:2::4/126",
-    113: "fd00:0:2::8/126",
-    121: "fd00:0:3::/126",
-    122: "fd00:0:3::4/126",
-    123: "fd00:0:3::8/126"
+    111: "fd00:0:2::2/126",
+    112: "fd00:0:2::6/126",
+    113: "fd00:0:2::a/126",
+    121: "fd00:0:3::2/126",
+    122: "fd00:0:3::6/126",
+    123: "fd00:0:3::a/126"
 }
 
 VLAN_IPv6_UPF = {
-    111: "fd00:0:1::/126",
-    112: "fd00:0:1::4/126",
-    113: "fd00:0:1::8/126",
-    121: "fd00:0:1::c/126",
-    122: "fd00:0:1::10/126",
-    123: "fd00:0:1::14/126"
+    111: "fd00:0:1::2/126",
+    112: "fd00:0:1::6/126",
+    113: "fd00:0:1::a/126",
+    121: "fd00:0:1::e/126",
+    122: "fd00:0:1::12/126",
+    123: "fd00:0:1::16/126"
 }
 
-def createupfgnb(VLAN, routers):
+def createupfgnb(vlan, routers):
     
-    if routers:
-        segments = [r for r in routers] + [f'fcff:11::1']
+    VLAN = int(vlan)
+
+    if VLAN < 120:
+        if routers:
+            segments = [r for r in routers] + [f'fcff:11::1']
+        else:
+            segments = [f'fcff:11::1']
+    elif VLAN < 130:
+        if routers:
+            segments = [r for r in routers] + [f'fcff:12::1']
+        else:
+            segments = [f'fcff:12::1']
     else:
-        segments = [f'fcff:11::1']
+        print("VLAN not supported")
+        sys.exit(1)
     
     ipgNB=VLAN_IPv6_gNB[VLAN]
     
@@ -70,9 +81,9 @@ def save(command, file):
         f.write(command + "\n")
 
 def getNombrefichero(VLAN):
-    if(VLAN < 200):
+    if(VLAN < 120):
         return "r11"
-    elif(VLAN < 300):
+    elif(VLAN < 130):
         return "r12"
 
 def execute():
@@ -90,6 +101,8 @@ def main():
 
     # Recorrer fichero json
     for vlan, routers in conf.items():
+        print(f"Processing VLAN: {vlan}")
+        
         # Obtener VLAN y camino de routers del json de una VLAN
         VLAN = int(vlan)
         routersupfgnb = routers.get("fw", [])
@@ -100,18 +113,24 @@ def main():
 
         # Decidir si es r11 o r12 el fichero a modificar
         routerAcceso = getNombrefichero(VLAN)
+        print(f"Router access file: {routerAcceso}")
 
         # Crear comandos para cada fichero
         commandr13 = createupfgnb(VLAN, routersupfgnb)
         commandgnb = creategnbupf(VLAN, routersgnbupf)
+        print(f"Command for r13: {commandr13}")
+        print(f"Command for gNB: {commandgnb}")
 
         scriptr13 = './conf/r13/script.sh'
         scriptgnb = f'./conf/{routerAcceso}/script.sh'
 
         # Comprobar si la configuración ha cambiado
         if vlan not in conf_old or conf_old[vlan] != routers:
+            print(f"Configuration changed for VLAN: {vlan}")
             save(commandgnb, scriptgnb)
             save(commandr13, scriptr13)
+        else:
+            print(f"No changes for VLAN: {vlan}")
         
     execute()
 
