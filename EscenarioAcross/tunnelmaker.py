@@ -92,7 +92,8 @@ def getMethod(conf_old, vlan, routers):
         return "replace"
 
 def execute():
-    os.system("sudo vnx -f /home/alex/Escritorio/vnx-srv6/EscenarioAcross/escenario-across-vnx.xml -x createroute")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    os.system(f"sudo vnx -f {script_dir}/escenario-across-vnx.xml -x createroute")
 
 def main():
     iniciaficheros()
