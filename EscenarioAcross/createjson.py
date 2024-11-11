@@ -3,7 +3,7 @@ import os
 
 # Ruta del archivo JSON
 json_file_path = 'VLANtunnels.json'
-
+json_file_path_old = 'VLANtunnelsold.json'
 # Cargar contenido del JSON si existe
 if os.path.exists(json_file_path):
     with open(json_file_path, 'r') as f:
@@ -12,8 +12,18 @@ else:
     config = {}
 
 def main():
-    if os.path.exists(json_file_path):
+    if os.path.exists(json_file_path) and not os.path.exists(json_file_path_old):
         os.system("cp VLANtunnels.json VLANtunnelsold.json")
+    elif os.path.exists(json_file_path) and os.path.exists(json_file_path_old):
+        with open('VLANtunnelsold.json', 'r') as old_file:
+            old_config = json.load(old_file)
+        for vlan_id, vlan_data in config.items():
+            old_config[vlan_id] = vlan_data
+        with open('VLANtunnelsold.json', 'w') as old_file:
+            json.dump(old_config, old_file, indent=4)
+        for vlan_id in config:
+            if vlan_id not in old_config:
+                old_config[vlan_id] = config[vlan_id]
     
     while True:
         vlan = input("Introduce VLAN id  (or 'q' for exit, 'c' to delete json content  ): ")
