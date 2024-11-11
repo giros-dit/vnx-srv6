@@ -46,15 +46,15 @@
       ip link add link eth1 name eth1.111 type vlan id 111
       ip link add link eth1 name eth1.112 type vlan id 112
       ip link add link eth1 name eth1.113 type vlan id 113
-      ip addr add fd00:0:2::2/126 dev eth1.111
-      ip addr add fd00:0:2::6/126 dev eth1.112
-      ip addr add fd00:0:2::a/126 dev eth1.113
+      ip addr add fd00:0:2::1/127 dev eth1.111
+      ip addr add fd00:0:2::3/127 dev eth1.112
+      ip addr add fd00:0:2::5/127 dev eth1.113
       ip link set dev eth1.111 up
       ip link set dev eth1.112 up
       ip link set dev eth1.113 up
-      ip -6 route add fd00:0:1::2/126 via fd00:0:2::1
-      ip -6 route add fd00:0:1::6/126 via fd00:0:2::5
-      ip -6 route add fd00:0:1::a/126 via fd00:0:2::9
+      ip -6 route add fd00:0:1::1/127 via fd00:0:2::
+      ip -6 route add fd00:0:1::3/127 via fd00:0:2::2
+      ip -6 route add fd00:0:1::5/127 via fd00:0:2::4
     </exec> 
   </vm>
 <vm name="gNB2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -67,15 +67,15 @@
       ip link add link eth1 name eth1.121 type vlan id 121
       ip link add link eth1 name eth1.122 type vlan id 122
       ip link add link eth1 name eth1.123 type vlan id 123
-      ip addr add fd00:0:3::2/126 dev eth1.121
-      ip addr add fd00:0:3::6/126 dev eth1.122
-      ip addr add fd00:0:3::a/126 dev eth1.123
+      ip addr add fd00:0:3::1/127 dev eth1.121
+      ip addr add fd00:0:3::3/127 dev eth1.122
+      ip addr add fd00:0:3::5/127 dev eth1.123
       ip link set dev eth1.121 up
       ip link set dev eth1.122 up
       ip link set dev eth1.123 up
-      ip -6 route add fd00:0:1::e/126 via fd00:0:3::1
-      ip -6 route add fd00:0:1::12/126 via fd00:0:3::5
-      ip -6 route add fd00:0:1::16/126 via fd00:0:3::9
+      ip -6 route add fd00:0:1::7/127 via fd00:0:3::
+      ip -6 route add fd00:0:1::9/127 via fd00:0:3::2
+      ip -6 route add fd00:0:1::b/127 via fd00:0:3::4
     </exec>
     <route type="ipv6" gw="fd00:0:3::1">default</route>  
   </vm>
@@ -93,24 +93,24 @@
       ip link add link eth1 name eth1.121 type vlan id 121
       ip link add link eth1 name eth1.122 type vlan id 122
       ip link add link eth1 name eth1.123 type vlan id 123
-      ip addr add fd00:0:1::2/126 dev eth1.111
-      ip addr add fd00:0:1::6/126 dev eth1.112
-      ip addr add fd00:0:1::a/126 dev eth1.113
-      ip addr add fd00:0:1::e/126 dev eth1.121
-      ip addr add fd00:0:1::12/126 dev eth1.122
-      ip addr add fd00:0:1::16/126 dev eth1.123
+      ip addr add fd00:0:1::1/127 dev eth1.111
+      ip addr add fd00:0:1::3/127 dev eth1.112
+      ip addr add fd00:0:1::5/127 dev eth1.113
+      ip addr add fd00:0:1::7/127 dev eth1.121
+      ip addr add fd00:0:1::9/127 dev eth1.122
+      ip addr add fd00:0:1::b/127 dev eth1.123
       ip link set dev eth1.111 up
       ip link set dev eth1.112 up
       ip link set dev eth1.113 up
       ip link set dev eth1.121 up
       ip link set dev eth1.122 up
       ip link set dev eth1.123 up
-      ip -6 route add fd00:0:2::2/126 via fd00:0:1::1
-      ip -6 route add fd00:0:2::6/126 via fd00:0:1::5
-      ip -6 route add fd00:0:2::a/126 via fd00:0:1::9
-      ip -6 route add fd00:0:3::2/126 via fd00:0:1::d
-      ip -6 route add fd00:0:3::6/126 via fd00:0:1::11
-      ip -6 route add fd00:0:3::a/126 via fd00:0:1::15
+      ip -6 route add fd00:0:2::1/127 via fd00:0:1::
+      ip -6 route add fd00:0:2::3/127 via fd00:0:1::2
+      ip -6 route add fd00:0:2::5/127 via fd00:0:1::4
+      ip -6 route add fd00:0:3::1/127 via fd00:0:1::6
+      ip -6 route add fd00:0:3::3/127 via fd00:0:1::8
+      ip -6 route add fd00:0:3::5/127 via fd00:0:1::a
     </exec> 
   </vm>
 
@@ -334,9 +334,9 @@
       ip link add link eth4 name eth4.111 type vlan id 111
       ip link add link eth4 name eth4.112 type vlan id 112
       ip link add link eth4 name eth4.113 type vlan id 113
-      ip addr add fd00:0:2::1/126 dev eth4.111
-      ip addr add fd00:0:2::5/126 dev eth4.112
-      ip addr add fd00:0:2::9/126 dev eth4.113
+      ip addr add fd00:0:2::/127 dev eth4.111
+      ip addr add fd00:0:2::2/127 dev eth4.112
+      ip addr add fd00:0:2::4/127 dev eth4.113
       ip link set dev eth4.111 up
       ip link set dev eth4.112 up
       ip link set dev eth4.113 up  
@@ -374,9 +374,9 @@
       ip link add link eth4 name eth4.121 type vlan id 121
       ip link add link eth4 name eth4.122 type vlan id 122
       ip link add link eth4 name eth4.123 type vlan id 123
-      ip addr add fd00:0:3::1/126 dev eth4.121
-      ip addr add fd00:0:3::5/126 dev eth4.122
-      ip addr add fd00:0:3::9/126 dev eth4.123
+      ip addr add fd00:0:3::/127 dev eth4.121
+      ip addr add fd00:0:3::2/127 dev eth4.122
+      ip addr add fd00:0:3::4/127 dev eth4.123
       ip link set dev eth4.121 up
       ip link set dev eth4.122 up
       ip link set dev eth4.123 up
@@ -422,12 +422,12 @@
       ip link add link eth4 name eth4.121 type vlan id 121
       ip link add link eth4 name eth4.122 type vlan id 122
       ip link add link eth4 name eth4.123 type vlan id 123
-      ip addr add fd00:0:1::1/126 dev eth4.111
-      ip addr add fd00:0:1::5/126 dev eth4.112
-      ip addr add fd00:0:1::9/126 dev eth4.113
-      ip addr add fd00:0:1::d/126 dev eth4.121
-      ip addr add fd00:0:1::11/126 dev eth4.122
-      ip addr add fd00:0:1::15/126 dev eth4.123
+      ip addr add fd00:0:1::/127 dev eth4.111
+      ip addr add fd00:0:1::2/127 dev eth4.112
+      ip addr add fd00:0:1::4/127 dev eth4.113
+      ip addr add fd00:0:1::6/127 dev eth4.121
+      ip addr add fd00:0:1::8/127 dev eth4.122
+      ip addr add fd00:0:1::a/127 dev eth4.123
       ip link set dev eth4.111 up
       ip link set dev eth4.112 up
       ip link set dev eth4.113 up
