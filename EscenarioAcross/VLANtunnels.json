@@ -6,5 +6,12 @@
         ],
         "rt": [],
         "same_path": true
+    },
+    "121": {
+        "fw": [
+            "fcff:3::1"
+        ],
+        "rt": [],
+        "same_path": true
     }
 }
