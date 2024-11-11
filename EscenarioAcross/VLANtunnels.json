@@ -1,0 +1,34 @@
+{
+    "111": {
+        "fw": [
+            "fcff:7::1",
+            "fcff:4::1"
+        ],
+        "rt": [],
+        "same_path": true
+    },
+    "112": {
+        "fw": [
+            "fcff:3::1",
+            "fcff:1::1"
+        ],
+        "rt": [],
+        "same_path": true
+    },
+    "121": {
+        "fw": [
+            "fcff:7::1",
+            "fcff:5::1"
+        ],
+        "rt": [],
+        "same_path": true
+    },
+    "122": {
+        "fw": [
+            "fcff:7::1",
+            "fcff:5::1"
+        ],
+        "rt": [],
+        "same_path": true
+    }
+}
