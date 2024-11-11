@@ -38,7 +38,7 @@ VLAN_IPv6_UPF = {
     123: "fd00:0:1::16/126"
 }
 
-def createupfgnb(vlan, routers):
+def createupfgnb(vlan, routers, method):
     
     VLAN = int(vlan)
 
@@ -58,11 +58,11 @@ def createupfgnb(vlan, routers):
     
     ipgNB=VLAN_IPv6_gNB[VLAN]
     
-    comandognbupf = f"ip -6 route add {ipgNB} encap seg6 mode encap segs {','.join(segments)} dev eth4.{VLAN}"
+    comandognbupf = f"ip -6 route {method} {ipgNB} encap seg6 mode encap segs {','.join(segments)} dev eth4.{VLAN}"
     
     return comandognbupf
 
-def creategnbupf(VLAN, routers):
+def creategnbupf(VLAN, routers ,method):
     
     if routers:
         segments = [r for r in routers] + [f'fcff:13::1']
@@ -71,12 +71,11 @@ def creategnbupf(VLAN, routers):
 
     ipUPF=VLAN_IPv6_UPF[VLAN]
     
-    comandoupfgnb = f"ip -6 route add {ipUPF} encap seg6 mode encap segs {','.join(segments)} dev eth4.{VLAN}"
+    comandoupfgnb = f"ip -6 route {method} {ipUPF} encap seg6 mode encap segs {','.join(segments)} dev eth4.{VLAN}"
     
     return comandoupfgnb
 
 def save(command, file):
-    
     with open(file, 'a') as f:
         f.write(command + "\n")
 
@@ -85,6 +84,12 @@ def getNombrefichero(VLAN):
         return "r11"
     elif(VLAN < 130):
         return "r12"
+
+def getMethod(conf_old, vlan, routers):
+    if vlan not in conf_old:
+        return "add"
+    if conf_old[vlan] != routers:
+        return "replace"
 
 def execute():
     os.system("sudo vnx -f /home/alex/Escritorio/vnx-srv6/EscenarioAcross/escenario-across-vnx.xml -x createroute")
@@ -114,18 +119,19 @@ def main():
         # Decidir si es r11 o r12 el fichero a modificar
         routerAcceso = getNombrefichero(VLAN)
         print(f"Router access file: {routerAcceso}")
-
-        # Crear comandos para cada fichero
-        commandr13 = createupfgnb(VLAN, routersupfgnb)
-        commandgnb = creategnbupf(VLAN, routersgnbupf)
-        print(f"Command for r13: {commandr13}")
-        print(f"Command for gNB: {commandgnb}")
-
-        scriptr13 = './conf/r13/script.sh'
-        scriptgnb = f'./conf/{routerAcceso}/script.sh'
+        
 
         # Comprobar si la configuración ha cambiado
         if vlan not in conf_old or conf_old[vlan] != routers:
+            # Crear comandos para cada fichero
+            action = getMethod(conf_old, vlan, routers)
+            commandr13 = createupfgnb(VLAN, routersupfgnb, action)
+            commandgnb = creategnbupf(VLAN, routersgnbupf, action)
+            print(f"Command for r13: {commandr13}")
+            print(f"Command for gNB: {commandgnb}")
+            #Crear ficheros script.sh
+            scriptr13 = './conf/r13/script.sh'
+            scriptgnb = f'./conf/{routerAcceso}/script.sh'
             print(f"Configuration changed for VLAN: {vlan}")
             save(commandgnb, scriptgnb)
             save(commandr13, scriptr13)
@@ -133,6 +139,14 @@ def main():
             print(f"No changes for VLAN: {vlan}")
         
     execute()
+
+    # Borrar el contenido de los ficheros script.sh
+    directories = ['./conf/r11', './conf/r12', './conf/r13']
+    for directory in directories:
+        script_path = os.path.join(directory, 'script.sh')
+        if os.path.exists(script_path):
+            with open(script_path, 'w') as script_file:
+                script_file.write('')
 
 if __name__ == "__main__":
     main()
