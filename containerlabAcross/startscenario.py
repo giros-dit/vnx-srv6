@@ -2,14 +2,15 @@ import os
 
 def main():
     # Create scenario
-    os.system('sudo vnx -f escenario-across-vnx.xml -t')
+    os.system('sudo clab deploy --topo srv6.yml')
+    os.system('./configure.sh')
 
     while True:
         # Ask the user if they want to stop the scenario and delete the JSON files
         action = input("Enter 'q' to stop and delete JSON files: ").strip().lower()
 
         if action == 'q':
-            os.system('sudo vnx -f escenario-across-vnx.xml -P')
+            os.system('sudo clab destroy --topo srv6.yml')
             # Delete the JSON files
             for file in os.listdir('.'):
                 if file.endswith('.json'):

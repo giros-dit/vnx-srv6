@@ -39,7 +39,7 @@ def main():
             continue
 
         # Ask if the path is the same
-        same_path_input = input(" DOes the package follows the same path between gnBX and UPF? (t if True, any other key if False): ")
+        same_path_input = input(" Does the package follows the same path between gnBX and UPF? (t if True, any other key if False): ")
         same_path = same_path_input.lower() == 't'
 
         # Ask for the routers identifiers for forward path
