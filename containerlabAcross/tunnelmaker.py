@@ -38,7 +38,7 @@ VLAN_IPv6_UPF = {
     123: "fd00:0:1::a/127"
 }
 
-def createupfgnb(vlan, routers, method):
+def createupf(vlan, routers, method):
     
     VLAN = int(vlan)
 
@@ -47,33 +47,43 @@ def createupfgnb(vlan, routers, method):
             segments = [r for r in routers] + [f'fcff:11::1']
         else:
             segments = [f'fcff:11::1']
+
     elif VLAN < 130:
         if routers:
             segments = [r for r in routers] + [f'fcff:12::1']
         else:
             segments = [f'fcff:12::1']
+
     else:
         print("VLAN not supported")
         sys.exit(1)
     
     ipgNB=VLAN_IPv6_gNB[VLAN]
     
-    comandognbupf = f"ip -6 route {method} {ipgNB} encap seg6 mode encap segs {','.join(segments)} dev eth4.{VLAN}"
+    comandoupf = f"sudo docker exec clab-srv6-r13 ip -6 route {method} {ipgNB} encap seg6 mode encap segs {','.join(segments)} dev eth3.{VLAN}"
     
-    return comandognbupf
+    return comandoupf
 
-def creategnbupf(VLAN, routers ,method):
+def creategnb(VLAN, routers ,method):
     
     if routers:
         segments = [r for r in routers] + [f'fcff:13::1']
     else:
         segments = [f'fcff:13::1']
+    
+    if VLAN < 120:
+        rp = 11
+    elif VLAN < 130:
+        rp = 12
+    else:
+        print("VLAN not supported")
+        sys.exit(1)
 
     ipUPF=VLAN_IPv6_UPF[VLAN]
     
-    comandoupfgnb = f"ip -6 route {method} {ipUPF} encap seg6 mode encap segs {','.join(segments)} dev eth4.{VLAN}"
+    comandognb = f"sudo docker exec clab-srv6-r{rp} ip -6 route {method} {ipUPF} encap seg6 mode encap segs {','.join(segments)} dev eth3.{VLAN}"
     
-    return comandoupfgnb
+    return comandognb
 
 def save(command, file):
     with open(file, 'a') as f:
@@ -93,7 +103,12 @@ def getMethod(conf_old, vlan, routers):
 
 def execute():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    os.system(f"sudo vnx -f {script_dir}/escenario-across-vnx.xml -x createroute")
+    os.system(f"sudo chmod +x {script_dir}/conf/r11/script.sh")
+    os.system(f"sudo chmod +x {script_dir}/conf/r12/script.sh")
+    os.system(f"sudo chmod +x {script_dir}/conf/r13/script.sh")
+    os.system(f"sudo {script_dir}/conf/r11/script.sh")
+    os.system(f"sudo {script_dir}/conf/r12/script.sh")
+    os.system(f"sudo {script_dir}/conf/r13/script.sh")
 
 def main():
     iniciaficheros()
@@ -126,8 +141,8 @@ def main():
         if vlan not in conf_old or conf_old[vlan] != routers:
             # Crear comandos para cada fichero
             action = getMethod(conf_old, vlan, routers)
-            commandr13 = createupfgnb(VLAN, routersupfgnb, action)
-            commandgnb = creategnbupf(VLAN, routersgnbupf, action)
+            commandr13 = createupf(VLAN, routersupfgnb, action)
+            commandgnb = creategnb(VLAN, routersgnbupf, action)
             print(f"Command for r13: {commandr13}")
             print(f"Command for gNB: {commandgnb}")
             #Crear ficheros script.sh
