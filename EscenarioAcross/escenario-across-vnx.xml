@@ -5,7 +5,10 @@
     <version>2.0</version>
     <scenario_name>ACROSSVNX</scenario_name>
     <automac/>
-    <vm_mgmt type="none" />
+    <!-- <vm_mgmt type="none" /> -->
+    <vm_mgmt type="private" network="10.250.0.0" mask="24" offset="200">
+       <host_mapping />
+    </vm_mgmt>
     <vm_defaults>
         <console id="0" display="no"/>
         <console id="1" display="yes"/>
@@ -122,6 +125,7 @@
 
   <vm name="r1" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025-routerwithfrr</filesystem>
+    <filetree seq="on_boot" root="/home/vnx/">node_exporter-1.8.2.linux-amd64</filetree>
     <if net="lo" id="1">
         <ipv6>fcff:1::1/32</ipv6>
     </if>
@@ -144,10 +148,33 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
+    <exec seq="start_node_exporter" type="verbatim">
+      cd home/vnx/node_exporter-1.8.2.linux-amd64
+      sudo useradd -m node_exporter
+      sudo groupadd node_exporter
+      sudo usermod -a -G node_exporter node_exporter
+      sudo mv node_exporter /usr/local/bin
+      sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
+      sudo bash -c 'echo "[Unit]" &gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Description=Node Exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "After=network.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Service]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "User=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Group=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Type=simple" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "ExecStart=/usr/local/bin/node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Install]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "WantedBy=multi-user.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo systemctl daemon-reload
+      sudo systemctl start node_exporter
+    </exec>
   </vm>
 
   <vm name="r2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025-routerwithfrr</filesystem>
+    <filetree seq="on_boot" root="/home/vnx/">node_exporter-1.8.2.linux-amd64</filetree>
     <if net="lo" id="1">
         <ipv6>fcff:2::1/32</ipv6>
     </if>
@@ -173,10 +200,33 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
+    <exec seq="start_node_exporter" type="verbatim">
+      cd home/vnx/node_exporter-1.8.2.linux-amd64
+      sudo useradd -m node_exporter
+      sudo groupadd node_exporter
+      sudo usermod -a -G node_exporter node_exporter
+      sudo mv node_exporter /usr/local/bin
+      sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
+      sudo bash -c 'echo "[Unit]" &gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Description=Node Exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "After=network.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Service]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "User=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Group=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Type=simple" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "ExecStart=/usr/local/bin/node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Install]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "WantedBy=multi-user.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo systemctl daemon-reload
+      sudo systemctl start node_exporter
+    </exec>
   </vm>
 
   <vm name="r3" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025-routerwithfrr</filesystem>
+    <filetree seq="on_boot" root="/home/vnx/">node_exporter-1.8.2.linux-amd64</filetree>
     <if net="lo" id="1">
         <ipv6>fcff:3::1/32</ipv6>
     </if>
@@ -202,10 +252,33 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
+    <exec seq="start_node_exporter" type="verbatim">
+      cd home/vnx/node_exporter-1.8.2.linux-amd64
+      sudo useradd -m node_exporter
+      sudo groupadd node_exporter
+      sudo usermod -a -G node_exporter node_exporter
+      sudo mv node_exporter /usr/local/bin
+      sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
+      sudo bash -c 'echo "[Unit]" &gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Description=Node Exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "After=network.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Service]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "User=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Group=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Type=simple" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "ExecStart=/usr/local/bin/node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Install]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "WantedBy=multi-user.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo systemctl daemon-reload
+      sudo systemctl start node_exporter
+    </exec>
   </vm>
 
   <vm name="r4" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025-routerwithfrr</filesystem>
+    <filetree seq="on_boot" root="/home/vnx/">node_exporter-1.8.2.linux-amd64</filetree>
     <if net="lo" id="1">
         <ipv6>fcff:4::1/32</ipv6>
     </if>
@@ -229,10 +302,33 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
+    <exec seq="start_node_exporter" type="verbatim">
+      cd home/vnx/node_exporter-1.8.2.linux-amd64
+      sudo useradd -m node_exporter
+      sudo groupadd node_exporter
+      sudo usermod -a -G node_exporter node_exporter
+      sudo mv node_exporter /usr/local/bin
+      sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
+      sudo bash -c 'echo "[Unit]" &gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Description=Node Exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "After=network.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Service]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "User=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Group=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Type=simple" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "ExecStart=/usr/local/bin/node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Install]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "WantedBy=multi-user.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo systemctl daemon-reload
+      sudo systemctl start node_exporter
+    </exec>
   </vm>
 
   <vm name="r5" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025-routerwithfrr</filesystem>
+    <filetree seq="on_boot" root="/home/vnx/">node_exporter-1.8.2.linux-amd64</filetree>
     <if net="lo" id="1">
         <ipv6>fcff:5::1/32</ipv6>
     </if>
@@ -252,10 +348,33 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
+    <exec seq="start_node_exporter" type="verbatim">
+      cd home/vnx/node_exporter-1.8.2.linux-amd64
+      sudo useradd -m node_exporter
+      sudo groupadd node_exporter
+      sudo usermod -a -G node_exporter node_exporter
+      sudo mv node_exporter /usr/local/bin
+      sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
+      sudo bash -c 'echo "[Unit]" &gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Description=Node Exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "After=network.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Service]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "User=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Group=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Type=simple" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "ExecStart=/usr/local/bin/node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Install]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "WantedBy=multi-user.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo systemctl daemon-reload
+      sudo systemctl start node_exporter
+    </exec>
   </vm>
 
   <vm name="r6" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025-routerwithfrr</filesystem>
+    <filetree seq="on_boot" root="/home/vnx/">node_exporter-1.8.2.linux-amd64</filetree>
     <if net="lo" id="1">
         <ipv6>fcff:6::1/32</ipv6>
     </if>
@@ -279,10 +398,33 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
+    <exec seq="start_node_exporter" type="verbatim">
+      cd home/vnx/node_exporter-1.8.2.linux-amd64
+      sudo useradd -m node_exporter
+      sudo groupadd node_exporter
+      sudo usermod -a -G node_exporter node_exporter
+      sudo mv node_exporter /usr/local/bin
+      sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
+      sudo bash -c 'echo "[Unit]" &gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Description=Node Exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "After=network.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Service]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "User=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Group=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Type=simple" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "ExecStart=/usr/local/bin/node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Install]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "WantedBy=multi-user.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo systemctl daemon-reload
+      sudo systemctl start node_exporter
+    </exec>
   </vm>
 
   <vm name="r7" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025-routerwithfrr</filesystem>
+    <filetree seq="on_boot" root="/home/vnx/">node_exporter-1.8.2.linux-amd64</filetree>
     <if net="lo" id="1">
         <ipv6>fcff:7::1/32</ipv6>
     </if>
@@ -306,10 +448,33 @@
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf 
     </exec>
+    <exec seq="start_node_exporter" type="verbatim">
+      cd home/vnx/node_exporter-1.8.2.linux-amd64
+      sudo useradd -m node_exporter
+      sudo groupadd node_exporter
+      sudo usermod -a -G node_exporter node_exporter
+      sudo mv node_exporter /usr/local/bin
+      sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
+      sudo bash -c 'echo "[Unit]" &gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Description=Node Exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "After=network.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Service]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "User=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Group=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Type=simple" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "ExecStart=/usr/local/bin/node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Install]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "WantedBy=multi-user.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo systemctl daemon-reload
+      sudo systemctl start node_exporter
+    </exec>
   </vm>
 
   <vm name="r11" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025-routerwithfrr</filesystem>
+    <filetree seq="on_boot" root="/home/vnx/">node_exporter-1.8.2.linux-amd64</filetree>
     <if net="lo" id="1">
         <ipv6>fcff:11::1/32</ipv6>
     </if>
@@ -341,6 +506,28 @@
       ip link set dev eth4.112 up
       ip link set dev eth4.113 up  
     </exec>
+    <exec seq="start_node_exporter" type="verbatim">
+      cd home/vnx/node_exporter-1.8.2.linux-amd64
+      sudo useradd -m node_exporter
+      sudo groupadd node_exporter
+      sudo usermod -a -G node_exporter node_exporter
+      sudo mv node_exporter /usr/local/bin
+      sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
+      sudo bash -c 'echo "[Unit]" &gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Description=Node Exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "After=network.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Service]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "User=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Group=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Type=simple" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "ExecStart=/usr/local/bin/node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Install]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "WantedBy=multi-user.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo systemctl daemon-reload
+      sudo systemctl start node_exporter
+    </exec>
     <filetree seq="createroute" root="/etc/frr" perms="640">conf/r11/script.sh</filetree>
     <exec seq="createroute" type="verbatim" ostype="system">
       chmod +x /etc/frr/script.sh
@@ -350,6 +537,7 @@
 
   <vm name="r12" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025-routerwithfrr</filesystem>
+    <filetree seq="on_boot" root="/home/vnx/">node_exporter-1.8.2.linux-amd64</filetree>
     <if net="lo" id="1">
         <ipv6>fcff:12::1/32</ipv6>
     </if>
@@ -381,6 +569,28 @@
       ip link set dev eth4.122 up
       ip link set dev eth4.123 up
     </exec>
+    <exec seq="start_node_exporter" type="verbatim">
+      cd home/vnx/node_exporter-1.8.2.linux-amd64
+      sudo useradd -m node_exporter
+      sudo groupadd node_exporter
+      sudo usermod -a -G node_exporter node_exporter
+      sudo mv node_exporter /usr/local/bin
+      sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
+      sudo bash -c 'echo "[Unit]" &gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Description=Node Exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "After=network.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Service]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "User=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Group=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Type=simple" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "ExecStart=/usr/local/bin/node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Install]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "WantedBy=multi-user.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo systemctl daemon-reload
+      sudo systemctl start node_exporter
+    </exec>
     <filetree seq="createroute" root="/etc/frr" perms="640">conf/r12/script.sh</filetree>
     <exec seq="createroute" type="verbatim" ostype="system">
       chmod +x /etc/frr/script.sh
@@ -395,6 +605,7 @@
 
   <vm name="r13" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025-routerwithfrr</filesystem>
+    <filetree seq="on_boot" root="/home/vnx/">node_exporter-1.8.2.linux-amd64</filetree>
     <if net="lo" id="1">
         <ipv6>fcff:13::1/32</ipv6>
     </if>
@@ -434,6 +645,28 @@
       ip link set dev eth4.121 up
       ip link set dev eth4.122 up
       ip link set dev eth4.123 up
+    </exec>
+    <exec seq="start_node_exporter" type="verbatim">
+      cd home/vnx/node_exporter-1.8.2.linux-amd64
+      sudo useradd -m node_exporter
+      sudo groupadd node_exporter
+      sudo usermod -a -G node_exporter node_exporter
+      sudo mv node_exporter /usr/local/bin
+      sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
+      sudo bash -c 'echo "[Unit]" &gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Description=Node Exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "After=network.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Service]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "User=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Group=node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "Type=simple" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "ExecStart=/usr/local/bin/node_exporter" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "[Install]" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo bash -c 'echo "WantedBy=multi-user.target" &gt;&gt; /etc/systemd/system/node_exporter.service'
+      sudo systemctl daemon-reload
+      sudo systemctl start node_exporter
     </exec>
     <filetree seq="createroute" root="/etc/frr" perms="640">conf/r13/script.sh</filetree>
     <exec seq="createroute" type="verbatim" ostype="system">
