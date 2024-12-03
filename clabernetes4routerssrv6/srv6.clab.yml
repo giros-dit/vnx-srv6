@@ -136,7 +136,6 @@ topology:
 
   links:
     - endpoints: ["r1:eth1", "multus:net1012"]
-    - endpoints: ["r1:eth2", "multus:net1014"]
     - endpoints: ["r2:eth1", "multus:net1012"]
     - endpoints: ["r2:eth2", "multus:net1023"]
     - endpoints: ["r3:eth1", "multus:net1023"]
