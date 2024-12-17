@@ -4,70 +4,70 @@ topology:
   nodes:
     r1:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: avillaseca01/srv6-frr:latest
       binds:
         - conf/r1/daemons:/etc/frr/daemons
         - conf/r1/isisd.conf:/etc/frr/isisd.conf
         - conf/r1/zebra.conf:/etc/frr/zebra.conf
     r2:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: avillaseca01/srv6-frr:latest
       binds:
         - conf/r2/daemons:/etc/frr/daemons
         - conf/r2/isisd.conf:/etc/frr/isisd.conf
         - conf/r2/zebra.conf:/etc/frr/zebra.conf
     r3:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: avillaseca01/srv6-frr:latest
       binds:
         - conf/r3/daemons:/etc/frr/daemons
         - conf/r3/isisd.conf:/etc/frr/isisd.conf
         - conf/r3/zebra.conf:/etc/frr/zebra.conf
     r4:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: avillaseca01/srv6-frr:latest
       binds:
         - conf/r4/daemons:/etc/frr/daemons
         - conf/r4/isisd.conf:/etc/frr/isisd.conf
         - conf/r4/zebra.conf:/etc/frr/zebra.conf
     r5:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: avillaseca01/srv6-frr:latest
       binds:
         - conf/r5/daemons:/etc/frr/daemons
         - conf/r5/isisd.conf:/etc/frr/isisd.conf
         - conf/r5/zebra.conf:/etc/frr/zebra.conf
     r6:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: avillaseca01/srv6-frr:latest
       binds:
         - conf/r6/daemons:/etc/frr/daemons
         - conf/r6/isisd.conf:/etc/frr/isisd.conf
         - conf/r6/zebra.conf:/etc/frr/zebra.conf
     r7:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: avillaseca01/srv6-frr:latest
       binds:
         - conf/r7/daemons:/etc/frr/daemons
         - conf/r7/isisd.conf:/etc/frr/isisd.conf
         - conf/r7/zebra.conf:/etc/frr/zebra.conf
     r11:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: avillaseca01/srv6-frr:latest
       binds:
         - conf/r11/daemons:/etc/frr/daemons
         - conf/r11/isisd.conf:/etc/frr/isisd.conf
         - conf/r11/zebra.conf:/etc/frr/zebra.conf
     r12:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: avillaseca01/srv6-frr:latest
       binds:
         - conf/r12/daemons:/etc/frr/daemons
         - conf/r12/isisd.conf:/etc/frr/isisd.conf
         - conf/r12/zebra.conf:/etc/frr/zebra.conf
     r13:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: avillaseca01/srv6-frr:latest
       binds:
         - conf/r13/daemons:/etc/frr/daemons
         - conf/r13/isisd.conf:/etc/frr/isisd.conf
