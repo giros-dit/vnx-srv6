@@ -10,28 +10,14 @@ topology:
         - conf/r1/isisd.conf:/etc/frr/isisd.conf
         - conf/r1/zebra.conf:/etc/frr/zebra.conf
       exec:
-        - service frr start
-        - sysctl -p
-        - vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
-        - vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
-        - sysctl -w net.ipv6.conf.eth1.seg6_enabled=1
-        - sysctl -w net.ipv6.conf.eth2.seg6_enabled=1
-        - ip link add link eth3 name eth3.111 type vlan id 111
-        - ip link add link eth3 name eth3.112 type vlan id 112
-        - ip link set dev eth1 mtu 1500
-        - ip link set dev eth2 mtu 1500
-        - ip link set dev eth3 mtu 1500
-        - ip link set dev eth3.111 mtu 1500
-        - ip link set dev eth3.112 mtu 1500
-        - ip -6 addr add fd00:0:1::/127 dev eth3.111
-        - ip -6 addr add fd00:0:1::2/127 dev eth3.112
-        - ip link set eth1 up
-        - ip link set eth2 up
-        - ip link set eth3 up
-        - ip link set eth3.111 up
-        - ip link set eth3.112 up
+        -service frr start
+        -sysctl -p
+        -vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
+        -vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
+        -sysctl -w net.ipv6.conf.eth1.seg6_enabled=1
+        -sysctl -w net.ipv6.conf.eth2.seg6_enabled=1
+        -sysctl -w net.ipv6.conf.eth3.seg6_enabled=1
 
-      
     r2:
       kind: linux
       image: avillaseca01/srv6-frr
@@ -46,10 +32,8 @@ topology:
         - vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
         - sysctl -w net.ipv6.conf.eth1.seg6_enabled=1
         - sysctl -w net.ipv6.conf.eth2.seg6_enabled=1
-        - ip link set dev eth1 mtu 1500
-        - ip link set dev eth2 mtu 1500
-        - ip link set eth1 up
-        - ip link set eth2 up
+        - sysctl -w net.ipv6.conf.eth3.seg6_enabled=1
+        - sysctl -w net.ipv6.conf.eth4.seg6_enabled=1
 
     r3:
       kind: linux
@@ -65,20 +49,8 @@ topology:
         - vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
         - sysctl -w net.ipv6.conf.eth1.seg6_enabled=1
         - sysctl -w net.ipv6.conf.eth2.seg6_enabled=1
-        - ip link add link eth3 name eth3.111 type vlan id 111
-        - ip link add link eth3 name eth3.112 type vlan id 112
-        - ip -6 addr add fd00:0:2::/127 dev eth3.111
-        - ip -6 addr add fd00:0:2::2/127 dev eth3.112
-        - ip link set dev eth1 mtu 1500
-        - ip link set dev eth2 mtu 1500
-        - ip link set dev eth3 mtu 1500
-        - ip link set dev eth3.111 mtu 1500
-        - ip link set dev eth3.112 mtu 1500
-        - ip link set eth1 up
-        - ip link set eth2 up
-        - ip link set eth3 up
-        - ip link set eth3.111 up
-        - ip link set eth3.112 up
+        - sysctl -w net.ipv6.conf.eth3.seg6_enabled=1
+        - sysctl -w net.ipv6.conf.eth4.seg6_enabled=1
 
     r4:
       kind: linux
@@ -94,56 +66,152 @@ topology:
         - vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
         - sysctl -w net.ipv6.conf.eth1.seg6_enabled=1
         - sysctl -w net.ipv6.conf.eth2.seg6_enabled=1
-        - ip link ser dev eth1 mtu 1500
-        - ip link set dev eth2 mtu 1500
-        - ip link set eth1 up
-        - ip link set eth2 up
+        - sysctl -w net.ipv6.conf.eth3.seg6_enabled=1
 
-        
-    h1:
+    r5:
       kind: linux
-      image: praqma/network-multitool:latest
+      image: avillaseca01/srv6-frr
+      binds:
+        - conf/r5/daemons:/etc/frr/daemons
+        - conf/r5/isisd.conf:/etc/frr/isisd.conf
+        - conf/r5/zebra.conf:/etc/frr/zebra.conf
       exec:
-        - ip link add link eth1 name eth1.111 type vlan id 111
-        - ip link add link eth1 name eth1.112 type vlan id 112
-        - ip -6 addr add fd00:0:1::1/127 dev eth1.111
-        - ip -6 addr add fd00:0:1::3/127 dev eth1.112
-        - ip -6 route add fd00:0:2::1/127 via fd00:0:1::0
-        - ip -6 route add fd00:0:2::3/127 via fd00:0:1::2
-        - ip link set dev eth1 mtu 1500
-        - ip link set dev eth1.111 mtu 1500
-        - ip link set dev eth1.112 mtu 1500
-        - ip link set eth1 up
-        - ip link set eth1.111 up
-        - ip link set eth1.112 up
+        - service frr start
+        - sysctl -p
+        - vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
+        - vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
+        - sysctl -w net.ipv6.conf.eth1.seg6_enabled=1
+        - sysctl -w net.ipv6.conf.eth2.seg6_enabled=1
+
+    r6:
+      kind: linux
+      image: avillaseca01/srv6-frr
+      binds:
+        - conf/r6/daemons:/etc/frr/daemons
+        - conf/r6/isisd.conf:/etc/frr/isisd.conf
+        - conf/r6/zebra.conf:/etc/frr/zebra.conf
+      exec:
+        - service frr start
+        - sysctl -p
+        - vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
+        - vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
+        - sysctl -w net.ipv6.conf.eth1.seg6_enabled=1
+        - sysctl -w net.ipv6.conf.eth2.seg6_enabled=1
+        - sysctl -w net.ipv6.conf.eth3.seg6_enabled=1
+
+    r7:
+      kind: linux
+      image: avillaseca01/srv6-frr
+      binds:
+        - conf/r7/daemons:/etc/frr/daemons
+        - conf/r7/isisd.conf:/etc/frr/isisd.conf
+        - conf/r7/zebra.conf:/etc/frr/zebra.conf
+      exec:
+        - service frr start
+        - sysctl -p
+        - vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
+        - vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
+        - sysctl -w net.ipv6.conf.eth1.seg6_enabled=1
+        - sysctl -w net.ipv6.conf.eth2.seg6_enabled=1
+        - sysctl -w net.ipv6.conf.eth3.seg6_enabled=1
     
-    h2:
+    r11:
+      kind: linux
+      image: avillaseca01/srv6-frr
+      binds:
+        - conf/r11/daemons:/etc/frr/daemons
+        - conf/r11/isisd.conf:/etc/frr/isisd.conf
+        - conf/r11/zebra.conf:/etc/frr/zebra.conf
+      exec:
+        - service frr start
+        - sysctl -p
+        - vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
+        - vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
+        - sysctl -w net.ipv6.conf.eth1.seg6_enabled=1
+        - sysctl -w net.ipv6.conf.eth2.seg6_enabled=1
+        - ip link add link eth3 name eth3.111 type vlan id 111
+        - ip link add link eth3 name eth3.112 type vlan id 112
+        - ip link add link eth3 name eth3.113 type vlan id 113
+        - ip -6 addr add fd00:0:2::/127 dev eth3.111
+        - ip -6 addr add fd00:0:2::2/127 dev eth3.112
+        - ip -6 addr add fd00:0:2::4/127 dev eth3.113
+        - ip link set eth3.111 up
+        - ip link set eth3.112 up
+        - ip link set eth3.113 up
+
+    r12:
+      kind: linux
+      image: avillaseca01/srv6-frr
+      binds:
+        - conf/r12/daemons:/etc/frr/daemons
+        - conf/r12/isisd.conf:/etc/frr/isisd.conf
+        - conf/r12/zebra.conf:/etc/frr/zebra.conf
+      exec:
+      - service frr start
+      - sysctl -p
+      - vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
+      - vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
+      - sysctl -w net.ipv6.conf.eth1.seg6_enabled=1
+      - sysctl -w net.ipv6.conf.eth2.seg6_enabled=1
+      - ip link add link eth3 name eth3.121 type vlan id 121
+      - ip link add link eth3 name eth3.122 type vlan id 122
+      - ip link add link eth3 name eth3.123 type vlan id 123
+      - ip -6 addr add fd00:0:3::/127 dev eth3.121
+      - ip -6 addr add fd00:0:3::2/127 dev eth3.122
+      - ip -6 addr add fd00:0:3::4/127 dev eth3.123
+      - ip link set eth3.121 up
+      - ip link set eth3.122 up
+      - ip link set eth3.123 up
+    r13:
+      kind: linux
+      image: avillaseca01/srv6-frr
+      binds:
+        - conf/r13/daemons:/etc/frr/daemons
+        - conf/r13/isisd.conf:/etc/frr/isisd.conf
+        - conf/r13/zebra.conf:/etc/frr/zebra.conf
+    gNB1:
       kind: linux
       image: praqma/network-multitool:latest
-      exec:
-        - ip link add link eth1 name eth1.111 type vlan id 111
-        - ip link add link eth1 name eth1.112 type vlan id 112
-        - ip -6 addr add fd00:0:2::1/127 dev eth1.111
-        - ip -6 addr add fd00:0:2::3/127 dev eth1.112
-        - ip -6 route add fd00:0:1::1/127 via fd00:0:2::0
-        - ip -6 route add fd00:0:1::3/127 via fd00:0:2::2
-        - ip link set dev eth1 mtu 1500
-        - ip link set dev eth1.111 mtu 1500
-        - ip link set dev eth1.112 mtu 1500
-        - ip link set eth1 up
-        - ip link set eth1.111 up
-        - ip link set eth1.112 up
+    gNB2:
+      kind: linux
+      image: praqma/network-multitool:latest
+    UPF:
+      kind: linux
+      image: praqma/network-multitool:latest
 
   links:
     - endpoints: ["r1:eth1", "multus:net1012"]
+    - endpoints: ["r1:eth2", "multus:net1014"]
+    - endpoints: ["r1:eth3", "multus:net1111"]
     - endpoints: ["r2:eth1", "multus:net1012"]
     - endpoints: ["r2:eth2", "multus:net1023"]
+    - endpoints: ["r2:eth3", "multus:net1025"]
+    - endpoints: ["r2:eth4", "multus:net1212"]
     - endpoints: ["r3:eth1", "multus:net1023"]
-    - endpoints: ["r1:eth2", "multus:net1014"]
+    - endpoints: ["r3:eth2", "multus:net1037"]
+    - endpoints: ["r3:eth3", "multus:net1312"]
+    - endpoints: ["r3:eth4", "multus:net1313"]
     - endpoints: ["r4:eth1", "multus:net1014"]
-    - endpoints: ["r4:eth2", "multus:net1034"]
-    - endpoints: ["r3:eth2", "multus:net1034"]
-    - endpoints: ["h1:eth1", "multus:net2011"]
-    - endpoints: ["r1:eth3", "multus:net2011"]
-    - endpoints: ["h2:eth1", "multus:net2032"]
-    - endpoints: ["r3:eth3", "multus:net2032"]
+    - endpoints: ["r4:eth2", "multus:net1046"]
+    - endpoints: ["r4:eth3", "multus:net1411"]
+    - endpoints: ["r5:eth1", "multus:net1025"]
+    - endpoints: ["r5:eth2", "multus:net1056"]
+    - endpoints: ["r6:eth1", "multus:net1046"]
+    - endpoints: ["r6:eth2", "multus:net1056"]
+    - endpoints: ["r6:eth3", "multus:net1067"]
+    - endpoints: ["r7:eth1", "multus:net1037"]
+    - endpoints: ["r7:eth2", "multus:net1067"]
+    - endpoints: ["r7:eth3", "multus:net1713"]
+    - endpoints: ["r11:eth1", "multus:net1111"]
+    - endpoints: ["r11:eth2", "multus:net1411"]
+    - endpoints: ["r11:eth3", "multus:net2011"]
+    - endpoints: ["r12:eth1", "multus:net1212"]
+    - endpoints: ["r12:eth2", "multus:net1312"]
+    - endpoints: ["r12:eth3", "multus:net2012"]
+    - endpoints: ["r13:eth1", "multus:net1313"]
+    - endpoints: ["r13:eth2", "multus:net1713"]
+    - endpoints: ["r13:eth3", "multus:net2013"]
+    - endpoints: ["gNB1:eth1", "multus:net2011"]
+    - endpoints: ["gNB2:eth1", "multus:net2012"]
+    - endpoints: ["UPF:eth1", "multus:net2013"]
+    
