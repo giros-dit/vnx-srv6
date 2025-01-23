@@ -1,4 +1,4 @@
-# Clabernets 4 routers
+# Clabernets ACROSS
 Claberntes scenarios for studying and analyzing SRv6 (Segment Routing over IPv6 dataplane).
 
 
@@ -57,14 +57,9 @@ alias kube-vip="docker run --network host --rm ghcr.io/kube-vip/kube-vip:$KVVERS
 kube-vip manifest daemonset --services --inCluster --arp --interface eth0 | kubectl apply -f -
 ```
 
-```
-alias clabverter='sudo docker run --user $(id -u) \
-    -v $(pwd):/clabernetes/work --rm \
-    ghcr.io/srl-labs/clabernetes/clabverter'
-```
 
 ```
-clabverter --stdout --naming non-prefixed | kubectl apply -f -
+kubectl apply -f ./converted
 ```
 
 ### IPv6 and interfaces Tables
