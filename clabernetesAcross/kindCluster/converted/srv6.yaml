@@ -145,15 +145,15 @@ spec:
             defaults:
               ports: []
             nodes:
-              UPF:
+              upf:
                 kind: linux
                 image: praqma/network-multitool:latest
                 ports: []
-              gNB1:
+              gnb1:
                 kind: linux
                 image: praqma/network-multitool:latest
                 ports: []
-              gNB2:
+              gnb2:
                 kind: linux
                 image: praqma/network-multitool:latest
                 ports: []
