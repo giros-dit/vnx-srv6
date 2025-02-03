@@ -2,119 +2,119 @@
 apiVersion: clabernetes.containerlab.dev/v1alpha1
 kind: Topology
 metadata:
-  name: testAcross
+  name: testacross
   namespace: across-tc32
 spec:
   deployment:
     filesFromConfigMap:
         gnb:
           - filePath: conf/rupf/daemons
-            configMapName: testAcross-gnb-files
+            configMapName: testacross-gnb-files
             configMapPath: conf-rupf-daemons
             mode: read
           - filePath: conf/rupf/isisd.conf
-            configMapName: testAcross-gnb-files
+            configMapName: testacross-gnb-files
             configMapPath: conf-rupf-isisd.conf
             mode: read
           - filePath: conf/rupf/zebra.conf
-            configMapName: testAcross-gnb-files
+            configMapName: testacross-gnb-files
             configMapPath: conf-rupf-zebra.conf
             mode: execute
         r1:
           - filePath: conf/r1/daemons
-            configMapName: testAcross-r1-files
+            configMapName: testacross-r1-files
             configMapPath: conf-r1-daemons
             mode: read
           - filePath: conf/r1/isisd.conf
-            configMapName: testAcross-r1-files
+            configMapName: testacross-r1-files
             configMapPath: conf-r1-isisd.conf
             mode: read
           - filePath: conf/r1/zebra.conf
-            configMapName: testAcross-r1-files
+            configMapName: testacross-r1-files
             configMapPath: conf-r1-zebra.conf
             mode: execute
         r2:
           - filePath: conf/r2/daemons
-            configMapName: testAcross-r2-files
+            configMapName: testacross-r2-files
             configMapPath: conf-r2-daemons
             mode: read
           - filePath: conf/r2/isisd.conf
-            configMapName: testAcross-r2-files
+            configMapName: testacross-r2-files
             configMapPath: conf-r2-isisd.conf
             mode: read
           - filePath: conf/r2/zebra.conf
-            configMapName: testAcross-r2-files
+            configMapName: testacross-r2-files
             configMapPath: conf-r2-zebra.conf
             mode: execute
         r3:
           - filePath: conf/r3/daemons
-            configMapName: testAcross-r3-files
+            configMapName: testacross-r3-files
             configMapPath: conf-r3-daemons
             mode: read
           - filePath: conf/r3/isisd.conf
-            configMapName: testAcross-r3-files
+            configMapName: testacross-r3-files
             configMapPath: conf-r3-isisd.conf
             mode: read
           - filePath: conf/r3/zebra.conf
-            configMapName: testAcross-r3-files
+            configMapName: testacross-r3-files
             configMapPath: conf-r3-zebra.conf
             mode: execute
         r4:
           - filePath: conf/r4/daemons
-            configMapName: testAcross-r4-files
+            configMapName: testacross-r4-files
             configMapPath: conf-r4-daemons
             mode: read
           - filePath: conf/r4/isisd.conf
-            configMapName: testAcross-r4-files
+            configMapName: testacross-r4-files
             configMapPath: conf-r4-isisd.conf
             mode: read
           - filePath: conf/r4/zebra.conf
-            configMapName: testAcross-r4-files
+            configMapName: testacross-r4-files
             configMapPath: conf-r4-zebra.conf
             mode: execute
         rg:
           - filePath: conf/rg/daemons
-            configMapName: testAcross-rg-files
+            configMapName: testacross-rg-files
             configMapPath: conf-rg-daemons
             mode: read
           - filePath: conf/rg/isisd.conf
-            configMapName: testAcross-rg-files
+            configMapName: testacross-rg-files
             configMapPath: conf-rg-isisd.conf
             mode: read
           - filePath: conf/rg/zebra.conf
-            configMapName: testAcross-rg-files
+            configMapName: testacross-rg-files
             configMapPath: conf-rg-zebra.conf
             mode: execute
         ru:
           - filePath: conf/ru/daemons
-            configMapName: testAcross-ru-files
+            configMapName: testacross-ru-files
             configMapPath: conf-ru-daemons
             mode: read
           - filePath: conf/ru/isisd.conf
-            configMapName: testAcross-ru-files
+            configMapName: testacross-ru-files
             configMapPath: conf-ru-isisd.conf
             mode: read
           - filePath: conf/ru/zebra.conf
-            configMapName: testAcross-ru-files
+            configMapName: testacross-ru-files
             configMapPath: conf-ru-zebra.conf
             mode: execute
         upf:
           - filePath: conf/rupf/daemons
-            configMapName: testAcross-upf-files
+            configMapName: testacross-upf-files
             configMapPath: conf-rupf-daemons
             mode: read
           - filePath: conf/rupf/isisd.conf
-            configMapName: testAcross-upf-files
+            configMapName: testacross-upf-files
             configMapPath: conf-rupf-isisd.conf
             mode: read
           - filePath: conf/rupf/zebra.conf
-            configMapName: testAcross-upf-files
+            configMapName: testacross-upf-files
             configMapPath: conf-rupf-zebra.conf
             mode: execute
   naming: non-prefixed
   definition:
     containerlab: |-
-          name: testAcross
+          name: testacross
           topology:
             defaults:
               ports: []
@@ -144,7 +144,7 @@ spec:
                 - conf/rupf/zebra.conf:/etc/frr/zebra.conf
                 - conf/rupf/isisd.conf:/etc/frr/isisd.conf
                 ports: []
-              gnb-h1:
+              hgnb-h1:
                 kind: linux
                 image: praqma/network-multitool:latest
                 exec:
@@ -154,7 +154,7 @@ spec:
                 - ip link set eth1 up
                 - ip link set eth1.111 up
                 ports: []
-              gnb-h2:
+              hgnb-h2:
                 kind: linux
                 image: praqma/network-multitool:latest
                 exec:
@@ -164,7 +164,7 @@ spec:
                 - ip link set eth1 up
                 - ip link set eth1.112 up
                 ports: []
-              gnb-h3:
+              hgnb-h3:
                 kind: linux
                 image: praqma/network-multitool:latest
                 exec:
@@ -305,7 +305,7 @@ spec:
                 - conf/rupf/zebra.conf:/etc/frr/zebra.conf
                 - conf/rupf/isisd.conf:/etc/frr/isisd.conf
                 ports: []
-              upf-h1:
+              hupf-h1:
                 kind: linux
                 image: praqma/network-multitool:latest
                 exec:

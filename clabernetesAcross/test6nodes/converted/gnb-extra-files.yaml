@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: testAcross-gnb-files
+  name: testacross-gnb-files
   namespace: across-tc32
 data:
   conf-rupf-daemons: |-
