@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: testAcross-rg-files
+  name: testacross-rg-files
   namespace: across-tc32
 data:
   conf-rg-daemons: |-
