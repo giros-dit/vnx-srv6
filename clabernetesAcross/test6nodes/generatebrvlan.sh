@@ -7,7 +7,7 @@ ssh root@compute${i} "
   ovs-vsctl add-port br-vlan vlannet
   ip link set br-vlan up
 "
-for v in 1012 1023 1014 1034 2011 2032; do
+for v in 1001 1002 1003 1004 1005 1006 1007 1008 2001 2002; do
 ssh root@compute${i} "
   ip link add link br-vlan name br-vlan.${v} type vlan id ${v}
   ip link set br-vlan.${v} up
