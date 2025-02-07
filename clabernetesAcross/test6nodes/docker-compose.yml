@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: avillaseca01/bdfimongo
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  pce:
+    image: avillaseca01/pce
+    container_name: pce
+    depends_on:
+      - mongo
+    tty: true
+    stdin_open: true
+
+  src:
+    image: avillaseca01/src:writemongo
+    container_name: src
+    depends_on:
+      - mongo
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./src:/app  # Los ficheros generados (directorio conf/) se verán en ./fetch_data en el host
+
+volumes:
+  mongo-data:

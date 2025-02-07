@@ -109,13 +109,13 @@ topology:
         - ip link set eth2 up
         - ip link set eth3 up
     
-    gnb:
+    rgnb:
       kind: linux
       image: avillaseca01/srv6-frr
       binds:
-        - conf/rupf/daemons:/etc/frr/daemons
-        - conf/rupf/zebra.conf:/etc/frr/zebra.conf
-        - conf/rupf/isisd.conf:/etc/frr/isisd.conf
+        - conf/rgnb/daemons:/etc/frr/daemons
+        - conf/rgnb/zebra.conf:/etc/frr/zebra.conf
+        - conf/rgnb/isisd.conf:/etc/frr/isisd.conf
       exec:
         - service frr start
         - sysctl -p
@@ -135,7 +135,7 @@ topology:
         - ip link set eth2.113 up
 
     
-    upf:
+    rupf:
       kind: linux
       image: avillaseca01/srv6-frr
       binds:
@@ -161,7 +161,7 @@ topology:
         - ip link set eth2.113 up
 
         
-    gnb-h1:
+    hgnb-h1:
       kind: linux
       image: praqma/network-multitool:latest
       exec:
@@ -171,7 +171,7 @@ topology:
         - ip link set eth1 up
         - ip link set eth1.111 up
     
-    gnb-h2:
+    hgnb-h2:
       kind: linux
       image: praqma/network-multitool:latest
       exec:
@@ -181,17 +181,17 @@ topology:
         - ip link set eth1 up
         - ip link set eth1.112 up
     
-    gnb-h3:
+    hgnb-h3:
       kind: linux
       image: praqma/network-multitool:latest
       exec:
-        - ip link add link eth1 name eth1.112 type vlan id 113
+        - ip link add link eth1 name eth1.113 type vlan id 113
         - ip -6 addr add fd00:0:2::5/127 dev eth1.113
         - ip -6 route add fd00:0:1::5/127 via fd00:0:2::4
         - ip link set eth1 up
         - ip link set eth1.113 up
     
-    upf-h1:
+    hupf-h1:
       kind: linux
       image: praqma/network-multitool:latest
       exec:
@@ -211,8 +211,8 @@ topology:
 
 
   links:
-    - endpoints: ["gnb:eth1", "multus:net1001"]
-    - endpoints: ["gnb:eth2", "multus:net2002"]
+    - endpoints: ["rgnb:eth1", "multus:net1001"]
+    - endpoints: ["rgnb:eth2", "multus:net2001"]
     - endpoints: ["rg:eth1", "multus:net1001"]
     - endpoints: ["rg:eth2", "multus:net1002"]
     - endpoints: ["rg:eth3", "multus:net1005"]
@@ -227,9 +227,9 @@ topology:
     - endpoints: ["ru:eth1", "multus:net1008"]
     - endpoints: ["ru:eth2", "multus:net1004"]
     - endpoints: ["ru:eth3", "multus:net1007"]
-    - endpoints: ["upf:eth1", "multus:net1008"]
-    - endpoints: ["upf:eth2", "multus:net2001"]
-    - endpoints: ["gnb-h1:eth1", "multus:net2002"]
-    - endpoints: ["gnb-h2:eth1", "multus:net2002"]
-    - endpoints: ["gnb-h3:eth1", "multus:net2002"]
-    - endpoints: ["upf-h1:eth1", "multus:net2001"]
+    - endpoints: ["rupf:eth1", "multus:net1008"]
+    - endpoints: ["rupf:eth2", "multus:net2002"]
+    - endpoints: ["hgnb-h1:eth1", "multus:net2001"]
+    - endpoints: ["hgnb-h2:eth1", "multus:net2001"]
+    - endpoints: ["hgnb-h3:eth1", "multus:net2001"]
+    - endpoints: ["hupf-h1:eth1", "multus:net2002"]
