@@ -1,3 +1,4 @@
 #!/bin/sh
 
-kubectl exec -n $1 -it $2 -- tcpdump -U -nni $3 -w - | wireshark -k -i -
+kubectl exec -n across-tc32 -i deploy/$1 -- tcpdump -U -nni $2 -w - | wireshark -k -i -
+

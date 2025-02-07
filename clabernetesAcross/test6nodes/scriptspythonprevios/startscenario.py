@@ -22,7 +22,7 @@ def main():
     # Confirmación final
     print("El despliegue del escenario de la topología ha sido completado exitosamente.")
 
-    directories = ['./conf/r11', './conf/r12', './conf/r13']
+    directories = ['./conf/rgnb', './conf/rupf']
     for directory in directories:
         script_path = os.path.join(directory, 'script.sh')
         if os.path.exists(script_path):
