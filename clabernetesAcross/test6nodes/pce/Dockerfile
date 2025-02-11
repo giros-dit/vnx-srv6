@@ -4,9 +4,9 @@ WORKDIR /app
 
 # Copiar el script al contenedor
 COPY store_routes.py .
+COPY mynetworkx.py .
+COPY requirements.txt .
 
-# Instalar pymongo
-RUN pip install pymongo
+# Instalar dependencias
+RUN pip install -r requirements.txt
 
-# Permitir interacción por stdin
-CMD ["python", "store_routes.py"]
