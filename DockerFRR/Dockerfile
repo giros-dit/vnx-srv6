@@ -6,7 +6,9 @@ RUN apt-get update && apt-get install -y \
     wget \
     net-tools \
     iputils-ping \
-    lsb-release
+    lsb-release \
+    traceroute \
+    tcpdump 
 
 RUN wget https://deb.frrouting.org/frr/keys.asc && \
     apt-key add keys.asc && \
@@ -17,8 +19,7 @@ RUN release=$(lsb_release -s -c) && \
 
 RUN apt-get update && apt-get install -y \
     frr \
-    frr-pythontools \
-    traceroute
+    frr-pythontools 
 
 RUN echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.conf && \
     echo "net.ipv6.conf.default.seg6_enabled=1" >> /etc/sysctl.conf &&\
