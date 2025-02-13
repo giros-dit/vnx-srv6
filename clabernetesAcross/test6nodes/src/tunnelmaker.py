@@ -2,6 +2,7 @@
 import os
 import sys
 import pymongo
+import json
 
 # Variables globales para la generación de comandos
 ns = "across-tc32"
@@ -18,14 +19,21 @@ VLAN_IPv6_UPF = {
     113: "fd00:0:1::4/127"
 }
 
-def iniciaficheros():
-    # Se crean los directorios y se inicializan los ficheros de script
-    os.makedirs('./conf/rgnb', exist_ok=True)
-    with open('./conf/rgnb/script.sh', 'w') as f:
+ID_to_IP = {
+    "r1": "fcff:1::1",
+    "r2": "fcff:2::1",
+    "r3": "fcff:3::1",
+    "r4": "fcff:4::1",
+    "ru": "fcff:6::1",
+    "rg": "fcff:5::1"
+}
+
+def iniciafichero():
+    # Se crean los directorios y se inicializan los fichero de script
+    os.makedirs('./conf', exist_ok=True)
+    with open('./conf/script.sh', 'w') as f:
         f.write("#!/bin/bash\n")
-    os.makedirs('./conf/rupf', exist_ok=True)
-    with open('./conf/rupf/script.sh', 'w') as f:
-        f.write("#!/bin/bash\n")
+
 
 def load_config_from_mongo():
     """Recupera la configuración desde Mongo.
@@ -45,7 +53,7 @@ def load_config_from_mongo():
 def createupf(vlan, routers, method):
     VLAN = int(vlan)
     if 110 <= VLAN < 114:
-        segments = routers + ['fcff:5::1', 'fcff:7::1'] if routers else ['fcff:5::1', 'fcff:7::1']
+        segments = routers + ['fcff:5::1'] if routers else ['fcff:5::1']
     else:
         print("VLAN not supported")
         sys.exit(1)
@@ -59,7 +67,7 @@ def createupf(vlan, routers, method):
 def creategnb(vlan, routers, method):
     VLAN = int(vlan)
     if 110 <= VLAN < 114:
-        segments = routers + ['fcff:6::1', 'fcff:8::1'] if routers else ['fcff:6::1', 'fcff:8::1']
+        segments = routers + ['fcff:6::1'] if routers else ['fcff:6::1']
     else:
         print("VLAN not supported")
         sys.exit(1)
@@ -77,11 +85,13 @@ def save(command, file):
 def determine_method(version, routers):
     if not routers:
         return "delete"
-    return "add" if version == 1 else "replace"
+    return "add" if version == 0 else "replace"
 
 def main():
-    iniciaficheros()
-    config = load_config_from_mongo()
+    iniciafichero()
+    vlan = sys.argv[1]
+    version = int(sys.argv[2])
+    routers = json.loads(sys.argv[3])
 
     for vlan, data in config.items():
         routers = data.get("routers", [])
@@ -99,7 +109,7 @@ def main():
         save(commandrupf, scriptfile)
         save(comandognb, scriptfile)
 
-    print("\nFicheros de script generados en el volumen compartido.")
+    print("\nFichero de script generado en el volumen compartido.")
     print("Ejecuta los scripts en el host, por ejemplo:")
     print("  bash ./conf/script.sh")
 

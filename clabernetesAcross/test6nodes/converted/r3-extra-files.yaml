@@ -78,7 +78,7 @@ data:
     debug zebra rib
     !
     interface eth1
-     ipv6 address fcf0:0:3:5::1/64
+     ipv6 address fcf0:0:3:6::1/64
     !
     interface eth2
      ipv6 address fcf0:0:3:4::1/64
