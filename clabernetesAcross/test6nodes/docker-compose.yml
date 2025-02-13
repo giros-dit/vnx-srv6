@@ -9,23 +9,16 @@ services:
     volumes:
       - mongo-data:/data/db
 
-  pce:
-    image: avillaseca01/pce
-    container_name: pce
-    depends_on:
-      - mongo
-    tty: true
-    stdin_open: true
 
   src:
-    image: avillaseca01/src:writemongo
+    image: avillaseca01/src
     container_name: src
     depends_on:
       - mongo
     tty: true
     stdin_open: true
     volumes:
-      - ./src:/app  # Los ficheros generados (directorio conf/) se verán en ./fetch_data en el host
+      - ./src:/app  # Los ficheros generados (directorio conf/) se verán en ./conf en el host
 
 volumes:
   mongo-data:
