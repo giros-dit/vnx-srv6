@@ -85,9 +85,6 @@ spec:
             configMapName: testacross-ru-files
             configMapPath: conf-ru-zebra.conf
             mode: execute
-  expose:
-    disableExpose: true
-    exposeType: LoadBalancer
   naming: non-prefixed
   definition:
     containerlab: |-
