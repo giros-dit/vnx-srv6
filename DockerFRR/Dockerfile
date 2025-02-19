@@ -8,7 +8,8 @@ RUN apt-get update && apt-get install -y \
     iputils-ping \
     lsb-release \
     traceroute \
-    tcpdump 
+    tcpdump \
+    iperf
 
 RUN wget https://deb.frrouting.org/frr/keys.asc && \
     apt-key add keys.asc && \
