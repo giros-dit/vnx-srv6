@@ -82,20 +82,14 @@ topology:
         - sysctl -p
         - vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
         - vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
-        - ip link add link eth1 name eth1.111 type vlan id 111
-        - ip link add link eth1 name eth1.112 type vlan id 112
-        - ip link add link eth1 name eth1.113 type vlan id 113
-        - ip -6 addr add fd00:0:2::/127 dev eth1.111
-        - ip -6 addr add fd00:0:2::2/127 dev eth1.112
-        - ip -6 addr add fd00:0:2::4/127 dev eth1.113
         - sysctl -w net.ipv6.conf.eth2.seg6_enabled=1
         - sysctl -w net.ipv6.conf.eth3.seg6_enabled=1
         - ip link set eth1 up
-        - ip link set eth1.111 up
-        - ip link set eth1.112 up
-        - ip link set eth1.113 up
         - ip link set eth2 up
         - ip link set eth3 up
+        - ip -6 addr add fd00:0:2::1/64 dev eth1
+
+
 
     ru:
       kind: linux
@@ -109,20 +103,12 @@ topology:
         - sysctl -p
         - vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
         - vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
-        - ip link add link eth1 name eth1.111 type vlan id 111
-        - ip link add link eth1 name eth1.112 type vlan id 112
-        - ip link add link eth1 name eth1.113 type vlan id 113
-        - ip -6 addr add fd00:0:1::/127 dev eth1.111
-        - ip -6 addr add fd00:0:1::2/127 dev eth1.112
-        - ip -6 addr add fd00:0:1::4/127 dev eth1.113
         - sysctl -w net.ipv6.conf.eth2.seg6_enabled=1
         - sysctl -w net.ipv6.conf.eth3.seg6_enabled=1
         - ip link set eth1 up
-        - ip link set eth1.111 up
-        - ip link set eth1.112 up
-        - ip link set eth1.113 up
         - ip link set eth2 up
         - ip link set eth3 up
+        - ip -6 addr add fd00:0:1::/127 dev eth1
 
     hgnb-h1:
       kind: linux
@@ -130,11 +116,9 @@ topology:
       exec:
         - apt-get update
         - apt-get install -y iperf
-        - ip link add link eth1 name eth1.111 type vlan id 111
-        - ip -6 addr add fd00:0:2::1/127 dev eth1.111
-        - ip -6 route add fd00:0:1::1/127 via fd00:0:2::0
         - ip link set eth1 up
-        - ip link set eth1.111 up
+        - ip -6 addr add fd00:0:2::2/64 dev eth1
+        - ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
 
     hgnb-h2:
       kind: linux
@@ -142,11 +126,9 @@ topology:
       exec:
         - apt-get update
         - apt-get install -y iperf
-        - ip link add link eth1 name eth1.112 type vlan id 112
-        - ip -6 addr add fd00:0:2::3/127 dev eth1.112
-        - ip -6 route add fd00:0:1::3/127 via fd00:0:2::2
         - ip link set eth1 up
-        - ip link set eth1.112 up
+        - ip -6 addr add fd00:0:2::3/64 dev eth1
+        - ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
 
     hgnb-h3:
       kind: linux
@@ -154,11 +136,9 @@ topology:
       exec:
         - apt-get update
         - apt-get install -y iperf
-        - ip link add link eth1 name eth1.113 type vlan id 113
-        - ip -6 addr add fd00:0:2::5/127 dev eth1.113
-        - ip -6 route add fd00:0:1::5/127 via fd00:0:2::4
         - ip link set eth1 up
-        - ip link set eth1.113 up
+        - ip -6 addr add fd00:0:2::4/64 dev eth1
+        - ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
 
     hupf-h1:
       kind: linux
@@ -166,22 +146,12 @@ topology:
       exec:
         - apt-get update
         - apt-get install -y iperf
-        - ip link add link eth1 name eth1.111 type vlan id 111
-        - ip link add link eth1 name eth1.112 type vlan id 112
-        - ip link add link eth1 name eth1.113 type vlan id 113
-        - ip -6 addr add fd00:0:1::1/127 dev eth1.111
-        - ip -6 addr add fd00:0:1::3/127 dev eth1.112
-        - ip -6 addr add fd00:0:1::5/127 dev eth1.113
-        - ip -6 route add fd00:0:2::1/127 via fd00:0:1::0
-        - ip -6 route add fd00:0:2::3/127 via fd00:0:1::2
-        - ip -6 route add fd00:0:2::5/127 via fd00:0:1::4
         - ip link set eth1 up
-        - ip link set eth1.111 up
-        - ip link set eth1.112 up
-        - ip link set eth1.113 up
+        - ip -6 addr add fd00:0:1::1/64 dev eth1
+        - ip -6 route add fd00:0:2::/64 via fd00:0:1::0
 
   links:
-    - endpoints: ["rg:eth1", "multus:net2006"]
+    - endpoints: ["rg:eth1", "multus:net2002"]
     - endpoints: ["rg:eth2", "multus:net1001"]
     - endpoints: ["rg:eth3", "multus:net1004"]
     - endpoints: ["r1:eth1", "multus:net1001"]
@@ -192,10 +162,10 @@ topology:
     - endpoints: ["r3:eth2", "multus:net1005"]
     - endpoints: ["r4:eth1", "multus:net1005"]
     - endpoints: ["r4:eth2", "multus:net1006"]
-    - endpoints: ["ru:eth1", "multus:net2005"]
+    - endpoints: ["ru:eth1", "multus:net2001"]
     - endpoints: ["ru:eth2", "multus:net1003"]
     - endpoints: ["ru:eth3", "multus:net1006"]
-    - endpoints: ["hgnb-h1:eth1", "multus:net2006"]
-    - endpoints: ["hgnb-h2:eth1", "multus:net2006"]
-    - endpoints: ["hgnb-h3:eth1", "multus:net2006"]
-    - endpoints: ["hupf-h1:eth1", "multus:net2005"]
+    - endpoints: ["hgnb-h1:eth1", "multus:net2002"]
+    - endpoints: ["hgnb-h2:eth1", "multus:net2002"]
+    - endpoints: ["hgnb-h3:eth1", "multus:net2002"]
+    - endpoints: ["hupf-h1:eth1", "multus:net2001"]
