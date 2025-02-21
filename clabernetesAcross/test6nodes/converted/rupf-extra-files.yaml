@@ -2,17 +2,17 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: testacross-ru-files
+  name: testacross-rupf-files
   namespace: across-tc32
 data:
-  conf-ru-daemons: |-
+  conf-rupf-daemons: |-
     zebra=yes
     bgpd=no
     ospfd=no
     ospf6d=no
     ripd=no
     ripngd=no
-    isisd=yes
+    isisd=no
     pimd=no
     ldpd=no
     nhrpd=no
@@ -43,51 +43,24 @@ data:
     bfdd_options="  --daemon -A 127.0.0.1"
     fabricd_options="  --daemon -A 127.0.0.1"
 
-  conf-ru-isisd.conf: |-
-    hostname ru
-    password zebra
-    !
-    interface eth2
-     ipv6 router isis FOO
-     ip router isis FOO
-     isis hello-interval 5
-    !
-    interface eth3
-     ipv6 router isis FOO
-     ip router isis FOO
-     isis hello-interval 5
-    !
-    interface lo
-     ipv6 router isis FOO
-     ip router isis FOO
-     isis hello-interval 5
-    !
-    router isis FOO
-      net 47.0001.5555.5555.5555.00
-      is-type level-2-only
-      metric-style wide
-    !
-    line vty
-  conf-ru-zebra.conf: |-
+  conf-rupf-zebra.conf: |-
     ! -*- zebra -*-
 
     !
-    hostname ru
+    hostname rupf
     !
     debug zebra events
     debug zebra rib
     !
     interface eth1
-     ipv6 address fd00:0:3::/127
+    ipv6 address fd00:0:3::1/127
     !
     interface eth2
-     ipv6 address fcf0:0:2:5::2/64
+     ipv6 address fd00:0:1::0/127
     !
-    interface eth3
-     ipv6 address fcf0:0:4:5::2/64
     !
     interface lo
-     ipv6 address fcff:5::1/32
+     ipv6 address fcff:7::1/32
     !
     ipv6 forwarding
     !
