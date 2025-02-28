@@ -1,13 +1,12 @@
-#!/usr/bin/env python
 import pymongo
 import sys
 
 def main():
     def menu():
         while True:
-            option = input("Seleccione una opción (v: VLAN, e: Energía, q: Salir): ").lower()
+            option = input("Seleccione una opción (v: Flows, e: Energía, q: Salir): ").lower()
             if option == 'v':
-                handle_vlan()
+                handle_flow()
             elif option == 'e':
                 handle_energy()
             elif option == 'q':
@@ -16,39 +15,27 @@ def main():
             else:
                 print("Opción no válida. Intente de nuevo.")
 
-    def handle_vlan():
+    def handle_flow():
         client = pymongo.MongoClient("mongodb://mongo:27017/")
         db = client["across"]
-        routes_col = db["routes"]
+        flows_col = db["flows"]
 
+        flow_id = input("Ingrese el identificador del flujo: ").strip()
         try:
-            vlan = int(input("Ingrese el número de VLAN (111, 112, 113): "))
-            if vlan not in [111, 112, 113]:
-                print("El número de VLAN debe ser 111, 112 o 113.")
-                return
+            caudal = float(input("Ingrese el caudal del flujo (en Mbps): "))
         except ValueError:
-            print("El número de VLAN debe ser un entero.")
+            print("El caudal debe ser un número.")
             return
 
-        routers_input = input("Ingrese los identificadores de los routers (separados por coma): ")
-        routers = [r.strip() for r in routers_input.split(",") if r.strip()]
+        # Se guarda el flujo únicamente con id y caudal.
+        flow_doc = {"_id": flow_id, "caudal": caudal}
 
-        existing = routes_col.find_one({"vlan": vlan})
-        if existing:
-            new_version = existing.get("version", 1) + 1
-            routes_col.update_one(
-                {"vlan": vlan},
-                {"$set": {"routers": routers, "version": new_version}}
-            )
-            print(f"Actualizado documento para VLAN {vlan} a versión {new_version}")
-        else:
-            document = {
-                "vlan": vlan,
-                "routers": routers,
-                "version": 1
-            }
-            result = routes_col.insert_one(document)
-            print(f"Insertado documento para VLAN {vlan} con versión 1, _id: {result.inserted_id}")
+        try:
+            flows_col.insert_one(flow_doc)
+            print("Flujo insertado correctamente:")
+            print(flow_doc)
+        except Exception as e:
+            print("Error al insertar el flujo:", e)
 
     def handle_energy():
         client = pymongo.MongoClient("mongodb://mongo:27017/")
