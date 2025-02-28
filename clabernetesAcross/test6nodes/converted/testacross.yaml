@@ -72,15 +72,6 @@ spec:
             configMapName: testacross-rg-files
             configMapPath: conf-rg-zebra.conf
             mode: execute
-        rgnb:
-          - filePath: conf/rgnb/daemons
-            configMapName: testacross-rgnb-files
-            configMapPath: conf-rgnb-daemons
-            mode: read
-          - filePath: conf/rgnb/zebra.conf
-            configMapName: testacross-rgnb-files
-            configMapPath: conf-rgnb-zebra.conf
-            mode: execute
         ru:
           - filePath: conf/ru/daemons
             configMapName: testacross-ru-files
@@ -94,15 +85,6 @@ spec:
             configMapName: testacross-ru-files
             configMapPath: conf-ru-zebra.conf
             mode: execute
-        rupf:
-          - filePath: conf/rupf/daemons
-            configMapName: testacross-rupf-files
-            configMapPath: conf-rupf-daemons
-            mode: read
-          - filePath: conf/rupf/zebra.conf
-            configMapName: testacross-rupf-files
-            configMapPath: conf-rupf-zebra.conf
-            mode: execute
   naming: non-prefixed
   definition:
     containerlab: |-
@@ -115,6 +97,8 @@ spec:
                 kind: linux
                 image: avillaseca01/acrossfinal
                 exec:
+                - apt-get update
+                - apt-get install -y iperf
                 - ip link set eth1 up
                 - ip -6 addr add fd00:0:2::2/64 dev eth1
                 - ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
@@ -123,6 +107,8 @@ spec:
                 kind: linux
                 image: avillaseca01/acrossfinal
                 exec:
+                - apt-get update
+                - apt-get install -y iperf
                 - ip link set eth1 up
                 - ip -6 addr add fd00:0:2::3/64 dev eth1
                 - ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
@@ -131,6 +117,8 @@ spec:
                 kind: linux
                 image: avillaseca01/acrossfinal
                 exec:
+                - apt-get update
+                - apt-get install -y iperf
                 - ip link set eth1 up
                 - ip -6 addr add fd00:0:2::4/64 dev eth1
                 - ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
@@ -139,8 +127,10 @@ spec:
                 kind: linux
                 image: avillaseca01/acrossfinal
                 exec:
+                - apt-get update
+                - apt-get install -y iperf
                 - ip link set eth1 up
-                - ip -6 addr add fd00:0:1::1/127 dev eth1
+                - ip -6 addr add fd00:0:1::1/64 dev eth1
                 - ip -6 route add fd00:0:2::/64 via fd00:0:1::0
                 ports: []
               r1:
@@ -224,25 +214,11 @@ spec:
                 - ip link set eth1 up
                 - ip link set eth2 up
                 - ip link set eth3 up
-                - ip -6 addr add fd00:0:4::0/127 dev eth1
-                - ip -6 route add fd00:0:2::0/64 via fd00:0:4::1
+                - ip -6 addr add fd00:0:2::1/64 dev eth1
                 binds:
                 - conf/rg/daemons:/etc/frr/daemons
                 - conf/rg/isisd.conf:/etc/frr/isisd.conf
                 - conf/rg/zebra.conf:/etc/frr/zebra.conf
-                ports: []
-              rgnb:
-                kind: linux
-                image: avillaseca01/srv6-frr
-                exec:
-                - ip link set eth1 up
-                - ip link set eth2 up
-                - ip -6 addr add fd00:0:4::1/127 dev eth1
-                - ip -6 addr add fd00:0:2::1/64 dev eth2
-                - ip -6 route add fd00:0:1::1/127 via fd00:0:4::0
-                binds:
-                - conf/rgnb/daemons:/etc/frr/daemons
-                - conf/rgnb/zebra.conf:/etc/frr/zebra.conf
                 ports: []
               ru:
                 kind: linux
@@ -257,24 +233,10 @@ spec:
                 - ip link set eth1 up
                 - ip link set eth2 up
                 - ip link set eth3 up
-                - ip -6 addr add fd00:0:3::/127 dev eth1
-                - ip -6 route add fd00:0:1::0/127 via fd00:0:3::1
+                - ip -6 addr add fd00:0:1::/127 dev eth1
                 binds:
                 - conf/ru/daemons:/etc/frr/daemons
                 - conf/ru/isisd.conf:/etc/frr/isisd.conf
                 - conf/ru/zebra.conf:/etc/frr/zebra.conf
-                ports: []
-              rupf:
-                kind: linux
-                image: avillaseca01/srv6-frr
-                exec:
-                - ip link set eth1 up
-                - ip link set eth2 up
-                - ip -6 addr add fd00:0:3::1/127 dev eth1
-                - ip -6 addr add fd00:0:1::/127 dev eth2
-                - ip -6 route add fd00:0:2::0/64 via fd00:0:3::0
-                binds:
-                - conf/rupf/daemons:/etc/frr/daemons
-                - conf/rupf/zebra.conf:/etc/frr/zebra.conf
                 ports: []
           debug: false
