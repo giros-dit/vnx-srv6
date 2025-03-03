@@ -51,9 +51,3 @@ clabverter --stdout --naming non-prefixed | kubectl apply -f -
 
 ---
 
-
-### Linux commands for create tunnels
-
-```
-./creatunnels.sh
-```
