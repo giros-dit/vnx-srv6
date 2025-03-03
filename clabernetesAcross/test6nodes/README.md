@@ -9,7 +9,7 @@ alias clabverter='sudo docker run --user $(id -u) \
 ```
 
 ```
-clabverter --stdout --naming non-prefixed | kubectl apply -f -
+clabverter --naming non-prefixed --outputDirectory ./converted --destinationNamespace across-tc32
 ```
 
 ### IPv6 and interfaces Tables
