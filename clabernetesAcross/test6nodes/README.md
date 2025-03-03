@@ -1,4 +1,4 @@
-# Clabernets 4 routers
+# Clabernets 6 routers
 Claberntes scenarios for studying and analyzing SRv6 (Segment Routing over IPv6 dataplane).
 
 
