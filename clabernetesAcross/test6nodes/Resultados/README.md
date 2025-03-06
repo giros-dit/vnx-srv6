@@ -17,8 +17,40 @@
 
 ### Datos
 
-#### Prueba
+#### Prueba 1
 
+```
+iperf 3.14
+Linux hupf-h1 5.15.0-130-generic #140-Ubuntu SMP Wed Dec 18 17:59:53 UTC 2024 x86_64
+Control connection MSS 1378
+Time: Thu, 06 Mar 2025 09:13:09 UTC
+Connecting to host fd00:0:2::2, port 5201
+      Cookie: hotfpfmi56igf5vby3wtqatbh7yogoi73xfs
+      Target Bitrate: 100000000
+[  5] local fd00:0:1::1 port 54261 connected to fd00:0:2::2 port 5201
+Starting Test: protocol: UDP, 1 streams, 1000 byte blocks, omitting 0 seconds, 10 second test, tos 0
+[ ID] Interval           Transfer     Bitrate         Total Datagrams
+[  5]   0.00-1.00   sec  11.9 MBytes  99.9 Mbits/sec  12490  
+[  5]   1.00-2.00   sec  11.9 MBytes   100 Mbits/sec  12499  
+[  5]   2.00-3.00   sec  11.9 MBytes   100 Mbits/sec  12501  
+[  5]   3.00-4.00   sec  11.9 MBytes   100 Mbits/sec  12500  
+[  5]   4.00-5.00   sec  11.9 MBytes   100 Mbits/sec  12500  
+[  5]   5.00-6.00   sec  11.9 MBytes   100 Mbits/sec  12500  
+[  5]   6.00-7.00   sec  11.9 MBytes   100 Mbits/sec  12500  
+[  5]   7.00-8.00   sec  11.9 MBytes   100 Mbits/sec  12500  
+[  5]   8.00-9.00   sec  11.9 MBytes   100 Mbits/sec  12500  
+[  5]   9.00-10.00  sec  11.9 MBytes   100 Mbits/sec  12500  
+- - - - - - - - - - - - - - - - - - - - - - - - -
+Test Complete. Summary Results:
+[ ID] Interval           Transfer     Bitrate         Jitter    Lost/Total Datagrams
+[  5]   0.00-10.00  sec   119 MBytes   100 Mbits/sec  0.000 ms  0/124990 (0%)  sender
+[  5]   0.00-10.00  sec   119 MBytes   100 Mbits/sec  0.005 ms  0/124990 (0%)  receiver
+CPU Utilization: local/sender 9.3% (3.1%u/6.2%s), remote/receiver 12.4% (2.6%u/9.8%s)
+
+
+iperf Done.
+
+```
 
 #### Prueba 2
 
