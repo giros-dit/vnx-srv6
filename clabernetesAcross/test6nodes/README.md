@@ -5,7 +5,7 @@ Claberntes scenarios for studying and analyzing SRv6 (Segment Routing over IPv6 
 ```
 alias clabverter='sudo docker run --user $(id -u) \
     -v $(pwd):/clabernetes/work --rm \
-    ghcr.io/srl-labs/clabernetes/clabverter'
+    ghcr.io/giros-dit/clabernetes/clabverter'
 ```
 
 ```
