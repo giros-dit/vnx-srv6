@@ -1,7 +1,0 @@
----
-- name: ethernet-1/1
-  admin-state: enable
-  subinterface:
-    - index: 0
-      type: bridged
-      admin-state: enable
