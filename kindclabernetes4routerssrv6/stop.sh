@@ -1,1 +1,0 @@
-kind delete clusters c9s
