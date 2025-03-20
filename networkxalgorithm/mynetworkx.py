@@ -1,6 +1,7 @@
 import json
 import time
 import networkx as nx
+import os  # Import os for path handling
 
 OCCUPANCY_LIMIT = 0.8
 NODE_TIMEOUT = 15
@@ -50,20 +51,28 @@ def remove_inactive_nodes(G, flows, inactive_routers):
 
 def read_routers_params():
     try:
-        with open("routers.json", "r") as f:
+        # Construct the absolute path to routers.json
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        routers_file = os.path.join(base_dir, "routers.json")
+        
+        with open(routers_file, "r") as f:
             data = json.load(f)
         for item in data:
             r = item.get("router")
             usage = item.get("usage", 0)
             energy = item.get("energy", 700)
+            if "ts" not in item:
+                raise ValueError(f"Missing 'ts' field for router {r} in routers.json")
+            ts = item["ts"]  # Use ts from JSON, must exist
             if r:
                 router_state[r] = router_state.get(r, {})
                 router_state[r]["usage"] = usage
                 router_state[r]["energy"] = energy
-                router_state[r]["ts"] = time.time()
-                print(f"[mynetworkx] read_routers_params: Router {r} usage={usage}, energy={energy}")
-    except:
-        pass
+                router_state[r]["ts"] = ts
+                print(f"[mynetworkx] read_routers_params: Router {r} updated with usage={usage}, energy={energy}, ts={router_state[r]['ts']}")
+    except Exception as e:
+        print(f"[mynetworkx] read_routers_params: Error reading routers.json: {e}")
+        raise
 
 def assign_node_costs(G):
     now = time.time()
@@ -148,14 +157,17 @@ def main():
         flows = read_flows()
 
         now = time.time()
-        inactive_routers = [r for r, data in router_state.items() if (now - data.get("ts", 0)) > NODE_TIMEOUT]
+        print(f"[mynetworkx] main: Current time = {now}")
         for r, data in router_state.items():
             ts_diff = now - data.get("ts", 0)
-            print(f"[mynetworkx] Router {r} ts difference: {ts_diff}")
-        missing_routes = any(not f.get("route") for f in flows)
+            print(f"[mynetworkx] main: Router {r} ts={data.get('ts', 0)}, ts_diff={ts_diff}")
+        
+        inactive_routers = [r for r, data in router_state.items() if (now - data.get("ts", 0)) > NODE_TIMEOUT]
+        print(f"[mynetworkx] main: Inactive routers detected: {inactive_routers}")
 
+        missing_routes = any(not f.get("route") for f in flows)
         if not inactive_routers and not missing_routes:
-            print("[No flows missing routes and no inactive routers, skipping iteration.")
+            print("[mynetworkx] main: No flows missing routes and no inactive routers, skipping iteration.")
             continue
 
         G = create_graph()
