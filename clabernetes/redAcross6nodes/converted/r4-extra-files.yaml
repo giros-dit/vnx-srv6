@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: testacross-r4-files
+  name: across6nodes-r4-files
   namespace: across-tc32
 data:
   conf-r4-daemons: |-

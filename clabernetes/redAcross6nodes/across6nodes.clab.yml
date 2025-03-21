@@ -9,6 +9,8 @@ topology:
         - conf/r1/daemons:/etc/frr/daemons
         - conf/r1/isisd.conf:/etc/frr/isisd.conf
         - conf/r1/zebra.conf:/etc/frr/zebra.conf
+      ports:
+        - 9100:9100
       exec:
         - service frr start
         - sysctl -p
@@ -26,6 +28,8 @@ topology:
         - conf/r2/daemons:/etc/frr/daemons
         - conf/r2/isisd.conf:/etc/frr/isisd.conf
         - conf/r2/zebra.conf:/etc/frr/zebra.conf
+      ports:
+        - 9100:9100
       exec:
         - service frr start
         - sysctl -p
@@ -43,6 +47,8 @@ topology:
         - conf/r3/daemons:/etc/frr/daemons
         - conf/r3/isisd.conf:/etc/frr/isisd.conf
         - conf/r3/zebra.conf:/etc/frr/zebra.conf
+      ports:
+        - 9100:9100
       exec:
         - service frr start
         - sysctl -p
@@ -56,6 +62,8 @@ topology:
     r4:
       kind: linux
       image: mariovicente/router-node-exporter
+      ports:
+        - 9100:9100
       binds:
         - conf/r4/daemons:/etc/frr/daemons
         - conf/r4/isisd.conf:/etc/frr/isisd.conf

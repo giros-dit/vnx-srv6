@@ -2,111 +2,111 @@
 apiVersion: clabernetes.containerlab.dev/v1alpha1
 kind: Topology
 metadata:
-  name: testacross
+  name: across6nodes
   namespace: across-tc32
 spec:
   deployment:
     filesFromConfigMap:
         r1:
           - filePath: conf/r1/daemons
-            configMapName: testacross-r1-files
+            configMapName: across6nodes-r1-files
             configMapPath: conf-r1-daemons
             mode: read
           - filePath: conf/r1/isisd.conf
-            configMapName: testacross-r1-files
+            configMapName: across6nodes-r1-files
             configMapPath: conf-r1-isisd.conf
             mode: read
           - filePath: conf/r1/zebra.conf
-            configMapName: testacross-r1-files
+            configMapName: across6nodes-r1-files
             configMapPath: conf-r1-zebra.conf
             mode: execute
         r2:
           - filePath: conf/r2/daemons
-            configMapName: testacross-r2-files
+            configMapName: across6nodes-r2-files
             configMapPath: conf-r2-daemons
             mode: read
           - filePath: conf/r2/isisd.conf
-            configMapName: testacross-r2-files
+            configMapName: across6nodes-r2-files
             configMapPath: conf-r2-isisd.conf
             mode: read
           - filePath: conf/r2/zebra.conf
-            configMapName: testacross-r2-files
+            configMapName: across6nodes-r2-files
             configMapPath: conf-r2-zebra.conf
             mode: execute
         r3:
           - filePath: conf/r3/daemons
-            configMapName: testacross-r3-files
+            configMapName: across6nodes-r3-files
             configMapPath: conf-r3-daemons
             mode: read
           - filePath: conf/r3/isisd.conf
-            configMapName: testacross-r3-files
+            configMapName: across6nodes-r3-files
             configMapPath: conf-r3-isisd.conf
             mode: read
           - filePath: conf/r3/zebra.conf
-            configMapName: testacross-r3-files
+            configMapName: across6nodes-r3-files
             configMapPath: conf-r3-zebra.conf
             mode: execute
         r4:
           - filePath: conf/r4/daemons
-            configMapName: testacross-r4-files
+            configMapName: across6nodes-r4-files
             configMapPath: conf-r4-daemons
             mode: read
           - filePath: conf/r4/isisd.conf
-            configMapName: testacross-r4-files
+            configMapName: across6nodes-r4-files
             configMapPath: conf-r4-isisd.conf
             mode: read
           - filePath: conf/r4/zebra.conf
-            configMapName: testacross-r4-files
+            configMapName: across6nodes-r4-files
             configMapPath: conf-r4-zebra.conf
             mode: execute
         rg:
           - filePath: conf/rg/daemons
-            configMapName: testacross-rg-files
+            configMapName: across6nodes-rg-files
             configMapPath: conf-rg-daemons
             mode: read
           - filePath: conf/rg/isisd.conf
-            configMapName: testacross-rg-files
+            configMapName: across6nodes-rg-files
             configMapPath: conf-rg-isisd.conf
             mode: read
           - filePath: conf/rg/zebra.conf
-            configMapName: testacross-rg-files
+            configMapName: across6nodes-rg-files
             configMapPath: conf-rg-zebra.conf
             mode: execute
         rgnb:
           - filePath: conf/rgnb/daemons
-            configMapName: testacross-rgnb-files
+            configMapName: across6nodes-rgnb-files
             configMapPath: conf-rgnb-daemons
             mode: read
           - filePath: conf/rgnb/zebra.conf
-            configMapName: testacross-rgnb-files
+            configMapName: across6nodes-rgnb-files
             configMapPath: conf-rgnb-zebra.conf
             mode: execute
         ru:
           - filePath: conf/ru/daemons
-            configMapName: testacross-ru-files
+            configMapName: across6nodes-ru-files
             configMapPath: conf-ru-daemons
             mode: read
           - filePath: conf/ru/isisd.conf
-            configMapName: testacross-ru-files
+            configMapName: across6nodes-ru-files
             configMapPath: conf-ru-isisd.conf
             mode: read
           - filePath: conf/ru/zebra.conf
-            configMapName: testacross-ru-files
+            configMapName: across6nodes-ru-files
             configMapPath: conf-ru-zebra.conf
             mode: execute
         rupf:
           - filePath: conf/rupf/daemons
-            configMapName: testacross-rupf-files
+            configMapName: across6nodes-rupf-files
             configMapPath: conf-rupf-daemons
             mode: read
           - filePath: conf/rupf/zebra.conf
-            configMapName: testacross-rupf-files
+            configMapName: across6nodes-rupf-files
             configMapPath: conf-rupf-zebra.conf
             mode: execute
   naming: non-prefixed
   definition:
     containerlab: |-
-          name: testacross
+          name: across6nodes
           topology:
             defaults:
               ports: []
@@ -159,7 +159,8 @@ spec:
                 - conf/r1/daemons:/etc/frr/daemons
                 - conf/r1/isisd.conf:/etc/frr/isisd.conf
                 - conf/r1/zebra.conf:/etc/frr/zebra.conf
-                ports: []
+                ports:
+                - 9100:9100
               r2:
                 kind: linux
                 image: mariovicente/router-node-exporter
@@ -176,7 +177,8 @@ spec:
                 - conf/r2/daemons:/etc/frr/daemons
                 - conf/r2/isisd.conf:/etc/frr/isisd.conf
                 - conf/r2/zebra.conf:/etc/frr/zebra.conf
-                ports: []
+                ports:
+                - 9100:9100
               r3:
                 kind: linux
                 image: mariovicente/router-node-exporter
@@ -193,7 +195,8 @@ spec:
                 - conf/r3/daemons:/etc/frr/daemons
                 - conf/r3/isisd.conf:/etc/frr/isisd.conf
                 - conf/r3/zebra.conf:/etc/frr/zebra.conf
-                ports: []
+                ports:
+                - 9100:9100
               r4:
                 kind: linux
                 image: mariovicente/router-node-exporter
@@ -210,7 +213,8 @@ spec:
                 - conf/r4/daemons:/etc/frr/daemons
                 - conf/r4/isisd.conf:/etc/frr/isisd.conf
                 - conf/r4/zebra.conf:/etc/frr/zebra.conf
-                ports: []
+                ports:
+                - 9100:9100
               rg:
                 kind: linux
                 image: mariovicente/router-node-exporter
