@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: testacross-rgnb-files
+  name: across6nodes-rgnb-files
   namespace: across-tc32
 data:
   conf-rgnb-daemons: |-
