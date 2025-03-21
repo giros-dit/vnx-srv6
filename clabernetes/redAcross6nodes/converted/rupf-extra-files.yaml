@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: testacross-rupf-files
+  name: across6nodes-rupf-files
   namespace: across-tc32
 data:
   conf-rupf-daemons: |-
