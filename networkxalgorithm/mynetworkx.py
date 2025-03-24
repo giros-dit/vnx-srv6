@@ -6,10 +6,11 @@ import os  # Import os for path handling
 OCCUPANCY_LIMIT = 0.8
 NODE_TIMEOUT = 15
 router_state = {}  
+SAVE_INFO = True
 
 def create_graph():
     G = nx.DiGraph()
-    for r in ["r1","r2","r3","r4","ru","rg"]:
+    for r in ["r3","r4","r1","r2","ru","rg"]:
         G.add_node(r)
     edges = [
         ("r1", "rg"), ("rg", "r1"),
@@ -26,13 +27,25 @@ def create_graph():
 def read_flows():
     try:
         with open("flows.json", "r") as f:
-            return json.load(f)
-    except:
+            data = json.load(f)
+            # If SAVE_INFO is True, extract the "flows" key; otherwise, return the data directly
+            if SAVE_INFO and isinstance(data, dict) and "flows" in data:
+                return data["flows"]
+            return data if isinstance(data, list) else []
+    except Exception as e:
+        print(f"[mynetworkx] read_flows: Error reading flows.json: {e}")
         return []
 
-def write_flows(flows):
-    with open("flows.json", "w") as f:
-        json.dump(flows, f, indent=4)
+def write_flows(flows, inactive_routers=None, router_utilization=None):
+    try:
+        with open("flows.json", "w") as f:
+            json.dump({
+                "flows": flows,
+                "inactive_routers": inactive_routers or [],
+                "router_utilization": router_utilization or {}
+            }, f, indent=4)
+    except Exception as e:
+        print(f"[mynetworkx] write_flows: Error writing flows.json: {e}")
 
 def remove_inactive_nodes(G, flows, inactive_routers):
     removed = []
@@ -101,18 +114,23 @@ def recalc_routes_if_router_down(G, flows, removed=None):
             try:
                 # Intentar ruta evitando nodos saturados
                 path = nx.shortest_path(G2, source, target, weight="cost")
+                max_usage = max(router_state.get(node, {}).get("usage", 0.0) for node in path)
+                if max_usage > 0.95:
+                    print(f"WARNING: FLOW {f.get('_id', '???')} EXCEEDS 95% USAGE LIMIT")
+                    continue
             except:
                 print("No se encontró ruta sin usar nodos debajo del 80%, uso por encima del 80%...")
                 try:
                     # Si no existe ruta en G2, usamos el grafo completo
                     path = nx.shortest_path(G, source, target, weight="cost")
+                    max_usage = max(router_state.get(node, {}).get("usage", 0.0) for node in path)
+                    if max_usage > 0.95:
+                        print(f"WARNING: FLOW {f.get('_id', '???')} EXCEEDS 95% USAGE LIMIT")
+                        continue
                 except:
                     print("No hay camino posible.")
                     continue
 
-            max_usage = max(router_state.get(node, {}).get("usage", 0.0) for node in path)
-            if max_usage > OCCUPANCY_LIMIT:
-                print(f"[mynetworkx] recalc_routes: Flow {f.get('_id','???')} usage above {OCCUPANCY_LIMIT}")
             print(f"[mynetworkx] recalc_routes: Assigned route {path} to flow {f.get('_id')}")
             f["route"] = path
     return flows
@@ -134,19 +152,24 @@ def assign_routes_if_missing(G, flows):
             try:
                 # Intentar ruta evitando nodos saturados
                 path = nx.shortest_path(G2, source, target, weight="cost")
+                max_usage = max(router_state.get(node, {}).get("usage", 0.0) for node in path)
+                if max_usage > 0.95:
+                    print(f"WARNING: FLOW {f.get('_id', '???')} EXCEEDS 95% USAGE LIMIT")
+                    continue
             except:
                 print("No se encontró ruta en el subgrafo, intentando con G completo...")
                 try:
                     # Si no existe ruta en G2, usamos el grafo completo
                     path = nx.shortest_path(G, source, target, weight="cost")
+                    max_usage = max(router_state.get(node, {}).get("usage", 0.0) for node in path)
+                    if max_usage > 0.95:
+                        print(f"WARNING: FLOW {f.get('_id', '???')} EXCEEDS 95% USAGE LIMIT")
+                        continue
                 except:
                     print("No hay camino posible.")
                     continue
 
-            max_usage = max(router_state.get(node, {}).get("usage", 0.0) for node in path)
-            if max_usage > OCCUPANCY_LIMIT:
-                print(f"[mynetworkx] recalc_routes: Flow {f.get('_id','???')} usage above {OCCUPANCY_LIMIT}")
-            print(f"[mynetworkx] recalc_routes: Assigned route {path} to flow {f.get('_id')}")
+            print(f"[mynetworkx] assign_routes: Assigned route {path} to flow {f.get('_id')}")
             f["route"] = path
     return flows
 
@@ -165,6 +188,9 @@ def main():
         inactive_routers = [r for r, data in router_state.items() if (now - data.get("ts", 0)) > NODE_TIMEOUT]
         print(f"[mynetworkx] main: Inactive routers detected: {inactive_routers}")
 
+        router_utilization = {r: data.get("usage", 0) for r, data in router_state.items()}
+        print(f"[mynetworkx] main: Router utilization: {router_utilization}")
+
         missing_routes = any(not f.get("route") for f in flows)
         if not inactive_routers and not missing_routes:
             print("[mynetworkx] main: No flows missing routes and no inactive routers, skipping iteration.")
@@ -176,7 +202,7 @@ def main():
         if removed:
             flows = recalc_routes_if_router_down(G, flows, removed)
         flows = assign_routes_if_missing(G, flows)
-        write_flows(flows)
+        write_flows(flows, inactive_routers, router_utilization)
 
 if __name__ == "__main__":
     main()
