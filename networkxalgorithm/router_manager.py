@@ -41,7 +41,7 @@ def update_router_state():
 def handle_user_input():
     while True:
         try:
-            user_input = input("Ingrese los routers separados por espacio (ej: 1 2): ").strip()
+            user_input = input("Ingrese comando (Ej: '1 21' para establecer uso, 'p 1' para pausar, 't 1' para reactivar, 'q' para salir): ").strip()
             if user_input == 'q':
                 if os.path.exists("routers.json"):
                     os.remove("routers.json")
@@ -49,21 +49,33 @@ def handle_user_input():
                 break
             elif user_input.startswith("p "):
                 parts = user_input.split()
-                if len(parts) > 1:
+                if len(parts) >= 2:
                     router_key = f"r{parts[1]}"
                     paused_routers.add(router_key)
-            elif not user_input:
-                continue
+                    print(f"Router {router_key} pausado.")
+            elif user_input.startswith("t "):
+                parts = user_input.split()
+                if len(parts) >= 2:
+                    router_key = f"r{parts[1]}"
+                    paused_routers.discard(router_key)
+                    print(f"Router {router_key} reactivado.")
             else:
-                routers = user_input.split()
-                for router in routers:
-                    router_key = f"r{router}"
+                parts = user_input.split()
+                if len(parts) == 2:
+                    router_id = parts[0]
+                    try:
+                        usage_val = float(parts[1]) / 100.0
+                    except ValueError:
+                        print("Error: El segundo valor debe ser numérico.")
+                        continue
+                    router_key = f"r{router_id}"
                     if router_key not in router_state:
                         router_state[router_key] = {"usage": 0.0, "energy": 700, "ts": time.time()}
-                    router_state[router_key]["usage"] += 0.21
+                    router_state[router_key]["usage"] = usage_val
                     router_state[router_key]["ts"] = time.time()
-                    if router_state[router_key]["usage"] > 1.0:
-                        router_state[router_key]["usage"] = 1.0  # Limitar al 100%
+                    print(f"Router {router_key} uso establecido a {usage_val}.")
+                else:
+                    print("Comando no reconocido.")
         except Exception as e:
             print(f"Error al procesar la entrada: {e}")
 
