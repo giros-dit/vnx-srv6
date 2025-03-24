@@ -1,0 +1,31 @@
+{
+    "flows": [
+        {
+            "_id": "1",
+            "version": 1,
+            "route": [
+                "ru",
+                "r2",
+                "r1",
+                "rg"
+            ]
+        },
+        {
+            "_id": "2",
+            "version": 1,
+            "route": [
+                "ru",
+                "r3",
+                "r4",
+                "rg"
+            ]
+        }
+    ],
+    "inactive_routers": [],
+    "router_utilization": {
+        "r1": 0.21,
+        "r2": 0.21,
+        "r3": 0.00,
+        "r4": 0.00
+    }
+}

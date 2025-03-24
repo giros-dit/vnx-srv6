@@ -55,7 +55,7 @@ def remove_inactive_nodes(G, flows, inactive_routers):
             removed.append(r)
 
     if removed:
-        print(f"[mynetworkx] remove_inactive_nodes: Removed inactive routers: {removed}")
+        #print(f"[mynetworkx] remove_inactive_nodes: Removed inactive routers: {removed}")
         for f in flows:
             if "route" in f and any(r in f["route"] for r in removed):
                 f.pop("route", None)
@@ -82,9 +82,9 @@ def read_routers_params():
                 router_state[r]["usage"] = usage
                 router_state[r]["energy"] = energy
                 router_state[r]["ts"] = ts
-                print(f"[mynetworkx] read_routers_params: Router {r} updated with usage={usage}, energy={energy}, ts={router_state[r]['ts']}")
+                #print(f"[mynetworkx] read_routers_params: Router {r} updated with usage={usage}, energy={energy}, ts={router_state[r]['ts']}")
     except Exception as e:
-        print(f"[mynetworkx] read_routers_params: Error reading routers.json: {e}")
+        #print(f"[mynetworkx] read_routers_params: Error reading routers.json: {e}")
         raise
 
 def assign_node_costs(G):
@@ -94,7 +94,7 @@ def assign_node_costs(G):
             G[u][v]["cost"] = router_state[v].get("energy", 9999)
         else:
             G[u][v]["cost"] = 9999
-        print(f"[mynetworkx] assign_node_costs: Cost from {u} to {v} = {G[u][v]['cost']}")
+        #print(f"[mynetworkx] assign_node_costs: Cost from {u} to {v} = {G[u][v]['cost']}")
     return G
 
 def recalc_routes_if_router_down(G, flows, removed=None):
