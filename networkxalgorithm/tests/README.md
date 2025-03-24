@@ -1,7 +1,7 @@
 # Test algoritmo
 
 ## Intro
-Para llevar a cabo estas pruebas se han empleado los ficheros flows.py y router_manager.py de Python, que gestionan los archivos JSON que simulan el estado de la red. Además, se ha almacenado en un JSON el estado de dichos archivos para verificar que el sistema funciona correctamente.
+Para llevar a cabo estas pruebas se han empleado unos archivos JSON que simulan el estado de la red. Además, se incluye el estado del json de los flujos, para comprobar los resultados.
 
 ## Tabla de Experimentos
 
@@ -13,7 +13,7 @@ Para llevar a cabo estas pruebas se han empleado los ficheros flows.py y router_
 | Prueba 4    | .                           | .                         | .                                                 | .                   |
 | Prueba 5    | .                           | .                         | .                                                 | .                   |
 | Prueba 6    | .                           | .                         | .                                                 | .                   |
-| Prueba 7    |                             | 1                         | 21%                                               | [r1, r3, r4]        |
+| Prueba 7    |                             | 1                         | 21%                                               | [r2, r3, r4]        |
 
 ## Prueba 1 Primer flujo
 
@@ -661,5 +661,58 @@ Tras la caida del router r1, el nuevo estado de la red es el siguiente:
         "r4": 0.42
     }
 }
+
+```
+
+## Prueba 7 añadir flujo con router caido
+
+Con 2 flujos por los routers r3 y r4, se añade un 3 flujo y se comprueba que al estar caido r1, le asignan el camino de r4→r3
+
+```json
+
+{
+    "flows": [
+        {
+            "_id": "1",
+            "version": 2,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        },
+        {
+            "_id": "2",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        },
+        {
+            "_id": "3",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        }
+    ],
+    "inactive_routers": [
+        "r1"
+    ],
+    "router_utilization": {
+        "r1": 0.0,
+        "r2": 0.0,
+        "r3": 0.42,
+        "r4": 0.42
+    }
+}
+
 
 ```

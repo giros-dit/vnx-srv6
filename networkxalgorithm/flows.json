@@ -39,6 +39,16 @@
                 "r3",
                 "rg"
             ]
+        },
+        {
+            "_id": "5",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
         }
     ],
     "inactive_routers": [
