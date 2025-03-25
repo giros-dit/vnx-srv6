@@ -1,15 +1,16 @@
 import json
 import time
+import os
 import networkx as nx
 
 OCCUPANCY_LIMIT = 0.8
 ROUTER_LIMIT = 0.95
-NODE_TIMEOUT = 15
-router_state = {}  
+NODE_TIMEOUT = 15  # Si el timestamp es mayor a 15 segundos, el router se considera caído.
+router_state = {}
 
 def create_graph():
     G = nx.DiGraph()
-    for r in ["r1","r2","r3","r4","ru","rg"]:
+    for r in ["r1", "r2", "r3", "r4", "ru", "rg"]:
         G.add_node(r)
     edges = [
         ("r1", "rg"), ("rg", "r1"),
@@ -26,24 +27,37 @@ def create_graph():
 def read_flows():
     try:
         with open("flows.json", "r") as f:
-            return json.load(f)
-    except:
+            data = json.load(f)
+            if isinstance(data, dict) and "flows" in data:
+                return data["flows"]
+            elif isinstance(data, list):
+                return data
+            else:
+                return []
+    except Exception as e:
+        print(f"[mynetworkx] read_flows: Error reading flows.json: {e}")
         return []
 
-def write_flows(flows):
+def write_flows(flows, inactive_routers, router_utilization):
+    data_to_write = {
+        "flows": flows,
+        "inactive_routers": inactive_routers,
+        "router_utilization": router_utilization
+    }
     with open("flows.json", "w") as f:
-        json.dump(flows, f, indent=4)
+        json.dump(data_to_write, f, indent=4)
 
 def remove_inactive_nodes(G, flows):
     now = time.time()
     removed = []
+    # Se detectan los routers cuyo timestamp no se ha actualizado en NODE_TIMEOUT segundos.
     for r, data in router_state.items():
         if (now - data.get("ts", 0)) > NODE_TIMEOUT and r in G:
             G.remove_node(r)
             removed.append(r)
-
     if removed:
         print(f"[mynetworkx] remove_inactive_nodes: Removed inactive routers: {removed}")
+        # Para cada flujo, si su ruta contiene un router caído, se elimina la ruta y se incrementa su versión.
         for f in flows:
             if "route" in f and any(r in f["route"] for r in removed):
                 f.pop("route", None)
@@ -51,32 +65,31 @@ def remove_inactive_nodes(G, flows):
     return G, flows, removed
 
 def read_routers_params():
-    """
-    Lee routers.json y actualiza uso de cada router.
-    Estructura esperada:
-    [
-      {"router": "r1", "usage": 0.3}
-    ]
-    """
     try:
+        # Comprobar si routers.json existe y no está vacío para evitar error al parsear.
+        if not os.path.exists("routers.json") or os.stat("routers.json").st_size == 0:
+            print("[mynetworkx] read_routers_params: routers.json is empty or does not exist.")
+            return
         with open("routers.json", "r") as f:
             data = json.load(f)
+        # Se espera que 'data' sea una lista de diccionarios.
         for item in data:
             r = item.get("router")
             usage = item.get("usage", 0)
             energy = item.get("energy", 700)
+            ts = item.get("ts", 0)
             if r:
                 router_state[r] = router_state.get(r, {})
                 router_state[r]["usage"] = usage
                 router_state[r]["energy"] = energy
-                router_state[r]["ts"] = time.time()
-                print(f"[mynetworkx] read_routers_params: Router {r} usage={usage}, energy={energy}")
-    except:
-        pass
+                router_state[r]["ts"] = ts
+                print(f"[mynetworkx] read_routers_params: Router {r} usage={usage}, energy={energy}, ts={ts}")
+    except Exception as e:
+        print(f"[mynetworkx] read_routers_params: Error reading routers.json: {e}")
 
 def assign_node_costs(G):
     now = time.time()
-    for u,v in G.edges():
+    for u, v in G.edges():
         if v in router_state and (now - router_state[v].get("ts", 0)) <= NODE_TIMEOUT:
             G[u][v]["cost"] = router_state[v].get("energy", 9999)
         else:
@@ -84,17 +97,17 @@ def assign_node_costs(G):
         print(f"[mynetworkx] assign_node_costs: Cost from {u} to {v} = {G[u][v]['cost']}")
     return G
 
-def recalc_routes(G, flows, removed=None):
+def recalc_routes(G, flows, removed):
     for f in flows:
         route = f.get("route")
-        # Solo recalcula si no existe ruta o la ruta contiene un nodo caído
-        if route and removed and not any(r in route for r in removed):
+        # Si ya existe una ruta y ninguno de los routers caídos está en ella, se conserva.
+        if route and not any(r in route for r in removed):
             continue
         source, target = "ru", "rg"
         if not (G.has_node(source) and G.has_node(target)):
             continue
 
-        # Crear subgrafo G2 excluyendo nodos que superan el 80% de uso
+        # Se generan subgrafos excluyendo routers con utilización alta.
         excluded = [n for n, data in router_state.items() if data.get("usage", 0) >= OCCUPANCY_LIMIT]
         excluded_max = [n for n, data in router_state.items() if data.get("usage", 0) >= ROUTER_LIMIT]
         G2 = G.copy()
@@ -103,20 +116,18 @@ def recalc_routes(G, flows, removed=None):
         G3.remove_nodes_from(excluded_max)
 
         try:
-            # Intentar ruta evitando nodos saturados
             path = nx.shortest_path(G2, source, target, weight="cost")
-        except:
+        except Exception:
             print("No se encontró ruta en el subgrafo, intentando con G completo...")
             try:
-                # Si no existe ruta en G2, usamos el grafo completo con nodos sin estar al limite
                 path = nx.shortest_path(G3, source, target, weight="cost")
-            except:
+            except Exception:
                 print("WARNING: No se encontró ruta.")
                 continue
 
         max_usage = max(router_state.get(node, {}).get("usage", 0.0) for node in path)
         if max_usage > OCCUPANCY_LIMIT:
-            print(f"[mynetworkx] recalc_routes: Flow {f.get('_id','???')} usage above {OCCUPANCY_LIMIT}")
+            print(f"[mynetworkx] recalc_routes: Flow {f.get('_id', '???')} usage above {OCCUPANCY_LIMIT}")
         print(f"[mynetworkx] recalc_routes: Assigned route {path} to flow {f.get('_id')}")
         f["route"] = path
     return flows
@@ -124,16 +135,15 @@ def recalc_routes(G, flows, removed=None):
 def main():
     while True:
         time.sleep(5)
-        read_routers_params()
-
+        read_routers_params()  # Actualiza el estado de los routers usando el timestamp.
         G = create_graph()
         flows = read_flows()
-
         G, flows, removed = remove_inactive_nodes(G, flows)
         G = assign_node_costs(G)
         flows = recalc_routes(G, flows, removed)
-
-        write_flows(flows)
+        # Se almacena la utilización actual de cada router.
+        router_utilization = {r: router_state[r].get("usage", 0.0) for r in router_state}
+        write_flows(flows, removed, router_utilization)
 
 if __name__ == "__main__":
     main()
