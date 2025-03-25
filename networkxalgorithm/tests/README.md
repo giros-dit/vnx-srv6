@@ -1,22 +1,22 @@
-# Pruebas manuales algoritmo
+# Test algoritmo
 
 ## Intro
 
-Para llevar a cabo estas pruebas se han empleado unos archivos JSON que simulan el estado de la red. Además, se incluye el estado del json de los flujos, para comprobar los resultados. Se explica al inicio de la red cual es el experimento, el estado de la red, el estado esperado y el estado conseguido. Se han creado flujos de caudales acordes para llegar a los distintos estados del algoritmo. Mencionar que para poder replicar el resultado de estos test solo es necesario recrear este estado de la red y generar un nuevo flujo para poder replicar estas pruebas.
+Para llevar a cabo estas pruebas se han empleado unos archivos JSON que simulan el estado de la red. Además, se incluye el estado del json de los flujos, para comprobar los resultados. Se explica al inicio de la red cual es el experimento, el estado de la red, el estado esperado y el estado conseguido. Se han creado flujos de caudales acordes para llegar a los distintos estados del algoritmo.
 
 ## Tabla de Experimentos
 
-| Escenarios     | # flujos existentes | # flujos añadidos | Incremento de la utilización | Routers activos     |
-|----------------|---------------------|-------------------|------------------------------|---------------------|
-| Escenario 1    | 0                   | 1                 | 25%                          | [r1, r2, r3, r4]    |
-| Escenario 2    | 1                   | 1                 | 80%                          | [r1, r2, r3, r4]    |
-| Escenario 3    | 3                   | 1                 | 10%                          | [r1, r2, r3, r4]    |
-| Escenario 4    | 5                   | 1                 | 12%                          | [r1, r2, r3, r4]    |
-| Escenario 5    | 6                   | 1                 | 1%                           | [r1, r2, r3, r4]    |
-| Escenario 6    | 4                   | 0                 | 0%                           | [r2, r3, r4]        |
-| Escenario 7    | 4                   | 1                 | 10%                          | [r2, r3, r4]        |
+| Prueba      | # flujos existentes | # flujos añadidos | Incremento de la utilización | Routers activos     |
+|-------------|---------------------|-------------------|------------------------------|---------------------|
+| Prueba 1    | 0                   | 1                 | 25%                          | [r1, r2, r3, r4]    |
+| Prueba 2    | 1                   | 1                 | 80%                          | [r1, r2, r3, r4]    |
+| Prueba 3    | 3                   | 1                 | 10%                          | [r1, r2, r3, r4]    |
+| Prueba 4    | 5                   | 1                 | 12%                          | [r1, r2, r3, r4]    |
+| Prueba 5    | 6                   | 1                 | 1%                           | [r1, r2, r3, r4]    |
+| Prueba 6    | 4                   | 0                 | 0%                           | [r2, r3, r4]        |
+| Prueba 7    | 4                   | 1                 | 10%                          | [r2, r3, r4]        |
 
-## Escenario 1 Primer flujo
+## Prueba 1 Primer flujo
 
 ### Explicación
 
@@ -37,7 +37,7 @@ No se esta cursando tráfico actualmente, por lo que el consumo de cada router p
 |-------------------|
 | []                |
 
-### Resultado esperado
+#### Resultado esperado
 
 Se espera que conociendo que asigna por el menor identificador, cuando los dos caminos tienen el mismo coste, asigen el camino el camino r2 → r1 antes que el camino r4 → r3.
 
@@ -71,7 +71,7 @@ Se espera que conociendo que asigna por el menor identificador, cuando los dos c
 
 Se cumple con el resultado esperado, ya que asigna ese camino aún, cambiando el orden de asignación de los nodos en la creación del grafo.
 
-## Escenario 2 Segundo flujo
+## Prueba 2 Segundo flujo
 
 ### Explicación
 
@@ -94,7 +94,7 @@ Se va a probar añadir un flujo a la red cuando ya hay un flujo cursando por est
 |-------------------|
 | []                |
 
-### Resultado esperado
+#### Resultado esperado
 
 Se espera que ya que el consumo energético es menor si se cursa por el camino r4 → r3, se encamine por este camino
 
@@ -140,7 +140,7 @@ Se espera que ya que el consumo energético es menor si se cursa por el camino r
 
 Se obtiene el resultado esperado, ya que se asigna el camino por los routers que implica menor incremento de coste energético.
 
-## Escenario 3 Estado previo al primer umbral
+## Prueba 3 Estado previo al primer umbral
 
 ### Explicación
 
@@ -166,7 +166,7 @@ Se va a probar la correcta asignación de un flujo cuando un camino de la red ya
 |-------------------|
 | []                |
 
-### Resultado esperado
+#### Resultado esperado
 
 Se espera que ya que el consumo energético es menor si se cursa por el camino r2 → r1, se encamine por este camino con normalidad ya que existe un camino sin superar el primer umbral.
 
@@ -174,7 +174,7 @@ Se espera que ya que el consumo energético es menor si se cursa por el camino r
 
 ```json
 
-{
+
     "flows": [
         {
             "_id": "1",
@@ -232,7 +232,7 @@ Se espera que ya que el consumo energético es menor si se cursa por el camino r
 
 Se obtiene el resultado esperado, ya que se asigna el camino por los routers que implica menor incremento de coste energético, que además se encuentan por debajo del primer umbral.
 
-## Escenario 4 Todos los caminos superan el primer umbral
+## Prueba 4 Todos los caminos superan el primer umbral
 
 ### Explicación
 
@@ -259,7 +259,7 @@ Se va a probar la correcta asignación de un flujo cuando todos los caminos de l
 |-------------------|
 | []                |
 
-### Resultado esperado
+#### Resultado esperado
 
 Se espera que ya que el consumo energético es menor si se cursa por el camino r4 → r3, se encamine por este camino y además se envie un aviso de que se esta sobrepasando el 80%.
 
@@ -337,7 +337,7 @@ Se obtiene el resultado esperado, ya que se asigna el camino por los routers que
 
 ![sorpaso_primer_umbral](<Captura desde 2025-03-25 11-50-10.png>)
 
-## Escenario 4 Un solo camino supera el segundo umbral
+## Prueba 4 Un solo camino supera el segundo umbral
 
 ### Explicación
 
@@ -365,7 +365,7 @@ Se va a probar la correcta asignación de un flujo cuando un caminos de la red y
 |-------------------|
 | []                |
 
-### Resultado esperado
+#### Resultado esperado
 
 Se espera que ya que el consumo energético es menor si se cursa por el camino r2 → r1, se encamine por este camino, que además está por debajo del segundo umbral.
 
@@ -450,9 +450,9 @@ Se espera que ya que el consumo energético es menor si se cursa por el camino r
 
 ### Resultado obtenido
 
-Se obtiene el resultado esperdo, encaminando el flujo 6 por el camino de menor coste energético pero sobrepasando el umbral del 80%.
+Se obtiene el resultado esperdo, encaminando el flujo 6 
 
-## Escenario 5 Todos los caminos superan el segundo umbral
+## Prueba 5 Todos los caminos superan el segundo umbral
 
 ### Explicación
 
@@ -480,11 +480,18 @@ Se va a probar la correcta asignación de un flujo cuando un caminos de la red y
 |-------------------|
 | []                |
 
-### Resultado esperado
+#### Resultado esperado
 
 Se espera que ya que el consumo energético es menor si se cursa por el camino r2 → r1, se encamine por este camino, que además está por debajo del segundo umbral.
 
 ### Contenido de flows.json
+
+
+
+![No se asigna ruta al flujo 7](<Captura desde 2025-03-25 11-50-58.png>)
+
+
+Como todos routers están por encima del 95% de capacidad, al flujo 7 no se le asigna una ruta.
 
 ```json
 
@@ -566,41 +573,11 @@ Se espera que ya que el consumo energético es menor si se cursa por el camino r
 
 ```
 
-### Resultado obtenido
+## Prueba 6 Caida de router
 
-Como todos routers están por encima del 95% de capacidad, al flujo 7 no se le asigna una ruta y salta el aviso correspondiente.
+![alt text](<Captura desde 2025-03-25 12-11-53.png>)
 
-![No se asigna ruta al flujo 7](<Captura desde 2025-03-25 11-50-58.png>)
-
-## Escenario 6 Caida de router
-
-### Explicación
-
-Se va a probar la correcta reasignación de las rutas cuando hay un router caido.
-
-### Estado inicial de la red
-
-
-| Router   | Utilización (%) |
-|----------|-----------------|
-| r1       | 40.0            |
-| r2       | 40.0            |
-| r3       | 40.0            |
-| r4       | 40.0            |
-
-| Flujo    | Utilización (%) |
-|----------|-----------------|
-| 1        | 20.0            |
-| 2        | 20.0            |
-| 3        | 20.0            |
-| 4        | 20.0            |
-
-
-| Routers inactivos |
-|-------------------|
-| []                |
-
-#### Estado del flows.json inicialmente
+Partiendo de la prueba anterior, se pausa el router r1, entonces las rutas que contienen ese router son modificadas como vemos en el siguiente json. Partiendo de este estado:
 
 ```json
 {
@@ -657,19 +634,13 @@ Se va a probar la correcta reasignación de las rutas cuando hay un router caido
 
 ```
 
-### Pasos para replicación del test
+Tras la caida del router r1, el nuevo estado de la red es el siguiente:
 
-Una vez tenemos este estado de la red se procede a pausar la actualización de TimeStamps del router r1
-
-### Resultado esperado
-
-Se espera que ya que el consumo energético es menor si se cursa por el camino r2 → r1, se encamine por este camino, que además está por debajo del segundo umbral.
-
-### Contenido de flows.json 
+![reasignación de rutas](image.png)
 
 ```json
 
-{
+{{
     "flows": [
         {
             "_id": "1",
@@ -725,44 +696,9 @@ Se espera que ya que el consumo energético es menor si se cursa por el camino r
 
 ```
 
-### Resultado obtenido
+## Prueba 7 añadir flujo con router caido
 
-Se han reasignado correctamente las rutas de los flujos cuya ruta contenia el router r1. 
-
-![alt text](<Captura desde 2025-03-25 12-11-53.png>)
-
-## Escenario 7 añadir flujo con router caido
-
-### Explicación
-
-Se va a probar la correcta asignación de un flujo cuando un router no está disponible.
-
-### Estado inicial de la red
-
-
-| Router   | Utilización (%) |
-|----------|-----------------|
-| r2       | 0.0            |
-| r3       | 80.0            |
-| r4       | 80.0            |
-
-| Flujo    | Utilización (%) |
-|----------|-----------------|
-| 1        | 20.0            |
-| 2        | 20.0            |
-| 3        | 20.0            |
-| 4        | 20.0            |
-
-
-| Routers inactivos |
-|-------------------|
-| [r1]              |
-
-### Resultado esperado
-
-Se espera que ya que el unico camino disponible es el camino que atraviesa los routers r4 → r3 y no asigne el camino por los routers r2 → r1.
-
-### Contenido de flows.json
+Con 2 flujos por los routers r3 y r4, se añade un 3 flujo y se comprueba que al estar caido r1, le asignan el camino de r4→r3
 
 ```json
 
@@ -830,8 +766,5 @@ Se espera que ya que el unico camino disponible es el camino que atraviesa los r
     }
 }
 
+
 ```
-
-### Resultado obtenido
-
-Se ha asignado correctamente el camino al flujo con identificador 5.
