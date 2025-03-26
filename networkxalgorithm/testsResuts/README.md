@@ -463,8 +463,8 @@ Se va a probar la correcta asignación de un flujo cuando un caminos de la red y
 
 | Router   | Utilización (%) |
 |----------|-----------------|
-| r1       | 85.0            |
-| r2       | 85.0            |
+| r1       | 97.0            |
+| r2       | 97.0            |
 | r3       | 97.0            |
 | r4       | 97.0            |
 
