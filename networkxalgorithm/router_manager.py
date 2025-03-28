@@ -3,7 +3,7 @@ import time
 import threading
 import os
 
-router_state = {}  # Ej. {"r1": {"usage": 0.0, "energy": 700, "ts": 0.0}}
+router_state = {}  # Ej. {"r1": {"usage": 0.0, "energy": 5, "ts": 0.0}}
 paused_routers = set()
 
 def read_routers():
@@ -21,10 +21,18 @@ def update_router_state():
     while True:
         for router, state in router_state.items():
             if router in paused_routers:
-                # Skip updating paused routers
+                # Saltar actualización de routers pausados
                 continue
             usage = state.get("usage", 0.0)
-            energy = 700 + usage * 20
+            # Para r1 y r2: si el uso es menor al 10% la energía es 5, si es mayor al 10% es 0.1
+            if router in ["r1", "r2"]:
+                energy = 5 if usage < 0.1 else 0.1
+            # Para r3 y r4: energía constante de 1
+            elif router in ["r3", "r4"]:
+                energy = 1
+            else:
+                # Por defecto se mantiene el valor actual
+                energy = state.get("energy", 0)
             router_state[router]["energy"] = energy
             router_state[router]["ts"] = time.time()
         write_routers([
@@ -70,7 +78,13 @@ def handle_user_input():
                         continue
                     router_key = f"r{router_id}"
                     if router_key not in router_state:
-                        router_state[router_key] = {"usage": 0.0, "energy": 700, "ts": time.time()}
+                        # Inicialización por defecto: para r1 y r2 energía 5, para r3 y r4 energía 1
+                        if router_key in ["r1", "r2"]:
+                            router_state[router_key] = {"usage": 0.0, "energy": 5, "ts": time.time()}
+                        elif router_key in ["r3", "r4"]:
+                            router_state[router_key] = {"usage": 0.0, "energy": 1, "ts": time.time()}
+                        else:
+                            router_state[router_key] = {"usage": 0.0, "energy": 0, "ts": time.time()}
                     router_state[router_key]["usage"] = usage_val
                     router_state[router_key]["ts"] = time.time()
                     print(f"Router {router_key} uso establecido a {usage_val}.")
@@ -80,16 +94,24 @@ def handle_user_input():
             print(f"Error al procesar la entrada: {e}")
 
 def main():
-    # Inicializar estado de los routers
+    # Inicializar estado de los routers: r1 y r2 con energía 5; r3 y r4 con energía 1
     for i in range(1, 5):  # r1, r2, r3, r4
-        router_state[f"r{i}"] = {"usage": 0.0, "energy": 700, "ts": time.time()}
+        if i < 3:
+            router_state[f"r{i}"] = {"usage": 0.0, "energy": 5, "ts": time.time()}
+        else:
+            router_state[f"r{i}"] = {"usage": 0.0, "energy": 1, "ts": time.time()}
 
     # Leer estado inicial desde routers.json si existe
     initial_data = read_routers()
     for item in initial_data:
         router = item.get("router")
         usage = item.get("usage", 0.0)
-        energy = 700 + usage * 20
+        if router in ["r1", "r2"]:
+            energy = 5 if usage < 0.1 else 0.1
+        elif router in ["r3", "r4"]:
+            energy = 1
+        else:
+            energy = item.get("energy", 0)
         if router:
             router_state[router] = {"usage": usage, "energy": energy, "ts": time.time()}
 

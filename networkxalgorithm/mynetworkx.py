@@ -9,19 +9,14 @@ NODE_TIMEOUT = 15  # Si el timestamp es mayor a 15 segundos, el router se consid
 router_state = {}
 
 def create_graph():
+    with open("networkx_graph.json") as f:
+        data = json.load(f)
+
     G = nx.DiGraph()
-    for r in ["r1", "r2", "r3", "r4", "ru", "rg"]:
-        G.add_node(r)
-    edges = [
-        ("r1", "rg"), ("rg", "r1"),
-        ("r3", "rg"), ("rg", "r3"),
-        ("r1", "r2"), ("r2", "r1"),
-        ("r3", "r4"), ("r4", "r3"),
-        ("r2", "ru"), ("ru", "r2"),
-        ("r4", "ru"), ("ru", "r4")
-    ]
-    for e in edges:
-        G.add_edge(*e, cost=0.0)
+    for node in data["nodes"]:
+        G.add_node(node)
+    for edge in data["edges"]:
+        G.add_edge(edge["source"], edge["target"], cost=edge["cost"])
     return G
 
 def read_flows():
@@ -121,13 +116,12 @@ def recalc_routes(G, flows, removed):
             print("No se encontró ruta en el subgrafo, intentando con G completo...")
             try:
                 path = nx.shortest_path(G3, source, target, weight="cost")
+                if path:
+                    print(f"[mynetworkx] recalc_routes: Flow {f.get('_id', '???')} usage above {OCCUPANCY_LIMIT}")
             except Exception:
                 print("WARNING: No se encontró ruta.")
                 continue
 
-        max_usage = max(router_state.get(node, {}).get("usage", 0.0) for node in path)
-        if max_usage > OCCUPANCY_LIMIT:
-            print(f"[mynetworkx] recalc_routes: Flow {f.get('_id', '???')} usage above {OCCUPANCY_LIMIT}")
         print(f"[mynetworkx] recalc_routes: Assigned route {path} to flow {f.get('_id')}")
         f["route"] = path
     return flows

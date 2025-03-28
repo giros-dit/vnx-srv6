@@ -835,3 +835,406 @@ Se espera que ya que el unico camino disponible es el camino que atraviesa los r
 ### Resultado obtenido
 
 Se ha asignado correctamente el camino al flujo con identificador 5.
+
+## Escenario 8 Derivada de energía distinta para cada router de caminos distintos
+
+Para este experimento se va a simular un entorno de red real, donde las gráficas de incremento de consumo de los routers varian en función del % de utilización, para ello se van a tomar dos modelos de routers routers tipo A, para los routers r1 y r2, que tiene una gráfica escalón.
+
+![grafica_routerA](grafica_routerA.png)
+![grafica_routerB](grafica_routerB.png)
+
+Se comprueba que se cumple el funcionamiento esperado, respetando los umbrales de decisión.
+
+### Primer flujo 50%
+
+```json
+{
+    "flows": [
+        {
+            "_id": "1",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        }
+    ],
+    "inactive_routers": [],
+    "router_utilization": {
+        "r1": 0.0,
+        "r2": 0.0,
+        "r3": 0.0,
+        "r4": 0.0
+    }
+}
+```
+### Segundo flujo 33%
+
+```json
+
+{
+    "flows": [
+        {
+            "_id": "1",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        },
+        {
+            "_id": "2",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        }
+    ],
+    "inactive_routers": [],
+    "router_utilization": {
+        "r1": 0.0,
+        "r2": 0.0,
+        "r3": 0.5,
+        "r4": 0.5
+    }
+}
+
+```
+### Tercer flujo
+
+```json
+
+{
+    "flows": [
+        {
+            "_id": "1",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        },
+        {
+            "_id": "2",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        },
+        {
+            "_id": "3",
+            "version": 1,
+            "route": [
+                "ru",
+                "r2",
+                "r1",
+                "rg"
+            ]
+        }
+    ],
+    "inactive_routers": [],
+    "router_utilization": {
+        "r1": 0.0,
+        "r2": 0.0,
+        "r3": 0.83,
+        "r4": 0.83
+    }
+}
+
+```
+### Cuarto flujo
+
+```json
+
+{
+    "flows": [
+        {
+            "_id": "1",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        },
+        {
+            "_id": "2",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        },
+        {
+            "_id": "3",
+            "version": 1,
+            "route": [
+                "ru",
+                "r2",
+                "r1",
+                "rg"
+            ]
+        },
+        {
+            "_id": "4",
+            "version": 1,
+            "route": [
+                "ru",
+                "r2",
+                "r1",
+                "rg"
+            ]
+        }
+    ],
+    "inactive_routers": [],
+    "router_utilization": {
+        "r1": 0.45,
+        "r2": 0.45,
+        "r3": 0.83,
+        "r4": 0.83
+    }
+}
+
+```
+
+### Quinto flujo
+
+```json
+
+{
+    "flows": [
+        {
+            "_id": "1",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        },
+        {
+            "_id": "2",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        },
+        {
+            "_id": "3",
+            "version": 1,
+            "route": [
+                "ru",
+                "r2",
+                "r1",
+                "rg"
+            ]
+        },
+        {
+            "_id": "4",
+            "version": 1,
+            "route": [
+                "ru",
+                "r2",
+                "r1",
+                "rg"
+            ]
+        },
+        {
+            "_id": "5",
+            "version": 1,
+            "route": [
+                "ru",
+                "r2",
+                "r1",
+                "rg"
+            ]
+        }
+    ],
+    "inactive_routers": [],
+    "router_utilization": {
+        "r1": 0.85,
+        "r2": 0.85,
+        "r3": 0.83,
+        "r4": 0.83
+    }
+}
+
+```
+
+### Sexto flujo
+
+```json
+
+{
+    "flows": [
+        {
+            "_id": "1",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        },
+        {
+            "_id": "2",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        },
+        {
+            "_id": "3",
+            "version": 1,
+            "route": [
+                "ru",
+                "r2",
+                "r1",
+                "rg"
+            ]
+        },
+        {
+            "_id": "4",
+            "version": 1,
+            "route": [
+                "ru",
+                "r2",
+                "r1",
+                "rg"
+            ]
+        },
+        {
+            "_id": "5",
+            "version": 1,
+            "route": [
+                "ru",
+                "r2",
+                "r1",
+                "rg"
+            ]
+        },
+        {
+            "_id": "6",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        }
+    ],
+    "inactive_routers": [],
+    "router_utilization": {
+        "r1": 0.97,
+        "r2": 0.97,
+        "r3": 0.83,
+        "r4": 0.83
+    }
+}
+
+```
+### Septimo flujo
+
+```json
+
+{
+    "flows": [
+        {
+            "_id": "1",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        },
+        {
+            "_id": "2",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        },
+        {
+            "_id": "3",
+            "version": 1,
+            "route": [
+                "ru",
+                "r2",
+                "r1",
+                "rg"
+            ]
+        },
+        {
+            "_id": "4",
+            "version": 1,
+            "route": [
+                "ru",
+                "r2",
+                "r1",
+                "rg"
+            ]
+        },
+        {
+            "_id": "5",
+            "version": 1,
+            "route": [
+                "ru",
+                "r2",
+                "r1",
+                "rg"
+            ]
+        },
+        {
+            "_id": "6",
+            "version": 1,
+            "route": [
+                "ru",
+                "r4",
+                "r3",
+                "rg"
+            ]
+        },
+        {
+            "_id": "7",
+            "version": 1
+        }
+    ],
+    "inactive_routers": [],
+    "router_utilization": {
+        "r1": 0.97,
+        "r2": 0.97,
+        "r3": 0.96,
+        "r4": 0.96
+    }
+}
+
+```
