@@ -5,7 +5,7 @@ import networkx as nx
 
 OCCUPANCY_LIMIT = 0.8
 ROUTER_LIMIT = 0.95
-NODE_TIMEOUT = 15  # Si el timestamp es mayor a 15 segundos, el router se considera caído.
+NODE_TIMEOUT = 15 
 router_state = {}
 
 def create_graph():
