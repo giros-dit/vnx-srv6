@@ -1,12 +1,6 @@
-FROM python:3.9-slim
+FROM avillaseca01/srcontroller:base
 
+# Copiar el script de Python al contenedor
+COPY . /app
+# Establecer el directorio de trabajo
 WORKDIR /app
-
-# Copiar el scripts
-COPY tunnelmaker.py .
-COPY mynetworkx.py .
-COPY requirements.txt .
-
-# Instalar pymongo
-RUN pip install -r requirements.txt
-

@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: srcontroller
+  namespace: across-tc32
+spec:
+  selector:
+    matchLabels:
+      app: srcontroller
+  template:
+    metadata:
+      labels:
+        app: srcontroller
+    spec:
+      containers:
+      - name: srcontroller
+        image: avillaseca01/srcontroller:latest
+        volumeMounts:
+        - name: final-output-volume
+          mountPath: /app/final_output.json
+          subPath: final_output.json
+        command: ["python3", "-u" ,"/app/mynetworkxkafka.py"]
+      volumes:
+      - name: final-output-volume
+        configMap:
+          name: final-output

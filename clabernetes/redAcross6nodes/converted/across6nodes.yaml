@@ -145,7 +145,7 @@ spec:
                 ports: []
               r1:
                 kind: linux
-                image: mariovicente/router-node-exporter
+                image: avillaseca01/srv6-frr
                 exec:
                 - service frr start
                 - sysctl -p
@@ -163,7 +163,7 @@ spec:
                 - 9100:9100
               r2:
                 kind: linux
-                image: mariovicente/router-node-exporter
+                image: avillaseca01/srv6-frr
                 exec:
                 - service frr start
                 - sysctl -p
@@ -181,7 +181,7 @@ spec:
                 - 9100:9100
               r3:
                 kind: linux
-                image: mariovicente/router-node-exporter
+                image: avillaseca01/srv6-frr
                 exec:
                 - service frr start
                 - sysctl -p
@@ -199,7 +199,7 @@ spec:
                 - 9100:9100
               r4:
                 kind: linux
-                image: mariovicente/router-node-exporter
+                image: avillaseca01/srv6-frr
                 exec:
                 - service frr start
                 - sysctl -p
@@ -217,7 +217,7 @@ spec:
                 - 9100:9100
               rg:
                 kind: linux
-                image: mariovicente/router-node-exporter
+                image: avillaseca01/srv6-frr
                 exec:
                 - service frr start
                 - sysctl -p
@@ -237,7 +237,7 @@ spec:
                 ports: []
               rgnb:
                 kind: linux
-                image: mariovicente/router-node-exporter
+                image: avillaseca01/srv6-frr
                 exec:
                 - service frr start
                 - sysctl -p
@@ -253,7 +253,7 @@ spec:
                 ports: []
               ru:
                 kind: linux
-                image: mariovicente/router-node-exporter
+                image: avillaseca01/srv6-frr
                 exec:
                 - service frr start
                 - sysctl -p
@@ -270,10 +270,11 @@ spec:
                 - conf/ru/daemons:/etc/frr/daemons
                 - conf/ru/isisd.conf:/etc/frr/isisd.conf
                 - conf/ru/zebra.conf:/etc/frr/zebra.conf
-                ports: []
+                ports:
+                - "30022:22"
               rupf:
                 kind: linux
-                image: mariovicente/router-node-exporter
+                image: avillaseca01/srv6-frr
                 exec:
                 - service frr start
                 - sysctl -p

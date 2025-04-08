@@ -1,6 +1,7 @@
 import json
 import time
 import os
+import subprocess
 import networkx as nx
 
 OCCUPANCY_LIMIT = 0.8
@@ -95,14 +96,13 @@ def assign_node_costs(G):
 def recalc_routes(G, flows, removed):
     for f in flows:
         route = f.get("route")
-        # Si ya existe una ruta y ninguno de los routers caídos está en ella, se conserva.
         if route and not any(r in route for r in removed):
             continue
         source, target = "ru", "rg"
         if not (G.has_node(source) and G.has_node(target)):
             continue
 
-        # Se generan subgrafos excluyendo routers con utilización alta.
+        
         excluded = [n for n, data in router_state.items() if data.get("usage", 0) >= OCCUPANCY_LIMIT]
         excluded_max = [n for n, data in router_state.items() if data.get("usage", 0) >= ROUTER_LIMIT]
         G2 = G.copy()
@@ -124,6 +124,20 @@ def recalc_routes(G, flows, removed):
 
         print(f"[mynetworkx] recalc_routes: Assigned route {path} to flow {f.get('_id')}")
         f["route"] = path
+        
+        # Llamada al script tunnelmaker cuando se asigna una nueva ruta.
+        try:
+            # Se asume que 'f' contiene '_id' (flow id) y 'version'. Ajusta estos nombres si es necesario.
+            print(f"[mynetworkx]Ejecutando tunnelmaker para el flujo {f.get('_id')} con versión {f.get('version', 1)}, ruta: {path}")
+            # Se ejecuta el script tunnelmaker.py con los parámetros necesarios.
+            result = subprocess.run(
+                ["python3", "tunnelmaker.py", str(f.get("_id")), str(f.get("version", 1)), json.dumps(path)],
+                capture_output=True, text=True
+            )
+            # Imprime la salida (donde tunnelmaker genera el comando)
+            print(result.stdout)
+        except Exception as e:
+            print(f"Error al llamar a tunnelmaker: {e}")
     return flows
 
 def main():
