@@ -4,7 +4,7 @@ topology:
   nodes:
     r1:
       kind: linux
-      image: mariovicente/router-node-exporter
+      image: avillaseca01/srv6-frr
       binds:
         - conf/r1/daemons:/etc/frr/daemons
         - conf/r1/isisd.conf:/etc/frr/isisd.conf
@@ -23,7 +23,7 @@ topology:
 
     r2:
       kind: linux
-      image: mariovicente/router-node-exporter
+      image: avillaseca01/srv6-frr
       binds:
         - conf/r2/daemons:/etc/frr/daemons
         - conf/r2/isisd.conf:/etc/frr/isisd.conf
@@ -42,7 +42,7 @@ topology:
 
     r3:
       kind: linux
-      image: mariovicente/router-node-exporter
+      image: avillaseca01/srv6-frr
       binds:
         - conf/r3/daemons:/etc/frr/daemons
         - conf/r3/isisd.conf:/etc/frr/isisd.conf
@@ -61,7 +61,7 @@ topology:
 
     r4:
       kind: linux
-      image: mariovicente/router-node-exporter
+      image: avillaseca01/srv6-frr
       ports:
         - 9100:9100
       binds:
@@ -80,7 +80,7 @@ topology:
 
     rg:
       kind: linux
-      image: mariovicente/router-node-exporter
+      image: avillaseca01/srv6-frr
       binds:
         - conf/rg/daemons:/etc/frr/daemons
         - conf/rg/isisd.conf:/etc/frr/isisd.conf
@@ -100,7 +100,7 @@ topology:
 
     rgnb:
       kind: linux
-      image: mariovicente/router-node-exporter
+      image: avillaseca01/srv6-frr
       binds:
         - conf/rgnb/daemons:/etc/frr/daemons
         - conf/rgnb/zebra.conf:/etc/frr/zebra.conf
@@ -117,11 +117,13 @@ topology:
 
     ru:
       kind: linux
-      image: mariovicente/router-node-exporter
+      image: avillaseca01/srv6-frr
       binds:
         - conf/ru/daemons:/etc/frr/daemons
         - conf/ru/isisd.conf:/etc/frr/isisd.conf
         - conf/ru/zebra.conf:/etc/frr/zebra.conf
+      ports:
+        - 22:22
       exec:
         - service frr start
         - sysctl -p
@@ -137,7 +139,7 @@ topology:
     
     rupf:
       kind: linux
-      image: mariovicente/router-node-exporter
+      image: avillaseca01/srv6-frr
       binds:
         - conf/rupf/daemons:/etc/frr/daemons
         - conf/rupf/zebra.conf:/etc/frr/zebra.conf

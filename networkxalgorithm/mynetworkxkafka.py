@@ -4,24 +4,24 @@ import os
 import threading
 import networkx as nx
 import re
+import subprocess
 from kafka import KafkaConsumer
 
 # Parámetros globales
 OCCUPANCY_LIMIT = 0.8
 ROUTER_LIMIT = 0.95
-NODE_TIMEOUT = 15  # Si el timestamp es mayor a 15 seg, el router se considera caído.
+NODE_TIMEOUT = 15  # Si el timestamp es mayor a 15 seg, se considera que el router está caído.
 router_state = {}
 state_lock = threading.Lock()  # Lock para proteger router_state
 
-# ----------------- ALGORITMO DE RUTAS -----------------
-
 def create_graph():
-    with open("networkx_graph.json") as f:
+    with open("final_output.json") as f:
         data = json.load(f)
     G = nx.DiGraph()
-    for node in data["nodes"]:
+    # Se accede a los nodos y aristas dentro de "graph"
+    for node in data["graph"]["nodes"]:
         G.add_node(node)
-    for edge in data["edges"]:
+    for edge in data["graph"]["edges"]:
         G.add_edge(edge["source"], edge["target"], cost=edge["cost"])
     return G
 
@@ -39,11 +39,10 @@ def read_flows():
         print(f"[mynetworkx] read_flows: Error reading flows.json: {e}")
         return []
 
-def write_flows(flows, inactive_routers, router_utilization):
+def write_flows(flows, inactive_routers):
     data_to_write = {
         "flows": flows,
         "inactive_routers": inactive_routers,
-        "router_utilization": router_utilization
     }
     with open("flows.json", "w") as f:
         json.dump(data_to_write, f, indent=4)
@@ -64,12 +63,6 @@ def remove_inactive_nodes(G, flows):
                 f["version"] = f.get("version", 1) + 1
     return G, flows, removed
 
-def read_routers_params():
-    # Ahora el estado se actualiza vía Kafka, por lo que simplemente se muestra el estado actual.
-    with state_lock:
-        print("[mynetworkx] read_routers_params: Estado actual de los routers:")
-        for r, data in router_state.items():
-            print(f"  Router {r}: usage={data.get('usage')}, energy={data.get('energy')}, ts={data.get('ts')}")
 
 def assign_node_costs(G):
     now = time.time()
@@ -79,20 +72,17 @@ def assign_node_costs(G):
                 G[u][v]["cost"] = router_state[v].get("energy", 9999)
             else:
                 G[u][v]["cost"] = 9999
-            print(f"[mynetworkx] assign_node_costs: Cost from {u} to {v} = {G[u][v]['cost']}")
     return G
 
 def recalc_routes(G, flows, removed):
     for f in flows:
         route = f.get("route")
-        # Si ya existe una ruta y ninguno de los routers caídos está en ella, se conserva.
         if route and not any(r in route for r in removed):
             continue
         source, target = "ru", "rg"
         if not (G.has_node(source) and G.has_node(target)):
             continue
 
-        # Se generan subgrafos excluyendo routers con utilización alta.
         with state_lock:
             excluded = [n for n, data in router_state.items() if data.get("usage", 0) >= OCCUPANCY_LIMIT]
             excluded_max = [n for n, data in router_state.items() if data.get("usage", 0) >= ROUTER_LIMIT]
@@ -115,30 +105,43 @@ def recalc_routes(G, flows, removed):
 
         print(f"[mynetworkx] recalc_routes: Assigned route {path} to flow {f.get('_id')}")
         f["route"] = path
+        
+        # Llamada al script tunnelmaker cuando se asigna una nueva ruta.
+        try:
+            # Se asume que 'f' contiene '_id' (flow id) y 'version'. Ajusta estos nombres si es necesario.
+            print(f"Ejecutando tunnelmaker para el flujo {f.get('_id')} con versión {f.get('version', 1)}, ruta: {json.dumps(path)}")
+            # Se ejecuta el script tunnelmaker.py con los parámetros necesarios.
+            cmd = [
+                "python3",
+                "tunnelmaker.py",
+                str(f.get("_id")),
+                str(f.get("version", 1)),
+                json.dumps(path)
+                ]
+            print("Ejecutando comando:", " ".join(cmd))
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            # Imprime la salida (donde tunnelmaker genera el comando)
+            print(result.stdout)
+        except Exception as e:
+            print(f"Error al llamar a tunnelmaker: {e}")
     return flows
 
 def routing_algorithm_loop():
     while True:
         time.sleep(5)
-        read_routers_params()  # Imprime el estado actual de los routers (actualizado vía Kafka)
         G = create_graph()
         flows = read_flows()
         G, flows, removed = remove_inactive_nodes(G, flows)
         G = assign_node_costs(G)
         flows = recalc_routes(G, flows, removed)
-        with state_lock:
-            router_utilization = {r: router_state[r].get("usage", 0.0) for r in router_state}
-        write_flows(flows, removed, router_utilization)
-
-# ----------------- CONSUMIDORES DE KAFKA -----------------
+        write_flows(flows, removed)
 
 def kafka_consumer_thread(router_id):
     topic = f"ML_{router_id}"
     consumer = KafkaConsumer(
         topic,
-        bootstrap_servers=['kafka-service.across-tc32.svc.cluster.local:9092'],
+        bootstrap_servers=['kafka-service:9092'],
         auto_offset_reset='latest',
-        group_id=f"group_{router_id}",
         value_deserializer=lambda m: json.loads(m.decode('utf-8'))
     )
     print(f"Conectado al topic {topic}")
@@ -167,13 +170,12 @@ def kafka_consumer_thread(router_id):
                     "usage": usage,
                     "ts": time.time()
                 }
-            print(f"Router {router_id} actualizado: energy={energy}, usage={usage}, ts={router_state[router_id]['ts']}")
 
 def start_kafka_consumers():
-    # Extraer nodos desde networkx_graph.json y filtrar aquellos que se llamen "rX" con X único.
-    with open("networkx_graph.json", "r") as f:
+    with open("final_output.json", "r") as f:
         data = json.load(f)
-    all_nodes = data.get("nodes", [])
+    # Se accede a los nodos dentro de "graph"
+    all_nodes = data["graph"]["nodes"]
     routers = [node for node in all_nodes if re.match(r"^r\d$", node)]
     threads = []
     for r in routers:
@@ -183,11 +185,9 @@ def start_kafka_consumers():
         threads.append(t)
     return threads
 
-# ----------------- INTEGRACIÓN -----------------
-
 def main():
-    start_kafka_consumers()  # Inicia las hebras consumidoras de Kafka
-    routing_algorithm_loop() # Ejecuta el algoritmo de rutas en el hilo principal
+    start_kafka_consumers()  # Inicia los consumidores de Kafka
+    routing_algorithm_loop()   # Ejecuta el algoritmo de rutas en el hilo principal
 
 if __name__ == "__main__":
     main()
