@@ -5,3 +5,4 @@ kubectl exec deploy/ru -- docker exec ru sh -c 'echo "103 tunel3" >> /etc/iprout
 kubectl exec deploy/ru -- docker exec ru ip -6 rule add to fd00:0:2::2 lookup tunel1
 kubectl exec deploy/ru -- docker exec ru ip -6 rule add to fd00:0:2::3 lookup tunel2
 kubectl exec deploy/ru -- docker exec ru ip -6 rule add to fd00:0:2::4 lookup tunel3
+kubectl exec -n across-tc32 deploy/rg -- docker exec rg ip -6 route add fd00:0:1::1 encap seg6 mode encap segs fcff:5::1 dev eth1
