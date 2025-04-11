@@ -15,11 +15,24 @@ spec:
       containers:
       - name: srcontroller
         image: avillaseca01/srcontroller:latest
+        env:
+        - name: S3_ENDPOINT
+          value: "http://138.4.21.162:9000"
+        - name: S3_ACCESS_KEY
+          value: "URO98YQMXCZaXtsOzU5j"
+        - name: S3_SECRET_KEY
+          value: "toACdMGyHB9DUktr8qNlgFG1TDOtl8gWC46FpFPW"
+        - name: S3_API
+          value: "s3v4"
+        - name: S3_PATH
+          value: "auto"
+        - name: S3_BUCKET
+          value: "across-tc32"
         volumeMounts:
         - name: final-output-volume
           mountPath: /app/final_output.json
           subPath: final_output.json
-        command: ["python3", "-u" ,"/app/mynetworkxkafka.py"]
+        command: ["python3", "-u", "/app/mynetworkxkafkaminio.py"]
       volumes:
       - name: final-output-volume
         configMap:

@@ -1,40 +1,85 @@
+#!/usr/bin/env python3
 import json
 import sys
 import os
+import time
+import boto3
+from botocore.exceptions import ClientError
+
+# Configuración S3 (Minio) mediante variables de entorno
+S3_ENDPOINT = os.environ.get('S3_ENDPOINT')
+S3_ACCESS_KEY = os.environ.get('S3_ACCESS_KEY')
+S3_SECRET_KEY = os.environ.get('S3_SECRET_KEY')
+S3_BUCKET = os.environ.get('S3_BUCKET')
+
+# Se crea el cliente de S3 con la región "local"
+s3_client = boto3.client(
+    's3',
+    endpoint_url=S3_ENDPOINT,
+    aws_access_key_id=S3_ACCESS_KEY,
+    aws_secret_access_key=S3_SECRET_KEY,
+    region_name='local'
+)
 
 def read_flows():
+    """
+    Descarga el fichero más reciente de la carpeta "flows" en S3 y retorna la lista de flujos.
+    """
     try:
-        if not os.path.exists("flows.json"):
-            raise FileNotFoundError("flows.json does not exist.")
-        with open("flows.json", "r") as f:
-            content = f.read().strip()  # Read and strip whitespace
-            if not content:  # Check if the file is empty
-                return []
-            data = json.loads(content)  # Parse JSON content
-            # Handle SAVE_INFO structure if present
-            if isinstance(data, dict) and "flows" in data:
-                data = data["flows"]
-            # Validate that the data is a list of dictionaries
-            if not isinstance(data, list) or not all(isinstance(flow, dict) for flow in data):
-                raise ValueError("Invalid flows data: Expected a list of dictionaries.")
-            return data
-    except FileNotFoundError:
-        print("[flows] read_flows: flows.json does not exist.")
-        return []
+        response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
+        if 'Contents' not in response or len(response['Contents']) == 0:
+            print("[flows] read_flows: No se encontró ningún fichero en 'flows'.")
+            return []
+        # Selecciona el fichero con la fecha de modificación más reciente
+        objects = response['Contents']
+        latest_obj = max(objects, key=lambda x: x['LastModified'])
+        latest_key = latest_obj['Key']
+        print(f"[flows] read_flows: Descargando el último fichero: {latest_key}")
+        obj_response = s3_client.get_object(Bucket=S3_BUCKET, Key=latest_key)
+        content = obj_response["Body"].read().decode("utf-8").strip()
+        if not content:
+            return []
+        data = json.loads(content)
+        # Si la estructura contiene la clave "flows", extrae su valor
+        if isinstance(data, dict) and "flows" in data:
+            flows = data["flows"]
+        elif isinstance(data, list):
+            flows = data
+        else:
+            raise ValueError("Invalid flows data: se esperaba una lista o un dict con clave 'flows'.")
+        if not isinstance(flows, list) or not all(isinstance(flow, dict) for flow in flows):
+            raise ValueError("Invalid flows data: se esperaba una lista de diccionarios.")
+        return flows
+    except ClientError as e:
+        error_code = e.response["Error"]["Code"]
+        if error_code == "NoSuchKey":
+            print("[flows] read_flows: flows.json no existe en S3.")
+            return []
+        else:
+            print(f"[flows] read_flows: Error leyendo flows.json desde S3: {e}")
+            raise
     except Exception as e:
-        print(f"[flows] read_flows: Error reading flows.json: {e}")
+        print(f"[flows] read_flows: Error leyendo flows: {e}")
         raise
 
 def write_flows(flows, inactive_routers=None, router_utilization=None):
+    """
+    Escribe el fichero de flujos en la carpeta "flows" del bucket S3.
+    El nombre del fichero incluye la marca de tiempo actual.
+    """
     try:
-        with open("flows.json", "w") as f:
-            json.dump({
-                "flows": flows,
-                "inactive_routers": inactive_routers or [],
-                "router_utilization": router_utilization or {}
-            }, f, indent=4)
+        data = {
+            "flows": flows,
+            "inactive_routers": inactive_routers or [],
+            "router_utilization": router_utilization or {}
+        }
+        content = json.dumps(data, indent=4)
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        file_key = f"flows/flows_{timestamp}.json"
+        s3_client.put_object(Bucket=S3_BUCKET, Key=file_key, Body=content.encode("utf-8"))
+        print(f"[flows] write_flows: Fichero guardado en s3://{S3_BUCKET}/{file_key}")
     except Exception as e:
-        print(f"[flows] write_flows: Error writing flows.json: {e}")
+        print(f"[flows] write_flows: Error escribiendo flows.json en S3: {e}")
 
 def main():
     if len(sys.argv) != 2:
@@ -45,15 +90,14 @@ def main():
     try:
         flows = read_flows()
 
-        # Buscar si el flujo ya existe
+        # Busca si el flujo ya existe
         existing_flow = next((f for f in flows if f.get("_id") == flow_id), None)
-
         if existing_flow:
-            # Si existe, eliminarlo
+            # Si existe, se elimina
             flows = [f for f in flows if f.get("_id") != flow_id]
             print(f"Flujo con ID {flow_id} eliminado.")
         else:
-            # Si no existe, agregarlo con versión 1
+            # Si no existe, se añade con versión 1
             new_flow = {"_id": flow_id, "version": 1}
             flows.append(new_flow)
             print(f"Flujo con ID {flow_id} añadido con versión 1.")
