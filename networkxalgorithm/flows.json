@@ -2,20 +2,9 @@
     "flows": [
         {
             "_id": "1",
-            "version": 1,
-            "route": [
-                "ru",
-                "r4",
-                "r3",
-                "rg"
-            ]
+            "version": 1
         }
     ],
     "inactive_routers": [],
-    "router_utilization": {
-        "r1": 0.0,
-        "r2": 0.0,
-        "r3": 0.0,
-        "r4": 0.0
-    }
+    "router_utilization": {}
 }
