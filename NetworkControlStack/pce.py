@@ -48,12 +48,7 @@ def ensure_flows_folder_exists():
         if 'Contents' not in response or len(response['Contents']) == 0:
             print("[mynetworkx] ensure_flows_folder_exists: No se encontró ningún fichero en 'flows/', creando fichero inicial.")
             initial_data = {
-                "flows": [
-                    {
-                        "_id": "1",
-                        "version": 1
-                    }
-                ],
+                "flows": [],
                 "inactive_routers": [],
                 "router_utilization": {}
             }

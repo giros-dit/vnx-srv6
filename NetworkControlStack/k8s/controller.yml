@@ -27,12 +27,12 @@ spec:
         - name: S3_PATH
           value: "auto"
         - name: S3_BUCKET
-          value: "across-tc32"
+          value: "test-experiment"
         volumeMounts:
         - name: final-output-volume
           mountPath: /app/final_output.json
           subPath: final_output.json
-        command: ["python3", "-u", "/app/mynetworkxkafkaminio.py"]
+        command: ["python3", "-u", "/app/mynetworkx.py"]
       volumes:
       - name: final-output-volume
         configMap:
