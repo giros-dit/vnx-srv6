@@ -5,6 +5,8 @@ topology:
     r1:
       kind: linux
       image: avillaseca01/srv6-frr
+      ports:
+        - 9100:9100
       binds:
         - conf/r1/daemons:/etc/frr/daemons
         - conf/r1/isisd.conf:/etc/frr/isisd.conf
@@ -24,6 +26,8 @@ topology:
     r2:
       kind: linux
       image: avillaseca01/srv6-frr
+      ports:
+        - 9100:9100
       binds:
         - conf/r2/daemons:/etc/frr/daemons
         - conf/r2/isisd.conf:/etc/frr/isisd.conf
@@ -45,6 +49,8 @@ topology:
     r3:
       kind: linux
       image: avillaseca01/srv6-frr
+      ports:
+        - 9100:9100
       binds:
         - conf/r3/daemons:/etc/frr/daemons
         - conf/r3/isisd.conf:/etc/frr/isisd.conf
@@ -66,6 +72,8 @@ topology:
     r4:
       kind: linux
       image: avillaseca01/srv6-frr
+      ports:
+        - 9100:9100
       binds:
         - conf/r4/daemons:/etc/frr/daemons
         - conf/r4/isisd.conf:/etc/frr/isisd.conf
@@ -85,6 +93,8 @@ topology:
     r5:
       kind: linux
       image: avillaseca01/srv6-frr
+      ports:
+        - 9100:9100
       binds:
         - conf/r5/daemons:/etc/frr/daemons
         - conf/r5/isisd.conf:/etc/frr/isisd.conf
@@ -102,6 +112,8 @@ topology:
     r6:
       kind: linux
       image: avillaseca01/srv6-frr
+      ports:
+        - 9100:9100
       binds:
         - conf/r6/daemons:/etc/frr/daemons
         - conf/r6/isisd.conf:/etc/frr/isisd.conf
@@ -121,6 +133,8 @@ topology:
     r7:
       kind: linux
       image: avillaseca01/srv6-frr
+      ports:
+        - 9100:9100
       binds:
         - conf/r7/daemons:/etc/frr/daemons
         - conf/r7/isisd.conf:/etc/frr/isisd.conf
@@ -137,13 +151,15 @@ topology:
         - ip link set eth2 up
         - ip link set eth3 up
     
-    r11:
+    rg1:
       kind: linux
       image: avillaseca01/srv6-frr
+      ports:
+        - 9100:9100
       binds:
-        - conf/r11/daemons:/etc/frr/daemons
-        - conf/r11/isisd.conf:/etc/frr/isisd.conf
-        - conf/r11/zebra.conf:/etc/frr/zebra.conf
+        - conf/rg1/daemons:/etc/frr/daemons
+        - conf/rg1/isisd.conf:/etc/frr/isisd.conf
+        - conf/rg1/zebra.conf:/etc/frr/zebra.conf
       exec:
         - service frr start
         - sysctl -p
@@ -157,13 +173,15 @@ topology:
         - ip -6 addr add fd00:0:5::0/127 dev eth1
         - ip -6 route add fd00:0:2::0/64 via fd00:0:5::1
 
-    r12:
+    rg2:
       kind: linux
       image: avillaseca01/srv6-frr
+      ports:
+        - 9100:9100
       binds:
-        - conf/r12/daemons:/etc/frr/daemons
-        - conf/r12/isisd.conf:/etc/frr/isisd.conf
-        - conf/r12/zebra.conf:/etc/frr/zebra.conf
+        - conf/rg2/daemons:/etc/frr/daemons
+        - conf/rg2/isisd.conf:/etc/frr/isisd.conf
+        - conf/rg2/zebra.conf:/etc/frr/zebra.conf
       exec:
         - service frr start
         - sysctl -p
@@ -177,13 +195,15 @@ topology:
         - ip -6 addr add fd00:0:6::0/127 dev eth1
         - ip -6 route add fd00:0:2::0/64 via fd00:0:6::1
 
-    r13:
+    ru:
       kind: linux
       image: avillaseca01/srv6-frr
+      ports:
+        - 9100:9100
       binds:
-        - conf/r13/daemons:/etc/frr/daemons
-        - conf/r13/isisd.conf:/etc/frr/isisd.conf
-        - conf/r13/zebra.conf:/etc/frr/zebra.conf
+        - conf/ru/daemons:/etc/frr/daemons
+        - conf/ru/isisd.conf:/etc/frr/isisd.conf
+        - conf/ru/zebra.conf:/etc/frr/zebra.conf
       exec:
         - service frr start
         - sysctl -p
@@ -200,6 +220,8 @@ topology:
     rgnb1:
       kind: linux
       image: avillaseca01/srv6-frr
+      ports:
+        - 9100:9100
       binds:
         - conf/rgnb1/daemons:/etc/frr/daemons
         - conf/rgnb1/zebra.conf:/etc/frr/zebra.conf
@@ -216,6 +238,8 @@ topology:
     rgnb2:
       kind: linux
       image: avillaseca01/srv6-frr
+      ports:
+        - 9100:9100
       binds:
         - conf/rgnb2/daemons:/etc/frr/daemons
         - conf/rgnb2/zebra.conf:/etc/frr/zebra.conf
@@ -232,6 +256,8 @@ topology:
     rupf:
       kind: linux
       image: avillaseca01/srv6-frr
+      ports:
+        - 9100:9100
       binds:
         - conf/rupf/daemons:/etc/frr/daemons
         - conf/rupf/zebra.conf:/etc/frr/zebra.conf
@@ -326,15 +352,15 @@ topology:
     - endpoints: ["r7:eth1", "multus:net1008"]
     - endpoints: ["r7:eth2", "multus:net1012"]
     - endpoints: ["r7:eth3", "multus:net1007"]
-    - endpoints: ["r11:eth1", "multus:net2005"]
-    - endpoints: ["r11:eth2", "multus:net1001"]
-    - endpoints: ["r11:eth3", "multus:net1005"]
-    - endpoints: ["r12:eth1", "multus:net2006"]
-    - endpoints: ["r12:eth2", "multus:net1013"]
-    - endpoints: ["r12:eth3", "multus:net1014"]
-    - endpoints: ["r13:eth1", "multus:net2004"]
-    - endpoints: ["r13:eth2", "multus:net1004"]
-    - endpoints: ["r13:eth3", "multus:net1008"]
+    - endpoints: ["rg1:eth1", "multus:net2005"]
+    - endpoints: ["rg1:eth2", "multus:net1001"]
+    - endpoints: ["rg1:eth3", "multus:net1005"]
+    - endpoints: ["rg2:eth1", "multus:net2006"]
+    - endpoints: ["rg2:eth2", "multus:net1013"]
+    - endpoints: ["rg2:eth3", "multus:net1014"]
+    - endpoints: ["ru:eth1", "multus:net2004"]
+    - endpoints: ["ru:eth2", "multus:net1004"]
+    - endpoints: ["ru:eth3", "multus:net1008"]
     - endpoints: ["rupf:eth1", "multus:net2001"]
     - endpoints: ["rupf:eth2", "multus:net2002"]
     - endpoints: ["rgnb1:eth1", "multus:net2002"]
