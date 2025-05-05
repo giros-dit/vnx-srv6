@@ -153,9 +153,7 @@ topology:
     
     rg1:
       kind: linux
-      image: avillaseca01/srv6-frr
-      ports:
-        - 9100:9100
+      image: avillaseca01/srv6-frr:base
       binds:
         - conf/rg1/daemons:/etc/frr/daemons
         - conf/rg1/isisd.conf:/etc/frr/isisd.conf
@@ -175,9 +173,7 @@ topology:
 
     rg2:
       kind: linux
-      image: avillaseca01/srv6-frr
-      ports:
-        - 9100:9100
+      image: avillaseca01/srv6-frr:base
       binds:
         - conf/rg2/daemons:/etc/frr/daemons
         - conf/rg2/isisd.conf:/etc/frr/isisd.conf
@@ -197,9 +193,7 @@ topology:
 
     ru:
       kind: linux
-      image: avillaseca01/srv6-frr
-      ports:
-        - 9100:9100
+      image: avillaseca01/srv6-frr:base
       binds:
         - conf/ru/daemons:/etc/frr/daemons
         - conf/ru/isisd.conf:/etc/frr/isisd.conf
@@ -219,9 +213,7 @@ topology:
     
     rgnb1:
       kind: linux
-      image: avillaseca01/srv6-frr
-      ports:
-        - 9100:9100
+      image: avillaseca01/srv6-frr:base
       binds:
         - conf/rgnb1/daemons:/etc/frr/daemons
         - conf/rgnb1/zebra.conf:/etc/frr/zebra.conf
@@ -237,9 +229,7 @@ topology:
     
     rgnb2:
       kind: linux
-      image: avillaseca01/srv6-frr
-      ports:
-        - 9100:9100
+      image: avillaseca01/srv6-frr:base
       binds:
         - conf/rgnb2/daemons:/etc/frr/daemons
         - conf/rgnb2/zebra.conf:/etc/frr/zebra.conf
@@ -255,9 +245,7 @@ topology:
     
     rupf:
       kind: linux
-      image: avillaseca01/srv6-frr
-      ports:
-        - 9100:9100
+      image: avillaseca01/srv6-frr:base
       binds:
         - conf/rupf/daemons:/etc/frr/daemons
         - conf/rupf/zebra.conf:/etc/frr/zebra.conf
