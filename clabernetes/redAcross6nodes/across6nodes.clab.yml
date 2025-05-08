@@ -78,13 +78,13 @@ topology:
         - ip link set eth1 up
         - ip link set eth2 up
 
-    rg:
+    rg1:
       kind: linux
       image: avillaseca01/srv6-frr
       binds:
-        - conf/rg/daemons:/etc/frr/daemons
-        - conf/rg/isisd.conf:/etc/frr/isisd.conf
-        - conf/rg/zebra.conf:/etc/frr/zebra.conf
+        - conf/rg1/daemons:/etc/frr/daemons
+        - conf/rg1/isisd.conf:/etc/frr/isisd.conf
+        - conf/rg1/zebra.conf:/etc/frr/zebra.conf
       exec:
         - service frr start
         - sysctl -p
@@ -98,12 +98,12 @@ topology:
         - ip -6 addr add fd00:0:4::0/127 dev eth1
         - ip -6 route add fd00:0:2::0/64 via fd00:0:4::1
 
-    rgnb:
+    rgnb1:
       kind: linux
       image: avillaseca01/srv6-frr
       binds:
-        - conf/rgnb/daemons:/etc/frr/daemons
-        - conf/rgnb/zebra.conf:/etc/frr/zebra.conf
+        - conf/rgnb1/daemons:/etc/frr/daemons
+        - conf/rgnb1/zebra.conf:/etc/frr/zebra.conf
       exec:
         - service frr start
         - sysctl -p
@@ -153,7 +153,7 @@ topology:
         - ip -6 addr add fd00:0:1::/127 dev eth2
         - ip -6 route add fd00:0:2::0/64 via fd00:0:3::0
 
-    hgnb-h1:
+    hgnb1-h1:
       kind: linux
       image: avillaseca01/acrossfinal
       exec:
@@ -161,7 +161,7 @@ topology:
         - ip -6 addr add fd00:0:2::2/64 dev eth1
         - ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
 
-    hgnb-h2:
+    hgnb1-h2:
       kind: linux
       image: avillaseca01/acrossfinal
       exec:
@@ -169,7 +169,7 @@ topology:
         - ip -6 addr add fd00:0:2::3/64 dev eth1
         - ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
 
-    hgnb-h3:
+    hgnb1-h3:
       kind: linux
       image: avillaseca01/acrossfinal
       exec:
@@ -186,11 +186,11 @@ topology:
         - ip -6 route add fd00:0:2::/64 via fd00:0:1::0
 
   links:
-    - endpoints: ["rgnb:eth1", "multus:net2004"]
-    - endpoints: ["rgnb:eth2", "multus:net2002"]
-    - endpoints: ["rg:eth1", "multus:net2004"]
-    - endpoints: ["rg:eth2", "multus:net1001"]
-    - endpoints: ["rg:eth3", "multus:net1004"]
+    - endpoints: ["rgnb1:eth1", "multus:net2004"]
+    - endpoints: ["rgnb1:eth2", "multus:net2002"]
+    - endpoints: ["rg1:eth1", "multus:net2004"]
+    - endpoints: ["rg1:eth2", "multus:net1001"]
+    - endpoints: ["rg1:eth3", "multus:net1004"]
     - endpoints: ["r1:eth1", "multus:net1001"]
     - endpoints: ["r1:eth2", "multus:net1002"]
     - endpoints: ["r2:eth1", "multus:net1002"]
@@ -204,7 +204,7 @@ topology:
     - endpoints: ["ru:eth3", "multus:net1006"]
     - endpoints: ["rupf:eth1", "multus:net2003"]
     - endpoints: ["rupf:eth2", "multus:net2001"]
-    - endpoints: ["hgnb-h1:eth1", "multus:net2002"]
-    - endpoints: ["hgnb-h2:eth1", "multus:net2002"]
-    - endpoints: ["hgnb-h3:eth1", "multus:net2002"]
+    - endpoints: ["hgnb1-h1:eth1", "multus:net2002"]
+    - endpoints: ["hgnb1-h2:eth1", "multus:net2002"]
+    - endpoints: ["hgnb1-h3:eth1", "multus:net2002"]
     - endpoints: ["hupf-h1:eth1", "multus:net2001"]
