@@ -1,2 +1,2 @@
-kubectl create configmap final-output --from-file=final_output.json
-kubectl apply -f controller.yml
+kubectl create configmap networkinfo --from-file=networkinfo.json
+kubectl apply -f networkstack.yml

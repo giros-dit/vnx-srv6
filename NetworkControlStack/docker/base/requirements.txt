@@ -1,0 +1,6 @@
+networkx
+boto3
+kafka-python
+kubernetes
+pytest
+ipaddress
