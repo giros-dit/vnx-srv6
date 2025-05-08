@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import json
 import time
 import os
@@ -7,124 +6,112 @@ import networkx as nx
 import re
 import subprocess
 import boto3
+import ipaddress
 from kafka import KafkaConsumer
 from botocore.exceptions import ClientError
+from botocore.config import Config
 
 # Parámetros globales
 OCCUPANCY_LIMIT = 0.8
 ROUTER_LIMIT = 0.95
-NODE_TIMEOUT = 15  # Si el timestamp es mayor a 15 seg, se considera que el router está caído.
+NODE_TIMEOUT = 15  # Segundos tras los cuales un router se considera caído
 router_state = {}
-state_lock = threading.Lock()  # Lock para proteger router_state
+state_lock = threading.Lock()
 
-# Configuración S3 (Minio) mediante variables de entorno
-S3_ENDPOINT = os.environ.get('S3_ENDPOINT')
+# Configuración MinIO/S3 desde env
+S3_ENDPOINT   = os.environ.get('S3_ENDPOINT')
 S3_ACCESS_KEY = os.environ.get('S3_ACCESS_KEY')
 S3_SECRET_KEY = os.environ.get('S3_SECRET_KEY')
-S3_BUCKET = os.environ.get('S3_BUCKET')
+S3_BUCKET     = os.environ.get('S3_BUCKET')
 
-# Se crea un cliente global para S3/Minio (región "local")
+# Si usamos el valor real de energía (True) o fijamos a 0.1 (False)
+ENERGYAWARE = os.environ.get('ENERGYAWARE', 'true').lower() == 'true'
+
+# Configurar boto3 para path-style (no virtual host)
+s3_cfg = Config(
+    signature_version='s3v4',
+    s3={'addressing_style': 'path'}
+)
+
+print(f"[pce] Inicializando S3 client -> endpoint={S3_ENDPOINT!r}, bucket={S3_BUCKET!r}")
 s3_client = boto3.client(
     's3',
     endpoint_url=S3_ENDPOINT,
     aws_access_key_id=S3_ACCESS_KEY,
     aws_secret_access_key=S3_SECRET_KEY,
+    config=s3_cfg,
     region_name='local'
 )
 
-# Verifica que el bucket es accesible (se asume que ya está creado)
 def ensure_bucket_exists(bucket_name):
     try:
         s3_client.head_bucket(Bucket=bucket_name)
+        print(f"[pce] Bucket '{bucket_name}' OK.")
     except ClientError as e:
-        print(f"Error: El bucket {bucket_name} no existe o no se puede acceder: {e}")
+        print(f"[pce][ERROR] El bucket {bucket_name} no existe o no se puede acceder: {e}")
 
 ensure_bucket_exists(S3_BUCKET)
 
-# Asegura que la "carpeta" flows tenga al menos un fichero inicial
 def ensure_flows_folder_exists():
     try:
-        response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
-        if 'Contents' not in response or len(response['Contents']) == 0:
-            print("[mynetworkx] ensure_flows_folder_exists: No se encontró ningún fichero en 'flows/', creando fichero inicial.")
-            initial_data = {
-                "flows": [],
-                "inactive_routers": [],
-                "router_utilization": {}
-            }
-            content = json.dumps(initial_data, indent=4)
-            s3_client.put_object(Bucket=S3_BUCKET, Key="flows/flows_initial.json", Body=content.encode("utf-8"))
+        resp = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
+        if 'Contents' not in resp or not resp['Contents']:
+            initial = {"flows": [], "inactive_routers": [], "router_utilization": {}}
+            s3_client.put_object(
+                Bucket=S3_BUCKET,
+                Key="flows/flows_initial.json",
+                Body=json.dumps(initial, indent=4).encode()
+            )
+            print("[pce] flows/ creado e inicializado.")
         else:
-            print("[mynetworkx] ensure_flows_folder_exists: Existe al menos un fichero en la carpeta 'flows/'.")
+            print("[pce] Ya existe al menos un fichero en flows/.")
     except Exception as e:
-        print(f"[mynetworkx] ensure_flows_folder_exists: Error al verificar o crear el fichero inicial: {e}")
+        print(f"[pce][ERROR] ensure_flows_folder_exists: {e}")
 
 ensure_flows_folder_exists()
 
 def create_graph():
-    # Se carga localmente el final_output.json; si lo deseas, adapta esta función para cargarlo desde S3.
-    with open("final_output.json") as f:
+    with open("networkinfo.json") as f:
         data = json.load(f)
     G = nx.DiGraph()
-    for node in data["graph"]["nodes"]:
-        G.add_node(node)
-    for edge in data["graph"]["edges"]:
-        G.add_edge(edge["source"], edge["target"], cost=edge["cost"])
+    for n in data["graph"]["nodes"]:
+        G.add_node(n)
+    for e in data["graph"]["edges"]:
+        G.add_edge(e["source"], e["target"], cost=e["cost"])
     return G
 
 def read_flows():
     try:
-        # Listamos los ficheros en la carpeta "flows" del bucket
-        response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
-        if 'Contents' not in response or len(response['Contents']) == 0:
-            print("[mynetworkx] read_flows: No se encontró ningún fichero en la carpeta 'flows'.")
+        resp = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
+        if 'Contents' not in resp or not resp['Contents']:
             return []
-        
-        # Selecciona el archivo con la fecha de modificación más reciente
-        objects = response['Contents']
-        latest_obj = max(objects, key=lambda x: x['LastModified'])
-        latest_key = latest_obj['Key']
-        print(f"[mynetworkx] read_flows: Descargando el último fichero: {latest_key}")
-        
-        obj_response = s3_client.get_object(Bucket=S3_BUCKET, Key=latest_key)
-        content = obj_response['Body'].read().decode('utf-8')
-        data = json.loads(content)
-        if isinstance(data, dict) and "flows" in data:
-            return data["flows"]
-        elif isinstance(data, list):
-            return data
-        else:
-            return []
+        latest = max(resp['Contents'], key=lambda o: o['LastModified'])['Key']
+        obj = s3_client.get_object(Bucket=S3_BUCKET, Key=latest)
+        flows_data = json.loads(obj['Body'].read().decode())
+        return flows_data.get("flows", flows_data) if isinstance(flows_data, dict) else flows_data
     except Exception as e:
-        print(f"[mynetworkx] read_flows: Error leyendo el último fichero de flows desde S3: {e}")
+        print(f"[pce][ERROR] read_flows: {e}")
         return []
 
-def write_flows(flows, inactive_routers):
-    data_to_write = {
-        "flows": flows,
-        "inactive_routers": inactive_routers,
-    }
-    content = json.dumps(data_to_write, indent=4)
-    timestamp = time.strftime("%Y%m%d_%H%M%S")
-    file_key = f"flows/flows_{timestamp}.json"
-    try:
-        s3_client.put_object(Bucket=S3_BUCKET, Key=file_key, Body=content.encode("utf-8"))
-        print(f"[mynetworkx] write_flows: Fichero guardado en s3://{S3_BUCKET}/{file_key}")
-    except Exception as e:
-        print(f"[mynetworkx] write_flows: Error escribiendo flows.json en S3: {e}")
+def write_flows(flows, inactive):
+    payload = {"flows": flows, "inactive_routers": inactive}
+    ts = time.strftime("%Y%m%d_%H%M%S")
+    key = f"flows/flows_{ts}.json"
+    s3_client.put_object(Bucket=S3_BUCKET, Key=key,
+                         Body=json.dumps(payload, indent=4).encode())
+    print(f"[pce] write_flows: guardado {key}")
 
 def remove_inactive_nodes(G, flows):
     now = time.time()
-    removed = []
-    modified = False
+    removed, modified = [], False
     with state_lock:
-        for r, data in router_state.items():
-            if (now - data.get("ts", 0)) > NODE_TIMEOUT and r in G:
+        for r, d in list(router_state.items()):
+            if now - d.get("ts", 0) > NODE_TIMEOUT and r in G:
                 G.remove_node(r)
                 removed.append(r)
                 modified = True
     if removed:
-        print(f"[mynetworkx] remove_inactive_nodes: Removed inactive routers: {removed}")
+        print(f"[pce] remove_inactive_nodes: routers caídos {removed}")
         for f in flows:
             if "route" in f and any(r in f["route"] for r in removed):
                 f.pop("route", None)
@@ -136,76 +123,71 @@ def assign_node_costs(G):
     now = time.time()
     with state_lock:
         for u, v in G.edges():
+            energy = router_state.get(v, {}).get("energy", 9999)
+            cost = energy if ENERGYAWARE else 0.1
             if v in router_state and (now - router_state[v].get("ts", 0)) <= NODE_TIMEOUT:
-                G[u][v]["cost"] = router_state[v].get("energy", 9999)
+                G[u][v]["cost"] = cost
             else:
                 G[u][v]["cost"] = 9999
     return G
 
+def choose_destination(dest_ip):
+    addr = ipaddress.IPv6Address(dest_ip.split('/')[0])
+    if addr in ipaddress.IPv6Network('fd00:0:2::/64'):
+        return 'rg1'
+    if addr in ipaddress.IPv6Network('fd00:0:3::/64'):
+        return 'rg2'
+    return 'rg1'
+
 def recalc_routes(G, flows, removed):
     modified = False
+    print(f"[pce][DEBUG] Grafo nodos: {list(G.nodes())}")
     for f in flows:
         route = f.get("route")
-        # Solo se recalcula si el flujo no tiene ruta o si la ruta contiene alguno de los routers caídos
         if route and not any(r in route for r in removed):
             continue
-        source, target = "ru", "rg"
+
+        source = "ru"
+        target = choose_destination(f["_id"])
+        print(f"[pce][DEBUG] Intentando ruta de {source} a {target} para flujo {f['_id']}")
+
         if not (G.has_node(source) and G.has_node(target)):
+            print(f"[pce][DEBUG] Nodo faltante: source {'OK' if G.has_node(source) else 'MISSING'}, "
+                  f"target {'OK' if G.has_node(target) else 'MISSING'}")
             continue
 
         with state_lock:
-            excluded = [n for n, data in router_state.items() if data.get("usage", 0) >= OCCUPANCY_LIMIT]
-            excluded_max = [n for n, data in router_state.items() if data.get("usage", 0) >= ROUTER_LIMIT]
-        G2 = G.copy()
-        G2.remove_nodes_from(excluded)
-        G3 = G.copy()
-        G3.remove_nodes_from(excluded_max)
+            excluded     = [n for n, d in router_state.items() if d.get("usage", 0) >= OCCUPANCY_LIMIT]
+            excluded_max = [n for n, d in router_state.items() if d.get("usage", 0) >= ROUTER_LIMIT]
+        G2 = G.copy(); G2.remove_nodes_from(excluded)
+        G3 = G.copy(); G3.remove_nodes_from(excluded_max)
 
         try:
             path = nx.shortest_path(G2, source, target, weight="cost")
         except Exception:
-            print("No se encontró ruta en el subgrafo, intentando con G completo...")
+            print("[pce] No se encontró ruta en subgrafo, intentando con G completo...")
             try:
                 path = nx.shortest_path(G3, source, target, weight="cost")
-                if path:
-                    print(f"[mynetworkx] recalc_routes: Flow {f.get('_id', '???')} usage above {OCCUPANCY_LIMIT}")
             except Exception:
-                print("WARNING: No se encontró ruta.")
+                print("[pce] WARNING: No se encontró ruta.")
                 continue
 
-        print(f"[mynetworkx] recalc_routes: Assigned route {path} to flow {f.get('_id')}")
+        print(f"[pce] recalc_routes: Assigned route {path} a flujo {f['_id']}")
         f["route"] = path
         modified = True
 
-        try:
-            print(f"Ejecutando tunnelmaker para el flujo {f.get('_id')} con versión {f.get('version', 1)}, ruta: {json.dumps(path)}")
-            cmd = [
-                "python3",
-                "tunnelmaker.py",
-                str(f.get("_id")),
-                str(f.get("version", 1)),
-                json.dumps(path)
-            ]
-            print("Ejecutando comando:", " ".join(cmd))
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            print(result.stdout)
-        except Exception as e:
-            print(f"Error al llamar a tunnelmaker: {e}")
-    return flows, modified
+        # Invocar src.py para crear tablas y reglas
+        cmd = [
+            "python3", "/app/src.py",
+            f"{f['_id']}", str(f.get("version", 1)), json.dumps(path)
+        ]
+        print(f"[pce] Llamada a src.py: {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        print(f"[src stdout]\n{result.stdout}")
+        if result.stderr:
+            print(f"[src stderr]\n{result.stderr}")
 
-def routing_algorithm_loop():
-    while True:
-        time.sleep(5)
-        G = create_graph()
-        # Se lee el JSON de flows directamente de S3, sin sobrescribirlo si no se han hecho cambios
-        flows = read_flows()
-        G, flows, removed, mod1 = remove_inactive_nodes(G, flows)
-        G = assign_node_costs(G)
-        flows, mod2 = recalc_routes(G, flows, removed)
-        if mod1 or mod2:
-            write_flows(flows, removed)
-        else:
-            print("[mynetworkx] routing_algorithm_loop: No hay cambios en los flujos, S3 no se actualiza.")
+    return flows, modified
 
 def kafka_consumer_thread(router_id):
     topic = f"ML_{router_id}"
@@ -213,51 +195,48 @@ def kafka_consumer_thread(router_id):
         topic,
         bootstrap_servers=['kafka-service:9092'],
         auto_offset_reset='latest',
-        value_deserializer=lambda m: json.loads(m.decode('utf-8'))
+        value_deserializer=lambda m: json.loads(m.decode())
     )
-    print(f"Conectado al topic {topic}")
-    for message in consumer:
-        data = message.value
-        energy = None
-        usage = None
-        for metric in data.get("output_ml_metrics", []):
-            if metric.get("name") == "node_network_power_consumption_variation_rate_occupation":
-                try:
-                    energy = float(metric.get("value", 0))
-                except (ValueError, TypeError):
-                    energy = 0
+    for msg in consumer:
+        data = msg.value
+        energy = usage = None
+        ts = None
+        for m in data.get("output_ml_metrics", []):
+            if m.get("name") == "node_network_power_consumption_variation_rate_occupation":
+                energy = float(m.get("value", 0)) if ENERGYAWARE else 0.1
                 break
-        for metric in data.get("input_ml_metrics", []):
-            if metric.get("name") == "node_network_router_capacity_occupation":
-                try:
-                    usage = float(metric.get("value", 0)) / 100.0
-                except (ValueError, TypeError):
-                    usage = 0
+        for m in data.get("input_ml_metrics", []):
+            if m.get("name") == "node_network_router_capacity_occupation":
+                usage = float(m.get("value", 0)) / 100.0
                 break
+        try:
+            ts = float(data.get("epoch_timestamp", 0))
+        except:
+            ts = time.time()
         if energy is not None and usage is not None:
             with state_lock:
-                router_state[router_id] = {
-                    "energy": energy,
-                    "usage": usage,
-                    "ts": time.time()
-                }
+                router_state[router_id] = {"energy": energy, "usage": usage, "ts": ts}
 
 def start_kafka_consumers():
-    with open("final_output.json", "r") as f:
-        data = json.load(f)
-    all_nodes = data["graph"]["nodes"]
-    routers = [node for node in all_nodes if re.match(r"^r\d$", node)]
-    threads = []
-    for r in routers:
-        t = threading.Thread(target=kafka_consumer_thread, args=(r,))
-        t.daemon = True
-        t.start()
-        threads.append(t)
-    return threads
+    with open("networkinfo.json") as f:
+        nodes = json.load(f)["graph"]["nodes"]
+    for n in nodes:
+        if re.match(r"^r\d+$", n):
+            t = threading.Thread(target=kafka_consumer_thread, args=(n,))
+            t.daemon = True
+            t.start()
 
 def main():
-    start_kafka_consumers()  # Inicia consumidores de Kafka para cada router
-    routing_algorithm_loop()   # Ejecuta el algoritmo de rutas en el hilo principal
+    start_kafka_consumers()
+    while True:
+        time.sleep(5)
+        G = create_graph()
+        flows = read_flows()
+        G, flows, removed, m1 = remove_inactive_nodes(G, flows)
+        G = assign_node_costs(G)
+        flows, m2 = recalc_routes(G, flows, removed)
+        if m1 or m2:
+            write_flows(flows, removed)
 
 if __name__ == "__main__":
     main()
