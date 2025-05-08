@@ -141,7 +141,14 @@ def choose_destination(dest_ip):
 
 def recalc_routes(G, flows, removed):
     modified = False
-    print(f"[pce][DEBUG] Grafo nodos: {list(G.nodes())}")
+
+    # 1) Mostrar coste de todos los enlaces de la red
+    print("[pce] Costes de todos los enlaces en la red:")
+    for u, v, data in G.edges(data=True):
+        cost = data.get("cost", None)
+        print(f"  {u} -> {v}: {cost}")
+
+    # 2) Para cada flujo pendiente o con ruta invalidada
     for f in flows:
         route = f.get("route")
         if route and not any(r in route for r in removed):
@@ -156,9 +163,10 @@ def recalc_routes(G, flows, removed):
                   f"target {'OK' if G.has_node(target) else 'MISSING'}")
             continue
 
+        # Excluir nodos saturados
         with state_lock:
-            excluded     = [n for n, d in router_state.items() if d.get("usage", 0) >= OCCUPANCY_LIMIT]
-            excluded_max = [n for n, d in router_state.items() if d.get("usage", 0) >= ROUTER_LIMIT]
+            excluded     = [n for n,d in router_state.items() if d.get("usage",0) >= OCCUPANCY_LIMIT]
+            excluded_max = [n for n,d in router_state.items() if d.get("usage",0) >= ROUTER_LIMIT]
         G2 = G.copy(); G2.remove_nodes_from(excluded)
         G3 = G.copy(); G3.remove_nodes_from(excluded_max)
 
@@ -172,11 +180,16 @@ def recalc_routes(G, flows, removed):
                 print("[pce] WARNING: No se encontró ruta.")
                 continue
 
-        print(f"[pce] recalc_routes: Assigned route {path} a flujo {f['_id']}")
+        # 3) Calcular costes por salto y total
+        costs = [G[u][v]["cost"] for u, v in zip(path, path[1:])]
+        total_cost = sum(costs)
+        print(f"[pce] recalc_routes: Assigned route {path} a flujo {f['_id']} "
+              f"con costes por salto {costs} (total={total_cost})")
+
+        # 4) Guardar ruta y disparar src.py
         f["route"] = path
         modified = True
 
-        # Invocar src.py para crear tablas y reglas
         cmd = [
             "python3", "/app/src.py",
             f"{f['_id']}", str(f.get("version", 1)), json.dumps(path)
@@ -188,6 +201,7 @@ def recalc_routes(G, flows, removed):
             print(f"[src stderr]\n{result.stderr}")
 
     return flows, modified
+
 
 def kafka_consumer_thread(router_id):
     topic = f"ML_{router_id}"

@@ -2,17 +2,17 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: across6nodes-rg-files
+  name: across6nodes-rgnb1-files
   namespace: across-tc32
 data:
-  conf-rg-daemons: |-
+  conf-rgnb1-daemons: |-
     zebra=yes
     bgpd=no
     ospfd=no
     ospf6d=no
     ripd=no
     ripngd=no
-    isisd=yes
+    isisd=no
     pimd=no
     ldpd=no
     nhrpd=no
@@ -43,51 +43,23 @@ data:
     bfdd_options="  --daemon -A 127.0.0.1"
     fabricd_options="  --daemon -A 127.0.0.1"
 
-  conf-rg-isisd.conf: |-
-    hostname rg
-    password zebra
-    !
-    interface eth2
-     ipv6 router isis FOO
-     ip router isis FOO
-     isis hello-interval 5
-    !
-    interface eth3
-     ipv6 router isis FOO
-     ip router isis FOO
-     isis hello-interval 5
-    !
-    interface lo
-     ipv6 router isis FOO
-     ip router isis FOO
-     isis hello-interval 5
-    !
-    router isis FOO
-      net 47.0001.6666.6666.6666.00
-      is-type level-2-only
-      metric-style wide
-    !
-    line vty
-  conf-rg-zebra.conf: |-
+  conf-rgnb1-zebra.conf: |-
     ! -*- zebra -*-
 
     !
-    hostname rg
+    hostname rgnb1
     !
     debug zebra events
     debug zebra rib
     !
     interface eth1
-     ipv6 address fd00:0:4::/127
+     ipv6 address fd00:0:4::1/127
     !
     interface eth2
-     ipv6 address fcf0:0:1:6::2/64
-    !
-    interface eth3
-     ipv6 address fcf0:0:3:6::2/64
+     ipv6 address fd00:0:2::1/64
     !
     interface lo
-     ipv6 address fcff:6::1/32
+     ipv6 address fcff:8::1/32
     !
     ipv6 forwarding
     !

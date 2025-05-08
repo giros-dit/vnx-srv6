@@ -47,6 +47,7 @@
     </if>
     <exec seq="on_boot" type="verbatim" ostype="system">
       ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
+      ip -6 route add fd00:0:5::1/127 via fd00:0:2::1
     </exec> 
   </vm>
   <vm name="hgnb1-h2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -57,9 +58,11 @@
     </if>
     <exec seq="on_boot" type="verbatim" ostype="system">
       ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
+      ip -6 route add fd00:0:5::1/127 via fd00:0:2::1
+      ip -6 route add fd00:0:4::1/127 via fd00:0:2::1
     </exec>  
   </vm>
-  <vm name="hgnb-h3" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+  <vm name="hgnb1-h3" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <mem>128M</mem>
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
     <if id="1" net="net2002">
@@ -67,6 +70,8 @@
     </if>
     <exec seq="on_boot" type="verbatim" ostype="system">
       ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
+      ip -6 route add fd00:0:5::1/127 via fd00:0:2::1
+      ip -6 route add fd00:0:4::1/127 via fd00:0:2::1
     </exec> 
   </vm>
   <vm name="hgnb2-h1" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -74,6 +79,26 @@
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
     <if id="1" net="net2003">
       <ipv6>fd00:0:3::2/64</ipv6> 
+    </if>
+    <exec seq="on_boot" type="verbatim" ostype="system">
+      ip -6 route add fd00:0:1::1/127 via fd00:0:3::1
+    </exec> 
+  </vm>
+  <vm name="hgnb2-h2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+    <mem>128M</mem>
+    <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
+    <if id="1" net="net2003">
+      <ipv6>fd00:0:3::3/64</ipv6> 
+    </if>
+    <exec seq="on_boot" type="verbatim" ostype="system">
+      ip -6 route add fd00:0:1::1/127 via fd00:0:3::1
+    </exec> 
+  </vm>
+  <vm name="hgnb2-h3" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+    <mem>128M</mem>
+    <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
+    <if id="1" net="net2003">
+      <ipv6>fd00:0:3::4/64</ipv6> 
     </if>
     <exec seq="on_boot" type="verbatim" ostype="system">
       ip -6 route add fd00:0:1::1/127 via fd00:0:3::1
@@ -88,6 +113,7 @@
     <exec seq="on_boot" type="verbatim" ostype="system">
       ip -6 route add fd00:0:2::0/64 via fd00:0:1::0
       ip -6 route add fd00:0:3::0/64 via fd00:0:1::0
+      ip -6 route add fd00:0:4::0/127 via fd00:0:1::0
     </exec> 
   </vm>
 
@@ -364,6 +390,18 @@
       for dev in $(ip -o -6 a | awk '{ print $2 }' | grep -v "lo"); do sysctl -w net.ipv6.conf."$dev".seg6_enabled=1; done;
       vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
       vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
+      echo "101 tunel1" >> /etc/iproute2/rt_tables
+      echo "102 tunel2" >> /etc/iproute2/rt_tables
+      echo "103 tunel3" >> /etc/iproute2/rt_tables
+      echo "104 tunel4" >> /etc/iproute2/rt_tables
+      echo "105 tunel5" >> /etc/iproute2/rt_tables
+      echo "106 tunel6" >> /etc/iproute2/rt_tables
+      ip -6 rule add to fd00:0:2::2 lookup tunel1
+      ip -6 rule add to fd00:0:2::3 lookup tunel2
+      ip -6 rule add to fd00:0:2::4 lookup tunel3
+      ip -6 rule add to fd00:0:3::2 lookup tunel4
+      ip -6 rule add to fd00:0:3::3 lookup tunel5
+      ip -6 rule add to fd00:0:3::4 lookup tunel6
       ip -6 route add fd00:0:1::/127 via fd00:0:4::1
     </exec>
   </vm>
@@ -379,6 +417,7 @@
     </if>
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/rgnb1/zebra.conf</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
+      sysctl -w net.ipv6.conf.all.forwarding=1
       ip -6 route add fd00:0:1::0/127 via fd00:0:5::0
     </exec>
   </vm>
@@ -394,6 +433,7 @@
     </if>
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/rgnb2/zebra.conf</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
+      sysctl -w net.ipv6.conf.all.forwarding=1
       ip -6 route add fd00:0:1::0/127 via fd00:0:6::0
     </exec>
   </vm>
@@ -409,8 +449,9 @@
     </if>
     <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/rupf/zebra.conf</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
+      sysctl -w net.ipv6.conf.all.forwarding=1
       ip -6 route add fd00:0:2::0/64 via fd00:0:4::0
-      ip -6 route add fd00:0:3::0/64 via fd00:0:4::0
+      ip -6 route add fd00:0:3::0/64 via fd00:0:4::0 
     </exec>
   </vm>
 </vnx>

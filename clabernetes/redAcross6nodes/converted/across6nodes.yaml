@@ -59,27 +59,27 @@ spec:
             configMapName: across6nodes-r4-files
             configMapPath: conf-r4-zebra.conf
             mode: execute
-        rg:
-          - filePath: conf/rg/daemons
-            configMapName: across6nodes-rg-files
-            configMapPath: conf-rg-daemons
+        rg1:
+          - filePath: conf/rg1/daemons
+            configMapName: across6nodes-rg1-files
+            configMapPath: conf-rg1-daemons
             mode: read
-          - filePath: conf/rg/isisd.conf
-            configMapName: across6nodes-rg-files
-            configMapPath: conf-rg-isisd.conf
+          - filePath: conf/rg1/isisd.conf
+            configMapName: across6nodes-rg1-files
+            configMapPath: conf-rg1-isisd.conf
             mode: read
-          - filePath: conf/rg/zebra.conf
-            configMapName: across6nodes-rg-files
-            configMapPath: conf-rg-zebra.conf
+          - filePath: conf/rg1/zebra.conf
+            configMapName: across6nodes-rg1-files
+            configMapPath: conf-rg1-zebra.conf
             mode: execute
-        rgnb:
-          - filePath: conf/rgnb/daemons
-            configMapName: across6nodes-rgnb-files
-            configMapPath: conf-rgnb-daemons
+        rgnb1:
+          - filePath: conf/rgnb1/daemons
+            configMapName: across6nodes-rgnb1-files
+            configMapPath: conf-rgnb1-daemons
             mode: read
-          - filePath: conf/rgnb/zebra.conf
-            configMapName: across6nodes-rgnb-files
-            configMapPath: conf-rgnb-zebra.conf
+          - filePath: conf/rgnb1/zebra.conf
+            configMapName: across6nodes-rgnb1-files
+            configMapPath: conf-rgnb1-zebra.conf
             mode: execute
         ru:
           - filePath: conf/ru/daemons
@@ -111,7 +111,7 @@ spec:
             defaults:
               ports: []
             nodes:
-              hgnb-h1:
+              hgnb1-h1:
                 kind: linux
                 image: avillaseca01/acrossfinal
                 exec:
@@ -119,7 +119,7 @@ spec:
                 - ip -6 addr add fd00:0:2::2/64 dev eth1
                 - ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
                 ports: []
-              hgnb-h2:
+              hgnb1-h2:
                 kind: linux
                 image: avillaseca01/acrossfinal
                 exec:
@@ -127,7 +127,7 @@ spec:
                 - ip -6 addr add fd00:0:2::3/64 dev eth1
                 - ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
                 ports: []
-              hgnb-h3:
+              hgnb1-h3:
                 kind: linux
                 image: avillaseca01/acrossfinal
                 exec:
@@ -215,7 +215,7 @@ spec:
                 - conf/r4/zebra.conf:/etc/frr/zebra.conf
                 ports:
                 - 9100:9100
-              rg:
+              rg1:
                 kind: linux
                 image: avillaseca01/srv6-frr
                 exec:
@@ -231,11 +231,11 @@ spec:
                 - ip -6 addr add fd00:0:4::0/127 dev eth1
                 - ip -6 route add fd00:0:2::0/64 via fd00:0:4::1
                 binds:
-                - conf/rg/daemons:/etc/frr/daemons
-                - conf/rg/isisd.conf:/etc/frr/isisd.conf
-                - conf/rg/zebra.conf:/etc/frr/zebra.conf
+                - conf/rg1/daemons:/etc/frr/daemons
+                - conf/rg1/isisd.conf:/etc/frr/isisd.conf
+                - conf/rg1/zebra.conf:/etc/frr/zebra.conf
                 ports: []
-              rgnb:
+              rgnb1:
                 kind: linux
                 image: avillaseca01/srv6-frr
                 exec:
@@ -248,8 +248,8 @@ spec:
                 - ip -6 addr add fd00:0:2::1/64 dev eth2
                 - ip -6 route add fd00:0:1::1/127 via fd00:0:4::0
                 binds:
-                - conf/rgnb/daemons:/etc/frr/daemons
-                - conf/rgnb/zebra.conf:/etc/frr/zebra.conf
+                - conf/rgnb1/daemons:/etc/frr/daemons
+                - conf/rgnb1/zebra.conf:/etc/frr/zebra.conf
                 ports: []
               ru:
                 kind: linux
@@ -271,7 +271,7 @@ spec:
                 - conf/ru/isisd.conf:/etc/frr/isisd.conf
                 - conf/ru/zebra.conf:/etc/frr/zebra.conf
                 ports:
-                - "30022:22"
+                - "22:22"
               rupf:
                 kind: linux
                 image: avillaseca01/srv6-frr
