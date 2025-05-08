@@ -15,7 +15,6 @@ def create_full_graph(yaml_file, full_filter):
         topology = yaml.safe_load(f)
     nodes_dict = topology.get("topology", {}).get("nodes", {})
     links = topology.get("topology", {}).get("links", [])
-    # Filtrar todos los nodos que empiecen con "r" (incluye especiales)
     full_nodes = {node for node in nodes_dict.keys() if re.fullmatch(full_filter, node, re.IGNORECASE)}
     logging.debug("Full filtered nodes: %s", full_nodes)
     net_to_nodes = defaultdict(set)
@@ -55,45 +54,6 @@ def filter_final_graph(full_graph, final_filter):
     logging.debug("Final graph (filtered) generated: %s", final_graph)
     return final_graph
 
-def extract_extremos_by_net(net_to_nodes, final_filter, final_nodes):
-    """
-    Se recorre cada segmento (net). Si, tras aplicar final_filter, en esa red hay un único nodo final y
-    en el conjunto original de esa red aparece un indicador especial, se considera candidato para extremo.
-    
-    Indicadores:
-      - PF: si en la red aparece "rupf" o algún nodo que empiece por "hupf"
-      - gNB: si en la red aparece un nodo que cumpla "rgnb\d*" o sea "rg"
-    
-    Si no se obtiene ningún candidato PF de ninguna red, se asigna como PF el nodo final de mayor valor numérico.
-    """
-    pf_pattern = re.compile(r"^(rupf|hupf.*)$", re.IGNORECASE)
-    gnb_pattern = re.compile(r"^(rgnb\d*|rg)$", re.IGNORECASE)
-    pf_candidates = set()
-    gnb_candidates = set()
-    for net, nodes in net_to_nodes.items():
-        final_in_net = {n for n in nodes if re.fullmatch(final_filter, n, re.IGNORECASE)}
-        if len(final_in_net) == 1:
-            candidate = next(iter(final_in_net))
-            # Si en el conjunto original aparece un PF especial, se asigna candidato PF
-            if any(pf_pattern.fullmatch(x) for x in nodes):
-                pf_candidates.add(candidate)
-                logging.debug("Net %s: PF indicator found, candidate: %s", net, candidate)
-            # Si aparece un indicador gNB, se asigna candidato gNB
-            if any(gnb_pattern.fullmatch(x) for x in nodes):
-                gnb_candidates.add(candidate)
-                logging.debug("Net %s: gNB indicator found, candidate: %s", net, candidate)
-    def num_val(x):
-        m = re.search(r"\d+", x)
-        return int(m.group()) if m else 0
-    if pf_candidates:
-        PF_extreme = max(pf_candidates, key=num_val)
-    else:
-        # Si no se obtuvieron candidatos PF, asignar el nodo final de mayor valor numérico de todos
-        PF_extreme = max(final_nodes, key=num_val) if final_nodes else None
-    logging.debug("PF candidates: %s, chosen PF: %s", pf_candidates, PF_extreme)
-    logging.debug("gNB candidates: %s", gnb_candidates)
-    return {"origen": PF_extreme, "destinos": sorted(list(gnb_candidates))}
-
 def extract_loopback_from_file(filepath):
     logging.debug("Extracting loopback from file: %s", filepath)
     loopback = None
@@ -131,27 +91,23 @@ def extract_loopbacks(base_dir, node_list):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Genera un JSON final con grafo (nodos y enlaces), extremos y loopbacks a partir de una topología containerlab")
-    # full_filter: se incluyen todos los nodos que comienzan con "r"
+        description="Genera un JSON con grafo y loopbacks a partir de una topología containerlab")
     parser.add_argument("yaml_file", help="Ruta al archivo YAML de containerlab")
     parser.add_argument("--full_filter", default=r"^(r.*)$",
                         help="Regex para filtrar nodos para el grafo completo (por defecto: '^(r.*)$')")
-    # final_filter: por ejemplo, para 10 nodos: "^(r\d+)$", para 6 nodos: "^(r\d+|ru|rg)$"
-    parser.add_argument("--final_filter", default=r"^(r\d+)$",
-                        help="Regex para filtrar nodos en la salida final")
-    parser.add_argument("--output", default="final_output.json", help="Archivo de salida JSON final")
+    parser.add_argument("--final_filter", default=r"^(r\d+|ru|rg1|rg2)$",
+                        help="Regex para filtrar nodos en la salida final (incluye ru, rg1, rg2)")
+    parser.add_argument("--output", default="networkinfo.json", help="Archivo de salida JSON final")
     args = parser.parse_args()
 
     full_graph, topology, net_to_nodes = create_full_graph(args.yaml_file, args.full_filter)
     final_graph = filter_final_graph(full_graph, args.final_filter)
     final_nodes = final_graph["nodes"]
-    extremos = extract_extremos_by_net(net_to_nodes, args.final_filter, set(final_nodes))
     base_dir = os.path.dirname(os.path.abspath(args.yaml_file))
     loopbacks = extract_loopbacks(base_dir, final_nodes)
 
     final_json = {
         "graph": final_graph,
-        "extremos": extremos,
         "loopbacks": loopbacks
     }
 

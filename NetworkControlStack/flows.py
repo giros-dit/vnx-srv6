@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import json
 import sys
 import os
@@ -22,9 +21,6 @@ s3_client = boto3.client(
 )
 
 def read_flows():
-    """
-    Descarga el fichero más reciente de la carpeta "flows" en S3 y retorna la lista de flujos.
-    """
     try:
         response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
         if 'Contents' not in response or len(response['Contents']) == 0:

@@ -1,93 +1,66 @@
-import os
-import sys
 import json
-import re
+import sys
+import os
 import subprocess
+import ipaddress
 
-# Variables globales para la generación de comandos
-ns = "across-tc32"
+def load_loopbacks(path):
+    with open(path) as f:
+        data = json.load(f)
+    # strip any mask
+    return { n: lp.split('/')[0] for n, lp in data.get("loopbacks", {}).items() }
 
-flowid_IPv6_gNB = {
-    1: "fd00:0:2::2/64",
-    2: "fd00:0:2::3/64",
-    3: "fd00:0:2::4/64",
-    4: "fd00:0:3::2/64",
-    5: "fd00:0:3::3/64",
-    6: "fd00:0:3::4/64"
-}
-
-def choose_destination(flow_id, destinos):
-    if not destinos:
-        return None
-    if len(destinos) == 1:
-        return destinos[0]
-    if flow_id in [1, 2, 3]:
-        return destinos[0]
-    else:
-        return destinos[1]
-
-def createupf(flowid, extremos, method, id_to_ip, routersid):
-    FLOWID = int(flowid)
-    print(f"Creating UPF for flow ID: {FLOWID}")
-    origin = extremos.get("origen")
-    destinos = extremos.get("destinos", [])
-    dest = choose_destination(FLOWID, destinos)
-    print(f"Origin: {origin}, Destino: {dest}")
-    # Se forman los segmentos usando la IP del origen y la del destino (quitando la máscara)
-    segments = []
-    if routersid:
-        # Se omite el primer nodo (por ejemplo, "ru") y se usan el resto para formar los segmentos.
-        routersid = routersid[1:]
-        segments = [id_to_ip[r] for r in routersid]
-    else:
-        segments = [routersid["rg"]]
-    print(f"Segments: {segments}")
-    ipgNB = flowid_IPv6_gNB.get(FLOWID, "unknown")
-    comandoupf = (
-        f"ip -6 route {method} {ipgNB} encap seg6 mode encap segs "
-        f"{','.join(segments)} dev eth1 table tunel{FLOWID}"
-    )
-    return comandoupf
-
-def determine_method(version, routers):
-    if not routers:
-        return "delete"
-    # Si la versión es 1 se usa "add", si es mayor se usa "replace"
-    return "add" if version == 1 else "replace"
+def ssh_ru(cmd):
+    base = ["ssh", "-o", "StrictHostKeyChecking=no", "root@ru.across-tc32.svc.cluster.local"]
+    full = base + [cmd]
+    subprocess.run(full, check=True)
 
 def main():
-    if len(sys.argv) != 4:
-        print("Uso: python tunnelmaker.py <flowid> <version> <ruta_json>")
-        sys.exit(1)
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("dest_prefix", help="IPv6 prefix of the flow")
+    p.add_argument("new_table_id", help="ID of the table to install")
+    p.add_argument("path_json", help="JSON-encoded list of nodes")
+    p.add_argument("--delete-old", metavar="OLD_TID", help="remove old ip rule")
+    args = p.parse_args()
 
-    flowid = sys.argv[1]
-    version = int(sys.argv[2])
-    routersid = json.loads(sys.argv[3])
-    method = determine_method(version, routersid)
+    dest = args.dest_prefix.split('/')[0]
+    new_tid = args.new_table_id
+    path = json.loads(args.path_json)
 
-    # Leer el archivo JSON final_output.json
-    json_path = os.path.join(os.path.dirname(__file__), "final_output.json")
-    with open(json_path, "r") as json_file:
-        data = json.load(json_file)
+    print(f"[src] Cargando /app/networkinfo.json")
+    loopbacks = load_loopbacks("/app/networkinfo.json")
+    print(f"[src] Loopbacks: {loopbacks}")
 
-    # Extraer el diccionario ID_to_IP a partir del campo "loopbacks" (quitando la máscara)
-    ID_to_IP = {k: v.split("/")[0] for k, v in data.get("loopbacks", {}).items()}
-    extremos = data.get("extremos", {})
+    # 1) If requested, delete old ip6 rule on RU
+    if args.delete_old:
+        old = args.delete_old
+        print(f"[src] Borrando regla antigua: ip -6 rule del to {dest} lookup tunnel{old}")
+        ssh_ru(f"ip -6 rule del to {dest} lookup tunnel{old}")
 
-    method = determine_method(version, extremos)
-    print(f"Processing VLAN: {flowid} (version {version}) con método: {method}")
+    # 2) Ensure table entry in rt_tables
+    entry = f"{new_tid} tunnel{new_tid}"
+    check_cmd = f"grep -qx '{entry}' /etc/iproute2/rt_tables"
+    add_cmd   = f"echo '{entry}' >> /etc/iproute2/rt_tables"
+    print(f"[src] Asegurando tabla: {entry}")
+    ssh_ru(f"sh -c \"{check_cmd} || {add_cmd}\"")
 
-    command = createupf(flowid, extremos, method, ID_to_IP,routersid)
-    print(f"Command for UPF: {command}")
-    ssh_target = "root@ru.across-tc32.svc.cluster.local"
-    ssh_command = ["ssh","-o", "StrictHostKeyChecking=no", ssh_target, command]
-    print(f"SSH command: {' '.join(ssh_command)}")
-    result = subprocess.run(ssh_command, capture_output=True, text=True)
+    # 3) Build seg6 command: dest uses <dest> prefix, segments = loopback for each hop after 'ru'
+    segs = [ loopbacks[n] for n in path[1:] ]
+    segs_str = ",".join(segs)
+    route_cmd = (
+        f"ip -6 route add {dest}/64 "
+        f"encap seg6 mode encap segs {segs_str} dev eth1 table tunnel{new_tid}"
+    )
+    print(f"[src] Instalando ruta: {route_cmd}")
+    ssh_ru(route_cmd)
 
-    print("Salida del comando SSH:")
-    print(result.stdout)
-    if result.stderr:
-        print("Errores:")
-        print(result.stderr)
+    # 4) Add IPv6 rule for lookup
+    rule_cmd = f"ip -6 rule add to {dest}/64 lookup tunnel{new_tid}"
+    print(f"[src] Añadiendo regla IPv6: {rule_cmd}")
+    ssh_ru(rule_cmd)
+
+    print(f"[src] Done: flow → tunnel{new_tid}, path: {path}")
+
 if __name__ == "__main__":
     main()
