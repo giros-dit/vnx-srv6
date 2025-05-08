@@ -39,11 +39,19 @@ Then, apply the deployment patch:
 ./converted/deployment-patcher.sh
 ```
 
-After successful deployment, for each `rg` node, add the default route for the upstream link with:
+After successful deployment, for each `rg` node, add the default route for the upstream link with the following command.  
+**Note:** Replace `fcff:5::1` with the appropriate loopback address of the `ru` node for your specific scenario:
+
+```bash
+kubectl exec deploy/rg1 -- docker exec rg1 ip -6 route add fd00:0:1::/127 encap seg6 mode encap segs <ru-loopback-ip> dev eth1
+```
+
+For example, if the `ru` loopback address is `fcff:5::1`:
 
 ```bash
 kubectl exec deploy/rg1 -- docker exec rg1 ip -6 route add fd00:0:1::/127 encap seg6 mode encap segs fcff:5::1 dev eth1
 ```
+
 
 ### 2. Launch the Controller
 
