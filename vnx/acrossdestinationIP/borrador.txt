@@ -10,3 +10,5 @@
       ip -6 rule add to fd00:0:3::2 lookup tunel4
       ip -6 rule add to fd00:0:3::3 lookup tunel5
       ip -6 rule add to fd00:0:3::4 lookup tunel6
+
+ip -6 route add fd00:0:4::1/127 via fd00:0:2::1

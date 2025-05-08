@@ -31,6 +31,7 @@ RUN bash -c 'echo "PermitRootLogin yes" >> /etc/ssh/sshd_config'
 RUN bash -c 'echo "PermitEmptyPasswords yes" >> /etc/ssh/sshd_config'
 #RUN service ssh start
 RUN passwd -d root
-ENTRYPOINT service ssh start && /usr/local/bin/node_exporter
+
+ENTRYPOINT service ssh start
 
 
