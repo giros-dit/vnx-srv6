@@ -82,3 +82,20 @@ Then run:
 ```bash
 python3 flows.py fd00:0:2::3/64
 ```
+
+### Iperf example
+
+Ejemplo de iperf3  entre los sistemas hupf-h1 y hgnb1-h1
+
+#### hupf-h1
+
+```bash
+iperf3 -c fd00:0:2::2 -V -u -b 20M -l 1000 -t 300
+
+```
+
+#### hgnb1-h1
+
+```bash
+iperf3 -s -V -B fd00:0:2::2
+```
