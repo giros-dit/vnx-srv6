@@ -15,6 +15,21 @@
         "cost": 0.0
       },
       {
+        "source": "ru",
+        "target": "r2",
+        "cost": 0.0
+      },
+      {
+        "source": "rg1",
+        "target": "r1",
+        "cost": 0.0
+      },
+      {
+        "source": "r2",
+        "target": "ru",
+        "cost": 0.0
+      },
+      {
         "source": "r4",
         "target": "ru",
         "cost": 0.0
@@ -42,21 +57,6 @@
       {
         "source": "r3",
         "target": "rg1",
-        "cost": 0.0
-      },
-      {
-        "source": "ru",
-        "target": "r2",
-        "cost": 0.0
-      },
-      {
-        "source": "rg1",
-        "target": "r1",
-        "cost": 0.0
-      },
-      {
-        "source": "r2",
-        "target": "ru",
         "cost": 0.0
       },
       {
