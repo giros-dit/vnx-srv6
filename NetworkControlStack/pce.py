@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import json
 import time
 import os
@@ -18,13 +19,13 @@ NODE_TIMEOUT = 15  # Segundos tras los cuales un router se considera caído
 router_state = {}
 state_lock = threading.Lock()
 
-# Configuración MinIO/S3 desde env
+# Configuración MinIO/S3 desde variables de entorno
 S3_ENDPOINT   = os.environ.get('S3_ENDPOINT')
 S3_ACCESS_KEY = os.environ.get('S3_ACCESS_KEY')
 S3_SECRET_KEY = os.environ.get('S3_SECRET_KEY')
 S3_BUCKET     = os.environ.get('S3_BUCKET')
 
-# Si usamos el valor real de energía (True) o fijamos a 0.1 (False)
+# Modo energía: True usa valor real, False fija a 0.1
 ENERGYAWARE = os.environ.get('ENERGYAWARE', 'true').lower() == 'true'
 
 # Configurar boto3 para path-style (no virtual host)
@@ -43,6 +44,7 @@ s3_client = boto3.client(
     region_name='local'
 )
 
+
 def ensure_bucket_exists(bucket_name):
     try:
         s3_client.head_bucket(Bucket=bucket_name)
@@ -52,11 +54,12 @@ def ensure_bucket_exists(bucket_name):
 
 ensure_bucket_exists(S3_BUCKET)
 
+
 def ensure_flows_folder_exists():
     try:
         resp = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
         if 'Contents' not in resp or not resp['Contents']:
-            initial = {"flows": [], "inactive_routers": [], "router_utilization": {}}
+            initial = {"flows": [], "tables": {}, "router_utilization": {}, "inactive_routers": []}
             s3_client.put_object(
                 Bucket=S3_BUCKET,
                 Key="flows/flows_initial.json",
@@ -70,7 +73,11 @@ def ensure_flows_folder_exists():
 
 ensure_flows_folder_exists()
 
+
 def create_graph():
+    """
+    Carga el grafo completo desde networkinfo.json.
+    """
     with open("networkinfo.json") as f:
         data = json.load(f)
     G = nx.DiGraph()
@@ -80,28 +87,60 @@ def create_graph():
         G.add_edge(e["source"], e["target"], cost=e["cost"])
     return G
 
+
 def read_flows():
+    """
+    Lee el último fichero de flows desde S3 y devuelve flows, tables, router_utilization.
+    """
     try:
         resp = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
         if 'Contents' not in resp or not resp['Contents']:
-            return []
-        latest = max(resp['Contents'], key=lambda o: o['LastModified'])['Key']
-        obj = s3_client.get_object(Bucket=S3_BUCKET, Key=latest)
+            return [], {}, {}
+        latest_key = max(resp['Contents'], key=lambda o: o['LastModified'])['Key']
+        print(f"[pce] read_flows: descargando {latest_key}")
+        obj = s3_client.get_object(Bucket=S3_BUCKET, Key=latest_key)
         flows_data = json.loads(obj['Body'].read().decode())
-        return flows_data.get("flows", flows_data) if isinstance(flows_data, dict) else flows_data
+        if isinstance(flows_data, dict):
+            flows_list = flows_data.get("flows", [])
+            tables = flows_data.get("tables", {})
+            router_util = flows_data.get("router_utilization", {})
+        else:
+            flows_list = flows_data
+            tables = {}
+            router_util = {}
+        return flows_list, tables, router_util
     except Exception as e:
         print(f"[pce][ERROR] read_flows: {e}")
-        return []
+        return [], {}, {}
 
-def write_flows(flows, inactive):
-    payload = {"flows": flows, "inactive_routers": inactive}
+
+def write_flows(flows, tables, router_util, inactive):
+    """
+    Escribe flows, tables, router_utilization e inactive_routers en S3.
+    """
+    payload = {
+        "flows": flows,
+        "tables": tables,
+        "router_utilization": router_util,
+        "inactive_routers": inactive
+    }
     ts = time.strftime("%Y%m%d_%H%M%S")
     key = f"flows/flows_{ts}.json"
-    s3_client.put_object(Bucket=S3_BUCKET, Key=key,
-                         Body=json.dumps(payload, indent=4).encode())
-    print(f"[pce] write_flows: guardado {key}")
+    try:
+        s3_client.put_object(
+            Bucket=S3_BUCKET,
+            Key=key,
+            Body=json.dumps(payload, indent=4).encode()
+        )
+        print(f"[pce] write_flows: guardado {key}")
+    except Exception as e:
+        print(f"[pce][ERROR] write_flows: {e}")
+
 
 def remove_inactive_nodes(G, flows):
+    """
+    Elimina nodos caídos y marca rutas inválidas.
+    """
     now = time.time()
     removed, modified = [], False
     with state_lock:
@@ -119,7 +158,11 @@ def remove_inactive_nodes(G, flows):
                 modified = True
     return G, flows, removed, modified
 
+
 def assign_node_costs(G):
+    """
+    Actualiza el coste de cada enlace según energía y timeout.
+    """
     now = time.time()
     with state_lock:
         for u, v in G.edges():
@@ -131,7 +174,11 @@ def assign_node_costs(G):
                 G[u][v]["cost"] = 9999
     return G
 
+
 def choose_destination(dest_ip):
+    """
+    Elige el router de destino según la red IPv6.
+    """
     addr = ipaddress.IPv6Address(dest_ip.split('/')[0])
     if addr in ipaddress.IPv6Network('fd00:0:2::/64'):
         return 'rg1'
@@ -139,16 +186,17 @@ def choose_destination(dest_ip):
         return 'rg2'
     return 'rg1'
 
-def recalc_routes(G, flows, removed):
+
+def recalc_routes(G, flows, tables, removed):
+    """
+    Recalcula rutas: asigna tabla existente o crea nueva.
+    """
     modified = False
 
-    # 1) Mostrar coste de todos los enlaces de la red
     print("[pce] Costes de todos los enlaces en la red:")
     for u, v, data in G.edges(data=True):
-        cost = data.get("cost", None)
-        print(f"  {u} -> {v}: {cost}")
+        print(f"  {u} -> {v}: {data.get('cost')}")
 
-    # 2) Para cada flujo pendiente o con ruta invalidada
     for f in flows:
         route = f.get("route")
         if route and not any(r in route for r in removed):
@@ -159,11 +207,9 @@ def recalc_routes(G, flows, removed):
         print(f"[pce][DEBUG] Intentando ruta de {source} a {target} para flujo {f['_id']}")
 
         if not (G.has_node(source) and G.has_node(target)):
-            print(f"[pce][DEBUG] Nodo faltante: source {'OK' if G.has_node(source) else 'MISSING'}, "
-                  f"target {'OK' if G.has_node(target) else 'MISSING'}")
+            print(f"[pce][DEBUG] Nodo faltante: source {'OK' if G.has_node(source) else 'MISSING'}, target {'OK' if G.has_node(target) else 'MISSING'}")
             continue
 
-        # Excluir nodos saturados
         with state_lock:
             excluded     = [n for n,d in router_state.items() if d.get("usage",0) >= OCCUPANCY_LIMIT]
             excluded_max = [n for n,d in router_state.items() if d.get("usage",0) >= ROUTER_LIMIT]
@@ -180,23 +226,36 @@ def recalc_routes(G, flows, removed):
                 print("[pce] WARNING: No se encontró ruta.")
                 continue
 
-        # 3) Calcular costes por salto y total
         costs = [G[u][v]["cost"] for u, v in zip(path, path[1:])]
         total_cost = sum(costs)
-        print(f"[pce] recalc_routes: Assigned route {path} a flujo {f['_id']} "
-              f"con costes por salto {costs} (total={total_cost})")
+        print(f"[pce] recalc_routes: Assigned route {path} a flujo {f['_id']} con costes por salto {costs} (total={total_cost})")
 
-        # 4) Guardar ruta y disparar src.py
+        # Buscar o crear tabla
+        tabla_id = None
+        for tid, info in tables.items():
+            if info.get("route") == path:
+                tabla_id = tid
+                break
+        if tabla_id is None:
+            nueva = f"t{len(tables)+1}"
+            tables[nueva] = {"route": path}
+            tabla_id = nueva
+            print(f"[pce] Nueva tabla {nueva} creada para ruta {path}")
+
+        # Guardar resultado en el flujo
         f["route"] = path
+        f["table"] = tabla_id
         modified = True
 
+        # Disparar src.py
         cmd = [
             "python3", "/app/src.py",
             f"{f['_id']}", str(f.get("version", 1)), json.dumps(path)
         ]
         print(f"[pce] Llamada a src.py: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, text=True)
-        print(f"[src stdout]\n{result.stdout}")
+        if result.stdout:
+            print(f"[src stdout]\n{result.stdout}")
         if result.stderr:
             print(f"[src stderr]\n{result.stderr}")
 
@@ -211,9 +270,11 @@ def kafka_consumer_thread(router_id):
         auto_offset_reset='latest',
         value_deserializer=lambda m: json.loads(m.decode())
     )
+    print(f"[pce] Conectado al topic {topic}")
     for msg in consumer:
         data = msg.value
-        energy = usage = None
+        energy = None
+        usage = None
         ts = None
         for m in data.get("output_ml_metrics", []):
             if m.get("name") == "node_network_power_consumption_variation_rate_occupation":
@@ -225,32 +286,38 @@ def kafka_consumer_thread(router_id):
                 break
         try:
             ts = float(data.get("epoch_timestamp", 0))
-        except:
+        except Exception:
             ts = time.time()
-        if energy is not None and usage is not None:
+        if energy is not None and usage is not None and ts is not None:
             with state_lock:
                 router_state[router_id] = {"energy": energy, "usage": usage, "ts": ts}
+
 
 def start_kafka_consumers():
     with open("networkinfo.json") as f:
         nodes = json.load(f)["graph"]["nodes"]
+    threads = []
     for n in nodes:
         if re.match(r"^r\d+$", n):
             t = threading.Thread(target=kafka_consumer_thread, args=(n,))
             t.daemon = True
             t.start()
+            threads.append(t)
+    return threads
+
 
 def main():
     start_kafka_consumers()
     while True:
         time.sleep(5)
         G = create_graph()
-        flows = read_flows()
+        flows, tables, router_util = read_flows()
         G, flows, removed, m1 = remove_inactive_nodes(G, flows)
         G = assign_node_costs(G)
-        flows, m2 = recalc_routes(G, flows, removed)
+        flows, m2 = recalc_routes(G, flows, tables, removed)
         if m1 or m2:
-            write_flows(flows, removed)
+            write_flows(flows, tables, router_util, removed)
+
 
 if __name__ == "__main__":
     main()

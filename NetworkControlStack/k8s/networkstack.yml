@@ -29,7 +29,7 @@ spec:
         - name: S3_BUCKET
           value: "test-experiment"
         - name: ENERGYAWARE
-          value: "false"
+          value: "true"
         volumeMounts:
         - name: networkinfo-volume
           mountPath: /app/networkinfo.json
