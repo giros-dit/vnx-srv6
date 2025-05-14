@@ -33,13 +33,22 @@ def rule_exists(dest, tid):
     """
     Comprueba remotamente si existe una regla `ip -6 rule ... lookup tunnel{tid}` para el prefijo dest.
     """
-    # Listar reglas para el destino
     cmd = f"/usr/sbin/ip -6 rule show to {shlex.quote(dest)}/64"
     proc = ssh_ru(cmd)
     if proc.returncode != 0:
         return False
-    # Buscar en la salida la tabla correspondiente
     return any(f"lookup tunnel{tid}" in line for line in proc.stdout.decode().splitlines())
+
+
+def route_exists(dest, tid):
+    """
+    Comprueba remotamente si ya existe la ruta en la tabla `tunnel{tid}`.
+    """
+    cmd = f"/usr/sbin/ip -6 route show table tunnel{tid}"
+    proc = ssh_ru(cmd)
+    if proc.returncode != 0:
+        return False
+    return any(dest in line for line in proc.stdout.decode().splitlines())
 
 
 def table_entry_exists(tid):
@@ -61,11 +70,14 @@ def main():
                    help="ID de tabla antigua a eliminar regla (opcional)")
     args = p.parse_args()
 
+    # Debug logging of input arguments
+    print(f"[src] Args: dest_prefix={args.dest_prefix}, new_table_id={args.new_table_id}, delete_old={args.delete_old}, path_json={args.path_json}")
+
     dest = args.dest_prefix.split('/')[0]
     new_tid = args.new_table_id
     path = json.loads(args.path_json)
 
-    print(f"[src] Cargando /app/networkinfo.json... ")
+    print(f"[src] Cargando /app/networkinfo.json...")
     lbs = load_loopbacks()
     print(f"[src] Loopbacks: {lbs}\n")
 
@@ -74,32 +86,38 @@ def main():
         old = args.delete_old
         if rule_exists(dest, old):
             print(f"[src] → Borrando regla antigua: tunnel{old}")
-            ssh_ru(f"/usr/sbin/ip -6 rule del to {dest}/64 lookup tunnel{old}")
+            res = ssh_ru(f"/usr/sbin/ip -6 rule del to {dest}/64 lookup tunnel{old}")
+            print(f"[src]   return {res.returncode}, stderr: {res.stderr.decode().strip()}")
 
     # 2) Asegurar la entrada en rt_tables
     if not table_entry_exists(new_tid):
         line = f"{new_tid} tunnel{new_tid}"
         print(f"[src] → Añadiendo rt_tables: {line}")
-        # Usamos sh -c para redirigir correctamente
-        ssh_ru(f"sh -c \"echo {shlex.quote(line)} >> /etc/iproute2/rt_tables\"")
+        res = ssh_ru(f"sh -c \"echo {shlex.quote(line)} >> /etc/iproute2/rt_tables\"")
+        print(f"[src]   return {res.returncode}, stderr: {res.stderr.decode().strip()}")
 
-    # 3) Instalar/actualizar la ruta con SRv6 segments
+    # 3) Determinar método: add o replace según existencia previa
+    use_replace = route_exists(dest, new_tid)
+    method = "replace" if use_replace else "add"
+    print(f"[src] → Determinando método de ruta: {'existía' if use_replace else 'no existía'}. Usando '{method}'")
+
     segs = ','.join(lbs[n] for n in path[1:])
     cmd_route = (
-        f"/usr/sbin/ip -6 route replace {dest}/64 "
+        f"/usr/sbin/ip -6 route {method} {dest}/64 "
         f"encap seg6 mode encap segs {segs} dev eth1 table tunnel{new_tid}"
     )
     print(f"[src] Instalando ruta: {cmd_route}")
-    ssh_ru(cmd_route)
+    res_route = ssh_ru(cmd_route)
+    print(f"[src]   return {res_route.returncode}, stdout: {res_route.stdout.decode().strip()}, stderr: {res_route.stderr.decode().strip()}")
 
     # 4) Añadir regla de lookup si no existe
     if not rule_exists(dest, new_tid):
         cmd_rule = f"/usr/sbin/ip -6 rule add to {dest}/64 lookup tunnel{new_tid}"
         print(f"[src] → Añadiendo regla: {cmd_rule}")
-        ssh_ru(cmd_rule)
+        res_rule = ssh_ru(cmd_rule)
+        print(f"[src]   return {res_rule.returncode}, stderr: {res_rule.stderr.decode().strip()}")
 
     print(f"[src] Done: flow {dest} → tunnel{new_tid}, path={path}")
-
 
 if __name__ == '__main__':
     main()
