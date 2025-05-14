@@ -32,6 +32,6 @@ RUN bash -c 'echo "PermitEmptyPasswords yes" >> /etc/ssh/sshd_config'
 #RUN service ssh start
 RUN passwd -d root
 
-ENTRYPOINT service ssh start
+ENTRYPOINT service ssh start 
 
 
