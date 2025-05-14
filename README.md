@@ -99,3 +99,11 @@ iperf3 -c fd00:0:2::2 -V -u -b 20M -l 1000 -t 300
 ```bash
 iperf3 -s -V -B fd00:0:2::2
 ```
+
+## Delete experiment
+
+To delete experiment cofigurations use in **ru**:
+
+```bash
+sed -i '/tunnel/d' /etc/iproute2/rt_tables
+```
