@@ -28,6 +28,9 @@ S3_BUCKET = os.environ.get('S3_BUCKET')
 # Modo energía: True usa valor real, False fija a 0.1
 ENERGYAWARE = os.environ.get('ENERGYAWARE', 'true').lower() == 'true'
 
+# Flag para debug de costes
+DEBUG_COSTS = os.environ.get('DEBUG_COSTS', 'false').lower() == 'true'
+
 # Configurar boto3 para path-style (no virtual host)
 s3_cfg = Config(
     signature_version='s3v4',
@@ -43,6 +46,14 @@ s3_client = boto3.client(
     config=s3_cfg,
     region_name='local'
 )
+
+# Métricas de rendimiento
+metrics = {
+    "routes_recalculated": 0,
+    "tables_created": 0,
+    "nodes_removed": 0,
+    "flows_updated": 0
+}
 
 
 def ensure_bucket_exists(bucket_name):
@@ -85,6 +96,8 @@ def create_graph():
     return G
 
 
+
+
 def read_flows():
     try:
         resp = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
@@ -118,8 +131,41 @@ def write_flows(flows, tables, router_util, inactive):
             Body=json.dumps(payload, indent=4).encode()
         )
         print(f"[pce] write_flows: guardado {key}")
+        print(f"[pce] Métricas: {metrics}")
     except Exception as e:
         print(f"[pce][ERROR] write_flows: {e}")
+
+
+def increment_version(flow):
+    """Incrementa la versión de un flujo de manera consistente"""
+    flow["version"] = flow.get("version", 1) + 1
+    return flow["version"]
+
+
+def is_route_valid(G, route):
+    """Verifica si una ruta sigue siendo válida en el grafo actual"""
+    if not route or len(route) < 2:
+        return False
+    for i in range(len(route) - 1):
+        if not G.has_edge(route[i], route[i + 1]):
+            return False
+    return True
+
+
+def get_or_create_table(tables, path):
+    """Obtiene una tabla existente por ruta o crea una nueva"""
+    # Buscar tabla existente por ruta
+    route_str = "->".join(path)
+    for tid, info in tables.items():
+        if "->".join(info.get("route", [])) == route_str:
+            return tid
+    
+    # Crear nueva tabla
+    tid = f"t{len(tables)+1}"
+    tables[tid] = {"route": path}
+    metrics["tables_created"] += 1
+    print(f"[pce] Nueva tabla {tid} creada para ruta {path}")
+    return tid
 
 
 def remove_inactive_nodes(G, flows):
@@ -132,12 +178,16 @@ def remove_inactive_nodes(G, flows):
                 G.remove_node(r)
                 removed.append(r)
                 modified = True
+                metrics["nodes_removed"] += 1
     if removed:
         for f in flows:
-            if "route" in f and any(r in f["route"] for r in removed):
-                f.pop("route", None)
-                f["version"] = f.get("version", 1) + 1
+            # Revisar si el flujo tiene tabla y la ruta de esa tabla está afectada
+            if "table" in f:
+                # La ruta se obtiene de la tabla, no del flujo directamente
+                f.pop("route", None)  # Eliminar route si existe (redundancia)
+                increment_version(f)
                 modified = True
+                metrics["flows_updated"] += 1
     return G, flows, removed, modified
 
 
@@ -165,33 +215,82 @@ def choose_destination(dest_ip):
 
 def recalc_routes(G, flows, tables, removed):
     modified = False
-    # Imprimir costes de todos los enlaces en la red
-    print("[pce] Costes de todos los enlaces en la red:")
-    for u, v, data in G.edges(data=True):
-        print(f"  {u} -> {v}: {data.get('cost')}")
+    
+    # Debug de costes solo si está habilitado
+    if DEBUG_COSTS:
+        print("[pce] Costes de todos los enlaces en la red:")
+        for u, v, data in G.edges(data=True):
+            print(f"  {u} -> {v}: {data.get('cost')}")
+    
     for f in flows:
-        if f.get("route") and not any(r in f["route"] for r in removed):
+        # Verificar si necesita recálculo
+        current_table = f.get("table")
+        needs_recalc = False
+        
+        if current_table and current_table in tables:
+            current_route = tables[current_table].get("route", [])
+            if not is_route_valid(G, current_route):
+                needs_recalc = True
+        else:
+            needs_recalc = True
+        
+        if not needs_recalc:
             continue
+        
         source, target = "ru", choose_destination(f["_id"])
-        try:
-            path = nx.shortest_path(G, source, target, weight="cost")
-        except nx.NetworkXNoPath:
+        if not (G.has_node(source) and G.has_node(target)):
             continue
-        # Imprimir costes de enlaces para la ruta elegida
-        costs = [G[u][v]["cost"] for u, v in zip(path, path[1:])]
-        print(f"[pce] Ruta seleccionada: {path}")
-        print(f"[pce] Costes enlace a enlace: {costs}")
-        tid = next((tid for tid, info in tables.items() if info.get("route") == path), None)
-        if not tid:
-            tid = f"t{len(tables)+1}"
-            tables[tid] = {"route": path}
-            print(f"[pce] Nueva tabla {tid} creada para ruta {path}")
-        f.update({"route": path, "table": tid})
+        
+        # Lógica de umbrales para evitar nodos congestionados
+        with state_lock:
+            excluded = [n for n, data in router_state.items() 
+                       if data.get("usage", 0) >= OCCUPANCY_LIMIT]
+            excluded_max = [n for n, data in router_state.items() 
+                           if data.get("usage", 0) >= ROUTER_LIMIT]
+        
+        # Crear subgrafos excluyendo nodos congestionados
+        G2 = G.copy()
+        G2.remove_nodes_from(excluded)
+        
+        G3 = G.copy()
+        G3.remove_nodes_from(excluded_max)
+        
+        # Intentar primero con el subgrafo más restrictivo (excluye nodos ≥ OCCUPANCY_LIMIT)
+        try:
+            path = nx.shortest_path(G2, source, target, weight="cost")
+        except nx.NetworkXNoPath:
+            print(f"[pce] No se encontró ruta en subgrafo con límite {OCCUPANCY_LIMIT}, intentando con límite {ROUTER_LIMIT}...")
+            # Intentar con el segundo subgrafo menos restrictivo (excluye nodos ≥ ROUTER_LIMIT)
+            try:
+                path = nx.shortest_path(G3, source, target, weight="cost")
+                if path:
+                    print(f"[pce] Flujo {f.get('_id', '???')} usa ruta con nodos de ocupación entre {OCCUPANCY_LIMIT} y {ROUTER_LIMIT}")
+            except nx.NetworkXNoPath:
+                print(f"[pce] WARNING: No se encontró ruta para flujo {f.get('_id', '???')}")
+                continue
+        
+        # Debug de ruta seleccionada solo si está habilitado
+        if DEBUG_COSTS:
+            costs = [G[u][v]["cost"] for u, v in zip(path, path[1:])]
+            print(f"[pce] Ruta seleccionada: {path}")
+            print(f"[pce] Costes enlace a enlace: {costs}")
+        
+        # Obtener o crear tabla para esta ruta
+        tid = get_or_create_table(tables, path)
+        
+        # Actualizar flujo: solo tabla, eliminar route redundante
+        f.update({"table": tid})
+        f.pop("route", None)  # Eliminar route si existe
+        increment_version(f)
         modified = True
+        metrics["routes_recalculated"] += 1
+        metrics["flows_updated"] += 1
+        
         subprocess.run([
             "python3", "/app/src.py",
             f"{f['_id']}", str(f.get("version", 1)), json.dumps(path)
         ], check=False)
+    
     return flows, modified
 
 
@@ -247,6 +346,12 @@ def start_kafka_consumers():
 
 
 def main():
+    print("[pce] Iniciando PCE con optimizaciones...")
+    print(f"[pce] ENERGYAWARE: {ENERGYAWARE}")
+    print(f"[pce] DEBUG_COSTS: {DEBUG_COSTS}")
+    print(f"[pce] OCCUPANCY_LIMIT: {OCCUPANCY_LIMIT}")
+    print(f"[pce] ROUTER_LIMIT: {ROUTER_LIMIT}")
+    
     start_kafka_consumers()
     while True:
         time.sleep(5)

@@ -1,47 +1,41 @@
 {
   "graph": {
     "nodes": [
-      "r1",
-      "r2",
-      "r3",
+      "r6",
       "r4",
+      "r1",
+      "r7",
+      "rg2",
+      "r2",
       "ru",
+      "r5",
+      "r3",
       "rg1"
     ],
     "edges": [
       {
-        "source": "r1",
-        "target": "rg1",
-        "cost": 0.0
-      },
-      {
-        "source": "ru",
-        "target": "r2",
-        "cost": 0.0
-      },
-      {
-        "source": "rg1",
+        "source": "r4",
         "target": "r1",
         "cost": 0.0
       },
       {
-        "source": "r2",
-        "target": "ru",
-        "cost": 0.0
-      },
-      {
-        "source": "r4",
-        "target": "ru",
+        "source": "ru",
+        "target": "r3",
         "cost": 0.0
       },
       {
         "source": "ru",
-        "target": "r4",
+        "target": "r7",
         "cost": 0.0
       },
       {
-        "source": "rg1",
-        "target": "r3",
+        "source": "r5",
+        "target": "r2",
+        "cost": 0.0
+      },
+      {
+        "source": "r7",
+        "target": "ru",
         "cost": 0.0
       },
       {
@@ -50,33 +44,127 @@
         "cost": 0.0
       },
       {
+        "source": "r6",
+        "target": "r7",
+        "cost": 0.0
+      },
+      {
+        "source": "r2",
+        "target": "rg2",
+        "cost": 0.0
+      },
+      {
         "source": "r1",
+        "target": "rg1",
+        "cost": 0.0
+      },
+      {
+        "source": "r6",
+        "target": "r5",
+        "cost": 0.0
+      },
+      {
+        "source": "r4",
+        "target": "rg1",
+        "cost": 0.0
+      },
+      {
+        "source": "rg2",
+        "target": "r3",
+        "cost": 0.0
+      },
+      {
+        "source": "r4",
+        "target": "r6",
+        "cost": 0.0
+      },
+      {
+        "source": "rg2",
         "target": "r2",
         "cost": 0.0
       },
       {
         "source": "r3",
-        "target": "rg1",
-        "cost": 0.0
-      },
-      {
-        "source": "r4",
-        "target": "r3",
+        "target": "r7",
         "cost": 0.0
       },
       {
         "source": "r3",
+        "target": "ru",
+        "cost": 0.0
+      },
+      {
+        "source": "r6",
         "target": "r4",
+        "cost": 0.0
+      },
+      {
+        "source": "r3",
+        "target": "r2",
+        "cost": 0.0
+      },
+      {
+        "source": "r5",
+        "target": "r6",
+        "cost": 0.0
+      },
+      {
+        "source": "r1",
+        "target": "r2",
+        "cost": 0.0
+      },
+      {
+        "source": "r7",
+        "target": "r6",
+        "cost": 0.0
+      },
+      {
+        "source": "r2",
+        "target": "r3",
+        "cost": 0.0
+      },
+      {
+        "source": "r1",
+        "target": "r4",
+        "cost": 0.0
+      },
+      {
+        "source": "rg1",
+        "target": "r1",
+        "cost": 0.0
+      },
+      {
+        "source": "r3",
+        "target": "rg2",
+        "cost": 0.0
+      },
+      {
+        "source": "rg1",
+        "target": "r4",
+        "cost": 0.0
+      },
+      {
+        "source": "r7",
+        "target": "r3",
+        "cost": 0.0
+      },
+      {
+        "source": "r2",
+        "target": "r5",
         "cost": 0.0
       }
     ]
   },
   "loopbacks": {
-    "r1": "fcff:1::1/32",
-    "r2": "fcff:2::1/32",
+    "r6": "fcff:6::1/32",
     "r4": "fcff:4::1/32",
-    "ru": "fcff:5::1/32",
-    "rg1": "fcff:6::1/32",
-    "r3": "fcff:3::1/32"
+    "r1": "fcff:1::1/32",
+    "r7": "fcff:7::1/32",
+    "rg2": "fcff:12::1/32",
+    "r2": "fcff:2::1/32",
+    "ru": "fcff:13::1/32",
+    "r5": "fcff:5::1/32",
+    "r3": "fcff:3::1/32",
+    "rg1": "fcff:11::1/32"
   }
 }

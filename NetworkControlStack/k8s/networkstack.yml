@@ -30,6 +30,8 @@ spec:
           value: "test-experiment"
         - name: ENERGYAWARE
           value: "true"
+        - name: DEBUG_COSTS
+          value: "true"
         volumeMounts:
         - name: networkinfo-volume
           mountPath: /app/networkinfo.json
