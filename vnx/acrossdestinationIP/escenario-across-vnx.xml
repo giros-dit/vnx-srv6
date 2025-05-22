@@ -311,7 +311,7 @@
     </exec>
   </vm>
 
-  <vm name="rg1" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+  <vm name="rg" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025-routerwithfrr</filesystem>
     <if net="lo" id="4">
         <ipv6>fcff:11::1/32</ipv6>
@@ -326,8 +326,8 @@
       <ipv6>fcf0:0:4:11::1/127</ipv6>
     </if>
     <forwarding type="ip" />
-    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/rg1/isisd.conf</filetree>
-    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/rg1/zebra.conf</filetree>
+    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/rg/isisd.conf</filetree>
+    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/rg/zebra.conf</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
       sysctl -w net.ipv6.conf.all.seg6_enabled=1
@@ -339,7 +339,7 @@
     </exec>
   </vm>
 
-  <vm name="rg2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+  <vm name="rc" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025-routerwithfrr</filesystem>
     <if net="lo" id="4">
         <ipv6>fcff:12::1/32</ipv6>
@@ -354,8 +354,8 @@
       <ipv6>fcf0:0:3:12::1/127</ipv6>
     </if>
     <forwarding type="ip" />
-    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/rg2/isisd.conf</filetree>
-    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/rg2/zebra.conf</filetree>
+    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/rc/isisd.conf</filetree>
+    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/rc/zebra.conf</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
       sysctl -w net.ipv6.conf.all.seg6_enabled=1
@@ -406,7 +406,7 @@
     </exec>
   </vm>
 
-  <vm name="rgnb1" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+  <vm name="rgnb" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <mem>128M</mem>
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
     <if id="1" net="net2002">
@@ -415,14 +415,14 @@
     <if id="2" net="net2005">
       <ipv6>fd00:0:5::1/127</ipv6>
     </if>
-    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/rgnb1/zebra.conf</filetree>
+    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/rgnb/zebra.conf</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
       ip -6 route add fd00:0:1::0/127 via fd00:0:5::0
     </exec>
   </vm>
 
-  <vm name="rgnb2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+  <vm name="rcpd" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <mem>128M</mem>
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_lxc_ubuntu64-22.04-v025</filesystem>
     <if id="1" net="net2003">
@@ -431,7 +431,7 @@
     <if id="2" net="net2006">
       <ipv6>fd00:0:6::1/127</ipv6>
     </if>
-    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/rgnb2/zebra.conf</filetree>
+    <filetree seq="on_boot" root="/etc/frr" user="frr" group="frr" perms="640">conf/rcpd/zebra.conf</filetree>
     <exec seq="on_boot" type="verbatim" ostype="system">
       sysctl -w net.ipv6.conf.all.forwarding=1
       ip -6 route add fd00:0:1::0/127 via fd00:0:6::0
