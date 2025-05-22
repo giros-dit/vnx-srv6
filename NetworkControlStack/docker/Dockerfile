@@ -5,4 +5,3 @@ WORKDIR /app
 
 # Copia todos los archivos .py desde el contexto raíz al contenedor
 COPY *.py .
-COPY tests/test_integration.py .
