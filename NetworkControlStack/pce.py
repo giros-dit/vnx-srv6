@@ -52,6 +52,7 @@ metrics = {
     "routes_recalculated": 0,
     "tables_created": 0,
     "nodes_removed": 0,
+    "nodes_restored": 0,
     "flows_updated": 0
 }
 
@@ -70,7 +71,7 @@ def ensure_flows_folder_exists():
     try:
         resp = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
         if 'Contents' not in resp or not resp['Contents']:
-            initial = {"flows": [], "tables": {}, "router_utilization": {}, "inactive_routers": []}
+            initial = {"flows": [], "tables": {}, "inactive_routers": []}
             s3_client.put_object(
                 Bucket=S3_BUCKET,
                 Key="flows/flows_initial.json",
@@ -96,31 +97,28 @@ def create_graph():
     return G
 
 
-
-
 def read_flows():
     try:
         resp = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
         if 'Contents' not in resp or not resp['Contents']:
-            return [], {}, {}
+            return [], {}, []
         latest_key = max(resp['Contents'], key=lambda o: o['LastModified'])['Key']
         obj = s3_client.get_object(Bucket=S3_BUCKET, Key=latest_key)
         flows_data = json.loads(obj['Body'].read().decode())
         if isinstance(flows_data, dict):
             return (flows_data.get("flows", []),
                     flows_data.get("tables", {}),
-                    flows_data.get("router_utilization", {}))
+                    flows_data.get("inactive_routers", []))
         else:
-            return flows_data, {}, {}
+            return flows_data, {}, []
     except Exception as e:
         print(f"[pce][ERROR] read_flows: {e}")
-        return [], {}, {}
+        return [], {}, []
 
 
-def write_flows(flows, tables, router_util, inactive):
+def write_flows(flows, tables, inactive):
     payload = {"flows": flows,
                "tables": tables,
-               "router_utilization": router_util,
                "inactive_routers": inactive}
     ts = time.strftime("%Y%m%d_%H%M%S")
     key = f"flows/flows_{ts}.json"
@@ -156,30 +154,69 @@ def get_or_create_table(tables, path):
     """Obtiene una tabla existente por ruta o crea una nueva"""
     # Buscar tabla existente por ruta
     route_str = "->".join(path)
-    for tid, info in tables.items():
-        if "->".join(info.get("route", [])) == route_str:
-            return tid
+    print(f"[pce] Buscando tabla para ruta: {route_str}")
     
-    # Crear nueva tabla
-    tid = f"t{len(tables)+1}"
+    for tid, info in tables.items():
+        table_route_str = "->".join(info.get("route", []))
+        print(f"[pce] Comparando con tabla {tid}: {table_route_str}")
+        if table_route_str == route_str:
+            print(f"[pce] Encontrada tabla existente {tid} para ruta {path}")
+            return tid, False  # False indica que no es nueva
+    
+    # Crear nueva tabla con ID numérico (evitando valores reservados: 0, 253, 254, 255)
+    # Extraer número de tabla si existe o crear un nuevo ID
+    table_ids = [int(tid[1:]) for tid in tables.keys() if tid.startswith('t') and tid[1:].isdigit()]
+    next_id = max(table_ids, default=0) + 1
+    
+    # Asegurar que no usamos valores reservados del sistema
+    reserved_ids = {0, 253, 254, 255}
+    while next_id in reserved_ids:
+        next_id += 1
+    
+    tid = f"t{next_id}"
     tables[tid] = {"route": path}
     metrics["tables_created"] += 1
     print(f"[pce] Nueva tabla {tid} creada para ruta {path}")
-    return tid
+    return tid, True  # True indica que es una nueva tabla
 
 
-def remove_inactive_nodes(G, flows):
+def remove_inactive_nodes(G, flows, inactive_routers):
     now = time.time()
     removed, modified = [], False
+    
+    # Primero verificar si nodos inactivos ahora están activos
+    active_nodes = []
     with state_lock:
+        for r in inactive_routers:
+            if r in router_state:
+                d = router_state[r]
+                age = now - d.get("ts", 0)
+                if age <= NODE_TIMEOUT:  # El nodo ha vuelto a estar activo
+                    active_nodes.append(r)
+                    metrics["nodes_restored"] += 1
+                    print(f"[pce] El nodo {r} ha vuelto a estar activo")
+        
+        # Luego verificar si hay nuevos nodos inactivos
         for r, d in list(router_state.items()):
             age = now - d.get("ts", 0)
-            if age > NODE_TIMEOUT and r in G:
+            if age > NODE_TIMEOUT and r in G and r not in inactive_routers:
                 G.remove_node(r)
                 removed.append(r)
                 modified = True
                 metrics["nodes_removed"] += 1
-    if removed:
+    
+    # Actualizar lista de nodos inactivos
+    for node in active_nodes:
+        if node in inactive_routers:
+            inactive_routers.remove(node)
+            modified = True
+    
+    for node in removed:
+        if node not in inactive_routers:
+            inactive_routers.append(node)
+    
+    # Si hay nodos que se han ido o han vuelto, revisar los flujos afectados
+    if removed or active_nodes:
         for f in flows:
             # Revisar si el flujo tiene tabla y la ruta de esa tabla está afectada
             if "table" in f:
@@ -188,7 +225,8 @@ def remove_inactive_nodes(G, flows):
                 increment_version(f)
                 modified = True
                 metrics["flows_updated"] += 1
-    return G, flows, removed, modified
+    
+    return G, flows, inactive_routers, modified
 
 
 def assign_node_costs(G):
@@ -213,7 +251,7 @@ def choose_destination(dest_ip):
     return 'rg1'
 
 
-def recalc_routes(G, flows, tables, removed):
+def recalc_routes(G, flows, tables, inactive_routers):
     modified = False
     
     # Debug de costes solo si está habilitado
@@ -231,8 +269,10 @@ def recalc_routes(G, flows, tables, removed):
             current_route = tables[current_table].get("route", [])
             if not is_route_valid(G, current_route):
                 needs_recalc = True
+                print(f"[pce] Flujo {f.get('_id', '???')} necesita recálculo: ruta inválida {current_route}")
         else:
             needs_recalc = True
+            print(f"[pce] Flujo {f.get('_id', '???')} necesita recálculo: sin tabla o tabla inexistente")
         
         if not needs_recalc:
             continue
@@ -255,6 +295,9 @@ def recalc_routes(G, flows, tables, removed):
         G3 = G.copy()
         G3.remove_nodes_from(excluded_max)
         
+        # Flag para indicar si estamos usando la ruta con nodos de ocupación entre OCCUPANCY_LIMIT y ROUTER_LIMIT
+        using_high_occupancy = False
+        
         # Intentar primero con el subgrafo más restrictivo (excluye nodos ≥ OCCUPANCY_LIMIT)
         try:
             path = nx.shortest_path(G2, source, target, weight="cost")
@@ -264,7 +307,8 @@ def recalc_routes(G, flows, tables, removed):
             try:
                 path = nx.shortest_path(G3, source, target, weight="cost")
                 if path:
-                    print(f"[pce] Flujo {f.get('_id', '???')} usa ruta con nodos de ocupación entre {OCCUPANCY_LIMIT} y {ROUTER_LIMIT}")
+                    using_high_occupancy = True
+                    print(f"[pce] AVISO: Flujo {f.get('_id', '???')} usa ruta con nodos de ocupación entre {OCCUPANCY_LIMIT} y {ROUTER_LIMIT}")
             except nx.NetworkXNoPath:
                 print(f"[pce] WARNING: No se encontró ruta para flujo {f.get('_id', '???')}")
                 continue
@@ -276,7 +320,23 @@ def recalc_routes(G, flows, tables, removed):
             print(f"[pce] Costes enlace a enlace: {costs}")
         
         # Obtener o crear tabla para esta ruta
-        tid = get_or_create_table(tables, path)
+        tid, is_new_table = get_or_create_table(tables, path)
+        
+        print(f"[pce] Flujo {f.get('_id', '???')}: ruta calculada {path}")
+        print(f"[pce] Flujo {f.get('_id', '???')}: tabla asignada {tid} (nueva: {is_new_table})")
+        
+        # Si el flujo ya tenía una tabla diferente, imprimir información
+        if current_table and current_table != tid:
+            print(f"[pce] Flujo {f.get('_id', '???')}: cambiando de tabla {current_table} a {tid}")
+        
+        # Extraer ID numérico de la tabla para pasar a src.py
+        table_id = int(tid[1:]) if tid.startswith('t') and tid[1:].isdigit() else 0
+        
+        # Obtener la tabla anterior si existe
+        old_table_id = None
+        if current_table and current_table in tables and current_table != tid:
+            if current_table.startswith('t') and current_table[1:].isdigit():
+                old_table_id = int(current_table[1:])
         
         # Actualizar flujo: solo tabla, eliminar route redundante
         f.update({"table": tid})
@@ -286,10 +346,27 @@ def recalc_routes(G, flows, tables, removed):
         metrics["routes_recalculated"] += 1
         metrics["flows_updated"] += 1
         
-        subprocess.run([
+        # Construir el comando para src.py con la información adicional
+        cmd = [
             "python3", "/app/src.py",
-            f"{f['_id']}", str(f.get("version", 1)), json.dumps(path)
-        ], check=False)
+            f"{f['_id']}", str(f.get("version", 1)), json.dumps(path),
+            "--table-id", str(table_id)
+        ]
+        
+        # Agregar flag si es tabla nueva
+        if is_new_table:
+            cmd.append("--new-table")
+        
+        # Agregar tabla antigua a eliminar si corresponde
+        if old_table_id is not None:
+            cmd.extend(["--delete-old", str(old_table_id)])
+        
+        # Agregar flag si estamos usando rutas con alta ocupación
+        if using_high_occupancy:
+            cmd.append("--high-occupancy")
+        
+        print(f"[pce] Ejecutando comando: {' '.join(cmd)}")
+        subprocess.run(cmd, check=False)
     
     return flows, modified
 
@@ -356,12 +433,12 @@ def main():
     while True:
         time.sleep(5)
         G = create_graph()
-        flows, tables, router_util = read_flows()
-        G, flows, removed, m1 = remove_inactive_nodes(G, flows)
+        flows, tables, inactive_routers = read_flows()
+        G, flows, inactive_routers, m1 = remove_inactive_nodes(G, flows, inactive_routers)
         G = assign_node_costs(G)
-        flows, m2 = recalc_routes(G, flows, tables, removed)
+        flows, m2 = recalc_routes(G, flows, tables, inactive_routers)
         if m1 or m2:
-            write_flows(flows, tables, router_util, removed)
+            write_flows(flows, tables, inactive_routers)
 
 if __name__ == "__main__":
     main()
