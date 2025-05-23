@@ -404,7 +404,10 @@ def kafka_consumer_thread(router_id):
             except Exception:
                 usage = None
         
-        ts = float(data.get("epoch_timestamp", None))
+        try:
+            ts = float(data.get("epoch_timestamp"))
+        except Exception:
+            ts = None
 
         if energy is not None or usage is not None or ts is not None:
             with state_lock:
