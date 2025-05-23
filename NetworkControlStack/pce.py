@@ -245,10 +245,10 @@ def assign_node_costs(G):
 def choose_destination(dest_ip):
     addr = ipaddress.IPv6Address(dest_ip.split('/')[0])
     if addr in ipaddress.IPv6Network('fd00:0:2::/64'):
-        return 'rg1'
+        return 'rg'
     if addr in ipaddress.IPv6Network('fd00:0:3::/64'):
-        return 'rg2'
-    return 'rg1'
+        return 'rc'
+    raise ValueError(f"Dirección IP de destino {dest_ip} no pertenece a ninguna red conocida")
 
 
 def recalc_routes(G, flows, tables, inactive_routers):
@@ -403,11 +403,10 @@ def kafka_consumer_thread(router_id):
                 usage = float(val) / 100.0
             except Exception:
                 usage = None
-        try:
-            ts = float(data.get("epoch_timestamp", time.time()))
-        except Exception:
-            ts = time.time()
-        if energy is not None and usage is not None:
+        
+        ts = float(data.get("epoch_timestamp", None))
+
+        if energy is not None or usage is not None or ts is not None:
             with state_lock:
                 router_state[router_id] = {"energy": energy, "usage": usage, "ts": ts}
 
