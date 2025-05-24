@@ -76,7 +76,6 @@ def validate_table_id(tid):
 def main():
     p = argparse.ArgumentParser(description="Instala rutas SRv6 en RU usando iproute2 y reglas ip6.")
     p.add_argument("dest_prefix", help="Prefijo IPv6 del flujo, p.ej. fd00:0:2::2/64")
-    p.add_argument("version", type=int, help="Versión del flujo")
     p.add_argument("path_json", help="JSON-encoded list de nodos de la ruta")
     p.add_argument("--table-id", type=int, required=True, help="ID numérico de la tabla a usar")
     p.add_argument("--new-table", action="store_true", help="Indica si la tabla es nueva")
@@ -100,7 +99,7 @@ def main():
             return 1
 
     # Debug logging de argumentos de entrada
-    print(f"[src] Args: dest_prefix={args.dest_prefix}, version={args.version}, table_id={args.table_id}, "
+    print(f"[src] Args: dest_prefix={args.dest_prefix}, table_id={args.table_id}, "
           f"new_table={args.new_table}, delete_old={args.delete_old}, high_occupancy={args.high_occupancy}, "
           f"path_json={args.path_json}")
 
@@ -131,10 +130,11 @@ def main():
         res = ssh_ru(f"sh -c \"echo {shlex.quote(line)} >> /etc/iproute2/rt_tables\"")
         print(f"[src]   return {res.returncode}, stderr: {res.stderr.decode().strip()}")
 
-    # 3) Determinar método: add o replace según existencia previa
-    use_replace = route_exists(dest, tid)
+    # 3) Determinar método: add o replace según si estamos actualizando la misma tabla
+    # Solo usar replace si NO estamos cambiando de tabla Y ya existe una ruta para este destino
+    use_replace = (args.delete_old is None and route_exists(dest, tid))
     method = "replace" if use_replace else "add"
-    print(f"[src] → Determinando método de ruta: {'existía' if use_replace else 'no existía'}. Usando '{method}'")
+    print(f"[src] → Determinando método de ruta: {'actualizando misma tabla' if use_replace else 'nueva tabla o nuevo destino'}. Usando '{method}'")
 
     segs = ','.join(lbs[n] for n in path[1:])
     cmd_route = (
@@ -152,7 +152,7 @@ def main():
         res_rule = ssh_ru(cmd_rule)
         print(f"[src]   return {res_rule.returncode}, stderr: {res_rule.stderr.decode().strip()}")
 
-    print(f"[src] Done: flow {dest} (v{args.version}) → tunnel{tid}, path={path}")
+    print(f"[src] Done: flow {dest} → tunnel{tid}, path={path}")
 
 if __name__ == '__main__':
     main()
