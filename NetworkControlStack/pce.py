@@ -180,7 +180,7 @@ def get_or_create_table(tables, path):
     return tid, True  # True indica que es una nueva tabla
 
 
-def remove_inactive_nodes(G, flows, inactive_routers):
+def remove_inactive_nodes(G, flows, inactive_routers, tables):
     now = time.time()
     removed, modified = [], False
     
@@ -215,16 +215,24 @@ def remove_inactive_nodes(G, flows, inactive_routers):
         if node not in inactive_routers:
             inactive_routers.append(node)
     
-    # Si hay nodos que se han ido o han vuelto, revisar los flujos afectados
-    if removed or active_nodes:
+    # Si hay nodos que se han caído, revisar solo los flujos que usan esos nodos
+    if removed:
+        removed_nodes = set(removed)
+        print(f"[pce] Nodos caídos: {removed_nodes}")
+        
         for f in flows:
-            # Revisar si el flujo tiene tabla y la ruta de esa tabla está afectada
-            if "table" in f:
-                # La ruta se obtiene de la tabla, no del flujo directamente
-                f.pop("route", None)  # Eliminar route si existe (redundancia)
-                increment_version(f)
-                modified = True
-                metrics["flows_updated"] += 1
+            # Revisar si el flujo tiene tabla y la ruta pasa por nodos caídos
+            if "table" in f and f["table"] in tables:
+                route = tables[f["table"]].get("route", [])
+                # Solo actualizar si la ruta pasa por algún nodo caído
+                if any(node in removed_nodes for node in route):
+                    print(f"[pce] Flujo {f.get('_id', '???')} afectado: ruta {route} pasa por nodos caídos")
+                    f.pop("route", None)  # Eliminar route si existe (redundancia)
+                    increment_version(f)
+                    modified = True
+                    metrics["flows_updated"] += 1
+                else:
+                    print(f"[pce] Flujo {f.get('_id', '???')} NO afectado: ruta {route} no pasa por nodos caídos")
     
     return G, flows, inactive_routers, modified
 
@@ -349,7 +357,7 @@ def recalc_routes(G, flows, tables, inactive_routers):
         # Construir el comando para src.py con la información adicional
         cmd = [
             "python3", "/app/src.py",
-            f"{f['_id']}", str(f.get("version", 1)), json.dumps(path),
+            f"{f['_id']}", json.dumps(path),
             "--table-id", str(table_id)
         ]
         
@@ -436,7 +444,7 @@ def main():
         time.sleep(5)
         G = create_graph()
         flows, tables, inactive_routers = read_flows()
-        G, flows, inactive_routers, m1 = remove_inactive_nodes(G, flows, inactive_routers)
+        G, flows, inactive_routers, m1 = remove_inactive_nodes(G, flows, inactive_routers, tables)
         G = assign_node_costs(G)
         flows, m2 = recalc_routes(G, flows, tables, inactive_routers)
         if m1 or m2:
