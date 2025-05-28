@@ -95,7 +95,7 @@ if __name__ == "__main__":
     parser.add_argument("yaml_file", help="Ruta al archivo YAML de containerlab")
     parser.add_argument("--full_filter", default=r"^(r.*)$",
                         help="Regex para filtrar nodos para el grafo completo (por defecto: '^(r.*)$')")
-    parser.add_argument("--final_filter", default=r"^(r\d+|ru|rg1|rg2)$",
+    parser.add_argument("--final_filter", default=r"^(r\d+|ru|rg|rc)$",
                         help="Regex para filtrar nodos en la salida final (incluye ru, rg1, rg2)")
     parser.add_argument("--output", default="networkinfo.json", help="Archivo de salida JSON final")
     args = parser.parse_args()
