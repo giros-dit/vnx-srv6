@@ -33,7 +33,7 @@ def rule_exists(dest, tid):
     """
     Comprueba remotamente si existe una regla `ip -6 rule ... lookup tunnel{tid}` para el prefijo dest.
     """
-    cmd = f"/usr/sbin/ip -6 rule show to {shlex.quote(dest)}/64"
+    cmd = f"/usr/sbin/ip -6 rule show to {shlex.quote(dest)}"
     proc = ssh_ru(cmd)
     if proc.returncode != 0:
         return False
@@ -147,7 +147,7 @@ def main():
 
     # 4) Añadir regla de lookup si no existe
     if not rule_exists(dest, tid):
-        cmd_rule = f"/usr/sbin/ip -6 rule add to {dest}/64 lookup tunnel{tid}"
+        cmd_rule = f"/usr/sbin/ip -6 rule add to {dest} lookup tunnel{tid}"
         print(f"[src] → Añadiendo regla: {cmd_rule}")
         res_rule = ssh_ru(cmd_rule)
         print(f"[src]   return {res_rule.returncode}, stderr: {res_rule.stderr.decode().strip()}")

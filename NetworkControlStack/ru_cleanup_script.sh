@@ -93,7 +93,3 @@ exec_in_container "rm -f /tmp/cleanup_rules.sh /tmp/flush_tables.sh"
 echo
 echo "DESPUÉS de la limpieza:"
 show_current_state
-
-echo "=== Limpieza completada ==="
-echo "Se ha creado un backup en /etc/iproute2/rt_tables.backup.* dentro del contenedor"
-echo "Para aplicar completamente los cambios, se recomienda reiniciar el contenedor."

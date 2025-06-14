@@ -348,7 +348,7 @@ def recalc_routes(G, flows, tables, inactive_routers):
         
         # Actualizar flujo: solo tabla, eliminar route redundante
         f.update({"table": tid})
-        f.pop("route", None)  # Eliminar route si existe
+        ### f.pop("route", None)  # Eliminar route si existe ya no hay route en flows
         increment_version(f)
         modified = True
         metrics["routes_recalculated"] += 1
