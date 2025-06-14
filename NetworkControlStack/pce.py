@@ -227,7 +227,7 @@ def remove_inactive_nodes(G, flows, inactive_routers, tables):
                 # Solo actualizar si la ruta pasa por algún nodo caído
                 if any(node in removed_nodes for node in route):
                     print(f"[pce] Flujo {f.get('_id', '???')} afectado: ruta {route} pasa por nodos caídos")
-                    f.pop("route", None)  # Eliminar route si existe (redundancia)
+                    #f.pop("route", None)  # Eliminar route si existe (redundancia) ya no tinen campo route
                     increment_version(f)
                     modified = True
                     metrics["flows_updated"] += 1
@@ -348,7 +348,7 @@ def recalc_routes(G, flows, tables, inactive_routers):
         
         # Actualizar flujo: solo tabla, eliminar route redundante
         f.update({"table": tid})
-        ### f.pop("route", None)  # Eliminar route si existe ya no hay route en flows
+        ### f.pop("route", None)  # Eliminar route si existe ya no
         increment_version(f)
         modified = True
         metrics["routes_recalculated"] += 1
