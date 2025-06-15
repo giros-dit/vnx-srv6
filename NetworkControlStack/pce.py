@@ -298,7 +298,7 @@ def recalc_routes(G, flows, inactive_routers):
         
         # Actualizar flujo con nueva ruta
         f.update({"route": path})
-        increment_version(f)
+        #increment_version(f)
         modified = True
         metrics["routes_recalculated"] += 1
         metrics["flows_updated"] += 1
