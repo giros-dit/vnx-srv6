@@ -296,6 +296,8 @@ def recalc_routes(G, flows, inactive_routers):
         # Determinar si necesitamos usar replace (flujo ya tenía una ruta asignada)
         has_existing_route = current_route is not None
         
+        needs_replace = f.get("version", 1) > 1
+
         # Actualizar flujo con nueva ruta
         f.update({"route": path})
         #increment_version(f)
@@ -310,7 +312,7 @@ def recalc_routes(G, flows, inactive_routers):
         ]
         
         # Agregar flag si ya existía una ruta (necesita replace)
-        if has_existing_route:
+        if needs_replace:
             cmd.append("--replace")
         
         # Agregar flag si estamos usando rutas con alta ocupación

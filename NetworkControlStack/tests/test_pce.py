@@ -359,7 +359,7 @@ class TestPCENoTables(unittest.TestCase):
         self.assertEqual(body_dict["flows"], self.test_flows)
         self.assertEqual(body_dict["inactive_routers"], ["r4"])
     
-    # Test 8.1: Cálculo ruta normal (usar r2 por menor energía)
+    # Test 8.1: Cálculo ruta normal (usar r2 por menor energía) - SIN incremento de versión en recalc_routes
     @patch('subprocess.run')
     @patch('builtins.open', new_callable=mock_open)
     def test_recalc_routes_normal(self, mock_file, mock_subprocess):
@@ -382,14 +382,15 @@ class TestPCENoTables(unittest.TestCase):
         flows, modified = pce.recalc_routes(G, flows, inactive_routers)
         
         self.assertTrue(modified)
-        self.assertEqual(flows[0]["version"], 2)
+        # SIN incremento de versión en recalc_routes, mantiene version 1
+        self.assertEqual(flows[0]["version"], 1)
         self.assertTrue("route" in flows[0])
         
         # Verificar que se usó r2 por menor coste energético
         expected_route = ["ru", "r2", "r3", "rg"]
         self.assertEqual(flows[0]["route"], expected_route)
     
-    # Test 8.2: Ruta con congestión (evitar r2 congestionado)
+    # Test 8.2: Ruta con congestión (evitar r2 congestionado) - SIN incremento de versión en recalc_routes
     @patch('subprocess.run')
     @patch('builtins.open', new_callable=mock_open)
     def test_recalc_routes_congestion(self, mock_file, mock_subprocess):
@@ -416,10 +417,10 @@ class TestPCENoTables(unittest.TestCase):
         expected_route = ["ru", "r1", "r3", "rg"]
         self.assertEqual(flows[0]["route"], expected_route)
     
-    # Test 8.3: Verificar flag replace cuando flujo tiene ruta previa
+    # Test 8.3: Verificar flag replace cuando flujo tiene version > 1
     @patch('subprocess.run')
     @patch('builtins.open', new_callable=mock_open)
-    def test_recalc_routes_with_existing_route(self, mock_file, mock_subprocess):
+    def test_recalc_routes_with_version_greater_than_1(self, mock_file, mock_subprocess):
         mock_file.return_value.__enter__.return_value.read.return_value = json.dumps(self.network_info)
         
         G = pce.create_graph()
@@ -431,8 +432,8 @@ class TestPCENoTables(unittest.TestCase):
             }
         G = pce.assign_node_costs(G)
         
-        # Flujo con ruta previa
-        flows = [{"_id": "fd00:0:2::1/128", "version": 1, "route": ["ru", "r1", "r3", "rg"]}]
+        # Flujo con version > 1 (ya fue procesado antes)
+        flows = [{"_id": "fd00:0:2::1/128", "version": 2, "route": ["ru", "r1", "r3", "rg"]}]
         inactive_routers = []
         
         # Hacer que la ruta actual sea inválida
@@ -441,12 +442,12 @@ class TestPCENoTables(unittest.TestCase):
         flows, modified = pce.recalc_routes(G, flows, inactive_routers)
         
         self.assertTrue(modified)
-        # Verificar que se llamó con flag --replace
+        # Verificar que se llamó con flag --replace porque version > 1
         mock_subprocess.assert_called_once()
         cmd_args = mock_subprocess.call_args[0][0]
         self.assertIn("--replace", cmd_args)
     
-    # Test 8.4: Sin flag replace para flujo nuevo
+    # Test 8.4: Sin flag replace para flujo nuevo (version 1)
     @patch('subprocess.run')
     @patch('builtins.open', new_callable=mock_open)
     def test_recalc_routes_new_flow_no_replace(self, mock_file, mock_subprocess):
@@ -461,17 +462,49 @@ class TestPCENoTables(unittest.TestCase):
             }
         G = pce.assign_node_costs(G)
         
-        # Flujo sin ruta previa
+        # Flujo nuevo con version 1
         flows = [{"_id": "fd00:0:2::1/128", "version": 1}]
         inactive_routers = []
         
         flows, modified = pce.recalc_routes(G, flows, inactive_routers)
         
         self.assertTrue(modified)
-        # Verificar que NO se llamó con flag --replace
+        # Verificar que NO se llamó con flag --replace porque version = 1
         mock_subprocess.assert_called_once()
         cmd_args = mock_subprocess.call_args[0][0]
         self.assertNotIn("--replace", cmd_args)
+    
+    # Test 8.5: Flujo con version 1 pero con ruta (no necesita replace)
+    @patch('subprocess.run')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_recalc_routes_version_1_with_route_no_replace(self, mock_file, mock_subprocess):
+        mock_file.return_value.__enter__.return_value.read.return_value = json.dumps(self.network_info)
+        
+        G = pce.create_graph()
+        with pce.state_lock:
+            pce.router_state = {
+                "r1": {"energy": 0.1, "usage": 0.3, "ts": time.time()},
+                "r2": {"energy": 0.1, "usage": 0.3, "ts": time.time()},
+                "r3": {"energy": 0.1, "usage": 0.3, "ts": time.time()}
+            }
+        G = pce.assign_node_costs(G)
+        
+        # Flujo version 1 con ruta (flujo inicial cargado desde S3)
+        flows = [{"_id": "fd00:0:2::1/128", "version": 1, "route": ["ru", "r1", "r3", "rg"]}]
+        inactive_routers = []
+        
+        # Hacer que la ruta actual sea inválida para forzar recálculo
+        G.remove_edge("r1", "r3")
+        
+        flows, modified = pce.recalc_routes(G, flows, inactive_routers)
+        
+        self.assertTrue(modified)
+        # Verificar que NO se llamó con flag --replace porque version = 1
+        mock_subprocess.assert_called_once()
+        cmd_args = mock_subprocess.call_args[0][0]
+        self.assertNotIn("--replace", cmd_args)
+        # La versión sigue siendo 1 porque no se incrementa en recalc_routes
+        self.assertEqual(flows[0]["version"], 1)
     
     # Test 9: Restauración de nodos inactivos
     def test_restore_inactive_nodes(self):
@@ -579,7 +612,7 @@ class TestPCENoTables(unittest.TestCase):
         self.assertIn("r3", route1)
         self.assertIn("r3", route2)
     
-    # Test 13: Caída de nodo modifica ruta
+    # Test 13: Caída de nodo modifica ruta - La versión se incrementa solo en remove_inactive_nodes
     @patch('subprocess.run')
     @patch('builtins.open', new_callable=mock_open)
     def test_node_failure(self, mock_file, mock_subprocess):
@@ -609,8 +642,8 @@ class TestPCENoTables(unittest.TestCase):
         flows, modified = pce.recalc_routes(G, flows, inactive_routers)
         
         self.assertTrue(modified)
-        # La versión es 3 porque: 1->2 cuando se detecta el nodo caído, 2->3 cuando se recalcula
-        self.assertEqual(flows[0]["version"], 3)
+        # La versión es 2 porque solo se incrementa una vez en remove_inactive_nodes
+        self.assertEqual(flows[0]["version"], 2)
         new_route = flows[0]["route"]
         self.assertNotIn("r1", new_route)
         self.assertIn("r2", new_route)  # Debe usar r2 como alternativa
