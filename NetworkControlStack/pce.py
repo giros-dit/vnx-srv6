@@ -203,7 +203,7 @@ def remove_inactive_nodes(G, flows, inactive_routers):
 
 
 def assign_node_costs(G):
-    now = time.time()
+    
     with state_lock:
         for u, v in G.edges():
             entry = router_state.get(v)
