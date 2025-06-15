@@ -148,12 +148,16 @@ def is_route_valid(G, route):
 
 
 def remove_inactive_nodes(G, flows, inactive_routers):
+    """
+    1. Comprobar si algún nodo inactivo ha vuelto a funcionar
+    2. Comprobar si algún nodo activo se ha caído
+    3. Gestionar flujos: quitar ruta a los que pasen por nodos inactivos
+    """
     now = time.time()
-    removed = []
     modified = False
     
-    # Verificar si nodos inactivos han vuelto a estar activos
     with state_lock:
+        # 1. Verificar si nodos inactivos han vuelto a estar activos
         nodes_to_restore = []
         for r in inactive_routers[:]:  # Copia para poder modificar durante iteración
             if r in router_state:
@@ -169,35 +173,31 @@ def remove_inactive_nodes(G, flows, inactive_routers):
             inactive_routers.remove(r)
             modified = True
         
-        # Verificar si hay nuevos nodos inactivos
+        # 2. Verificar si hay nuevos nodos inactivos
         for r, d in list(router_state.items()):
             age = now - d.get("ts", 0)
             if age > NODE_TIMEOUT and r in G and r not in inactive_routers:
                 G.remove_node(r)
-                removed.append(r)
                 inactive_routers.append(r)
                 modified = True
                 metrics["nodes_removed"] += 1
                 print(f"[pce] El nodo {r} se ha vuelto inactivo")
     
-    # Si hay nodos que se han caído, actualizar flujos afectados
-    if removed:
-        removed_nodes = set(removed)
-        print(f"[pce] Nodos caídos: {removed_nodes}")
+    # 3. Gestionar flujos: revisar todos los flujos cuya ruta contenga nodos inactivos
+    if inactive_routers:  # Solo si hay nodos inactivos
+        inactive_nodes_set = set(inactive_routers)
+        print(f"[pce] Nodos inactivos actuales: {inactive_nodes_set}")
         
         for f in flows:
-            # Revisar si el flujo tiene ruta y pasa por nodos caídos
             if "route" in f:
                 route = f["route"]
-                # Solo actualizar si la ruta pasa por algún nodo caído
-                if any(node in removed_nodes for node in route):
-                    print(f"[pce] Flujo {f.get('_id', '???')} afectado: ruta {route} pasa por nodos caídos")
+                # Verificar si la ruta pasa por algún nodo inactivo
+                if any(node in inactive_nodes_set for node in route):
+                    print(f"[pce] Flujo {f.get('_id', '???')} afectado: ruta {route} pasa por nodos inactivos")
                     f.pop("route", None)  # Eliminar ruta para forzar recálculo
                     increment_version(f)
                     modified = True
                     metrics["flows_updated"] += 1
-                else:
-                    print(f"[pce] Flujo {f.get('_id', '???')} NO afectado: ruta {route} no pasa por nodos caídos")
     
     return G, flows, inactive_routers, modified
 
