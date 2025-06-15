@@ -207,7 +207,7 @@ def assign_node_costs(G):
     with state_lock:
         for u, v in G.edges():
             entry = router_state.get(v)
-            if entry and (now - entry.get("ts", 0)) <= NODE_TIMEOUT:
+            if entry:
                 cost = entry.get("energy") if ENERGYAWARE else 0.1
             else:
                 cost = 9999
