@@ -149,40 +149,38 @@ def is_route_valid(G, route):
 
 def remove_inactive_nodes(G, flows, inactive_routers):
     now = time.time()
-    removed, modified = [], False
+    removed = []
+    modified = False
     
-    # Primero verificar si nodos inactivos ahora están activos
-    active_nodes = []
+    # Verificar si nodos inactivos han vuelto a estar activos
     with state_lock:
-        for r in inactive_routers:
+        nodes_to_restore = []
+        for r in inactive_routers[:]:  # Copia para poder modificar durante iteración
             if r in router_state:
                 d = router_state[r]
                 age = now - d.get("ts", 0)
                 if age <= NODE_TIMEOUT:  # El nodo ha vuelto a estar activo
-                    active_nodes.append(r)
+                    nodes_to_restore.append(r)
                     metrics["nodes_restored"] += 1
                     print(f"[pce] El nodo {r} ha vuelto a estar activo")
         
-        # Luego verificar si hay nuevos nodos inactivos
+        # Remover nodos restaurados de la lista de inactivos
+        for r in nodes_to_restore:
+            inactive_routers.remove(r)
+            modified = True
+        
+        # Verificar si hay nuevos nodos inactivos
         for r, d in list(router_state.items()):
             age = now - d.get("ts", 0)
             if age > NODE_TIMEOUT and r in G and r not in inactive_routers:
                 G.remove_node(r)
                 removed.append(r)
+                inactive_routers.append(r)
                 modified = True
                 metrics["nodes_removed"] += 1
+                print(f"[pce] El nodo {r} se ha vuelto inactivo")
     
-    # Actualizar lista de nodos inactivos
-    for node in active_nodes:
-        if node in inactive_routers:
-            inactive_routers.remove(node)
-            modified = True
-    
-    for node in removed:
-        if node not in inactive_routers:
-            inactive_routers.append(node)
-    
-    # Si hay nodos que se han caído, revisar solo los flujos que usan esos nodos
+    # Si hay nodos que se han caído, actualizar flujos afectados
     if removed:
         removed_nodes = set(removed)
         print(f"[pce] Nodos caídos: {removed_nodes}")
