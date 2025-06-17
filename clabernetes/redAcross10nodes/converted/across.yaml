@@ -98,49 +98,49 @@ spec:
             configMapName: across-r7-files
             configMapPath: conf-r7-zebra.conf
             mode: execute
-        rg1:
-          - filePath: conf/rg1/daemons
-            configMapName: across-rg1-files
-            configMapPath: conf-rg1-daemons
+        rc:
+          - filePath: conf/rc/daemons
+            configMapName: across-rc-files
+            configMapPath: conf-rc-daemons
             mode: read
-          - filePath: conf/rg1/isisd.conf
-            configMapName: across-rg1-files
-            configMapPath: conf-rg1-isisd.conf
+          - filePath: conf/rc/isisd.conf
+            configMapName: across-rc-files
+            configMapPath: conf-rc-isisd.conf
             mode: read
-          - filePath: conf/rg1/zebra.conf
-            configMapName: across-rg1-files
-            configMapPath: conf-rg1-zebra.conf
+          - filePath: conf/rc/zebra.conf
+            configMapName: across-rc-files
+            configMapPath: conf-rc-zebra.conf
             mode: execute
-        rg2:
-          - filePath: conf/rg2/daemons
-            configMapName: across-rg2-files
-            configMapPath: conf-rg2-daemons
+        rcpd:
+          - filePath: conf/rcpd/daemons
+            configMapName: across-rcpd-files
+            configMapPath: conf-rcpd-daemons
             mode: read
-          - filePath: conf/rg2/isisd.conf
-            configMapName: across-rg2-files
-            configMapPath: conf-rg2-isisd.conf
-            mode: read
-          - filePath: conf/rg2/zebra.conf
-            configMapName: across-rg2-files
-            configMapPath: conf-rg2-zebra.conf
+          - filePath: conf/rcpd/zebra.conf
+            configMapName: across-rcpd-files
+            configMapPath: conf-rcpd-zebra.conf
             mode: execute
-        rgnb1:
-          - filePath: conf/rgnb1/daemons
-            configMapName: across-rgnb1-files
-            configMapPath: conf-rgnb1-daemons
+        rg:
+          - filePath: conf/rg/daemons
+            configMapName: across-rg-files
+            configMapPath: conf-rg-daemons
             mode: read
-          - filePath: conf/rgnb1/zebra.conf
-            configMapName: across-rgnb1-files
-            configMapPath: conf-rgnb1-zebra.conf
+          - filePath: conf/rg/isisd.conf
+            configMapName: across-rg-files
+            configMapPath: conf-rg-isisd.conf
+            mode: read
+          - filePath: conf/rg/zebra.conf
+            configMapName: across-rg-files
+            configMapPath: conf-rg-zebra.conf
             mode: execute
-        rgnb2:
-          - filePath: conf/rgnb2/daemons
-            configMapName: across-rgnb2-files
-            configMapPath: conf-rgnb2-daemons
+        rgnb:
+          - filePath: conf/rgnb/daemons
+            configMapName: across-rgnb-files
+            configMapPath: conf-rgnb-daemons
             mode: read
-          - filePath: conf/rgnb2/zebra.conf
-            configMapName: across-rgnb2-files
-            configMapPath: conf-rgnb2-zebra.conf
+          - filePath: conf/rgnb/zebra.conf
+            configMapName: across-rgnb-files
+            configMapPath: conf-rgnb-zebra.conf
             mode: execute
         ru:
           - filePath: conf/ru/daemons
@@ -172,60 +172,108 @@ spec:
             defaults:
               ports: []
             nodes:
-              hgnb1-h1:
-                kind: linux
-                image: avillaseca01/acrossfinal
-                exec:
-                - ip link set eth1 up
-                - ip -6 addr add fd00:0:2::2/64 dev eth1
-                - ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
-                ports: []
-              hgnb1-h2:
-                kind: linux
-                image: avillaseca01/acrossfinal
-                exec:
-                - ip link set eth1 up
-                - ip -6 addr add fd00:0:2::3/64 dev eth1
-                - ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
-                ports: []
-              hgnb1-h3:
-                kind: linux
-                image: avillaseca01/acrossfinal
-                exec:
-                - ip link set eth1 up
-                - ip -6 addr add fd00:0:2::4/64 dev eth1
-                - ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
-                ports: []
-              hgnb2-h1:
+              hcpd-h1:
                 kind: linux
                 image: avillaseca01/acrossfinal
                 exec:
                 - ip link set eth1 up
                 - ip -6 addr add fd00:0:3::2/64 dev eth1
-                - ip -6 route add fd00:0:1::1/127 via fd00:0:3::1
+                - ip -6 route add fd00:0:1::2/64 via fd00:0:3::1
                 ports: []
-              hgnb2-h2:
+              hcpd-h2:
                 kind: linux
                 image: avillaseca01/acrossfinal
                 exec:
                 - ip link set eth1 up
                 - ip -6 addr add fd00:0:3::3/64 dev eth1
-                - ip -6 route add fd00:0:1::1/127 via fd00:0:3::1
+                - ip -6 route add fd00:0:1::2/64 via fd00:0:3::1
                 ports: []
-              hgnb2-h3:
+              hcpd-h3:
                 kind: linux
                 image: avillaseca01/acrossfinal
                 exec:
                 - ip link set eth1 up
                 - ip -6 addr add fd00:0:3::4/64 dev eth1
-                - ip -6 route add fd00:0:1::1/127 via fd00:0:3::1
+                - ip -6 route add fd00:0:1::2/64 via fd00:0:3::1
+                ports: []
+              hgnb-h1:
+                kind: linux
+                image: avillaseca01/acrossfinal
+                exec:
+                - ip link set eth1 up
+                - ip -6 addr add fd00:0:2::2/64 dev eth1
+                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+                ports: []
+              hgnb-h2:
+                kind: linux
+                image: avillaseca01/acrossfinal
+                exec:
+                - ip link set eth1 up
+                - ip -6 addr add fd00:0:2::3/64 dev eth1
+                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+                ports: []
+              hgnb-h3:
+                kind: linux
+                image: avillaseca01/acrossfinal
+                exec:
+                - ip link set eth1 up
+                - ip -6 addr add fd00:0:2::4/64 dev eth1
+                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+                ports: []
+              hgnb-h4:
+                kind: linux
+                image: avillaseca01/acrossfinal
+                exec:
+                - ip link set eth1 up
+                - ip -6 addr add fd00:0:2::5/64 dev eth1
+                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+                ports: []
+              hgnb-h5:
+                kind: linux
+                image: avillaseca01/acrossfinal
+                exec:
+                - ip link set eth1 up
+                - ip -6 addr add fd00:0:2::6/64 dev eth1
+                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+                ports: []
+              hgnb-h6:
+                kind: linux
+                image: avillaseca01/acrossfinal
+                exec:
+                - ip link set eth1 up
+                - ip -6 addr add fd00:0:2::7/64 dev eth1
+                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+                ports: []
+              hgnb-h7:
+                kind: linux
+                image: avillaseca01/acrossfinal
+                exec:
+                - ip link set eth1 up
+                - ip -6 addr add fd00:0:2::8/64 dev eth1
+                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+                ports: []
+              hgnb-h8:
+                kind: linux
+                image: avillaseca01/acrossfinal
+                exec:
+                - ip link set eth1 up
+                - ip -6 addr add fd00:0:2::9/64 dev eth1
+                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+                ports: []
+              hgnb-h9:
+                kind: linux
+                image: avillaseca01/acrossfinal
+                exec:
+                - ip link set eth1 up
+                - ip -6 addr add fd00:0:2::a/64 dev eth1
+                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
                 ports: []
               hupf-h1:
                 kind: linux
                 image: avillaseca01/acrossfinal
                 exec:
                 - ip link set eth1 up
-                - ip -6 addr add fd00:0:1::1/127 dev eth1
+                - ip -6 addr add fd00:0:1::2/64 dev eth1
                 - ip -6 route add fd00:0:2::/64 via fd00:0:1::0
                 - ip -6 route add fd00:0:3::/64 via fd00:0:1::0
                 ports: []
@@ -371,7 +419,43 @@ spec:
                 - conf/r7/zebra.conf:/etc/frr/zebra.conf
                 ports:
                 - 9100:9100
-              rg1:
+              rc:
+                kind: linux
+                image: avillaseca01/srv6-frrbase
+                exec:
+                - service frr start
+                - sysctl -p
+                - vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
+                - vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
+                - sysctl -w net.ipv6.conf.eth2.seg6_enabled=1
+                - sysctl -w net.ipv6.conf.eth3.seg6_enabled=1
+                - ip link set eth1 up
+                - ip link set eth2 up
+                - ip link set eth3 up
+                - ip -6 addr add fd00:0:6::0/127 dev eth1
+                - ip -6 route add fd00:0:3::0/64 via fd00:0:6::1
+                binds:
+                - conf/rc/daemons:/etc/frr/daemons
+                - conf/rc/isisd.conf:/etc/frr/isisd.conf
+                - conf/rc/zebra.conf:/etc/frr/zebra.conf
+                ports: []
+              rcpd:
+                kind: linux
+                image: avillaseca01/srv6-frrbase
+                exec:
+                - service frr start
+                - sysctl -p
+                - vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
+                - ip link set eth1 up
+                - ip link set eth2 up
+                - ip -6 addr add fd00:0:6::1/127 dev eth2
+                - ip -6 addr add fd00:0:3::1/64 dev eth1
+                - ip -6 route add fd00:0:1::2/64 via fd00:0:6::0
+                binds:
+                - conf/rcpd/daemons:/etc/frr/daemons
+                - conf/rcpd/zebra.conf:/etc/frr/zebra.conf
+                ports: []
+              rg:
                 kind: linux
                 image: avillaseca01/srv6-frrbase
                 exec:
@@ -387,31 +471,11 @@ spec:
                 - ip -6 addr add fd00:0:5::0/127 dev eth1
                 - ip -6 route add fd00:0:2::0/64 via fd00:0:5::1
                 binds:
-                - conf/rg1/daemons:/etc/frr/daemons
-                - conf/rg1/isisd.conf:/etc/frr/isisd.conf
-                - conf/rg1/zebra.conf:/etc/frr/zebra.conf
+                - conf/rg/daemons:/etc/frr/daemons
+                - conf/rg/isisd.conf:/etc/frr/isisd.conf
+                - conf/rg/zebra.conf:/etc/frr/zebra.conf
                 ports: []
-              rg2:
-                kind: linux
-                image: avillaseca01/srv6-frrbase
-                exec:
-                - service frr start
-                - sysctl -p
-                - vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
-                - vtysh -c 'configure terminal' -f /etc/frr/isisd.conf
-                - sysctl -w net.ipv6.conf.eth2.seg6_enabled=1
-                - sysctl -w net.ipv6.conf.eth3.seg6_enabled=1
-                - ip link set eth1 up
-                - ip link set eth2 up
-                - ip link set eth3 up
-                - ip -6 addr add fd00:0:6::0/127 dev eth1
-                - ip -6 route add fd00:0:2::0/64 via fd00:0:6::1
-                binds:
-                - conf/rg2/daemons:/etc/frr/daemons
-                - conf/rg2/isisd.conf:/etc/frr/isisd.conf
-                - conf/rg2/zebra.conf:/etc/frr/zebra.conf
-                ports: []
-              rgnb1:
+              rgnb:
                 kind: linux
                 image: avillaseca01/srv6-frrbase
                 exec:
@@ -422,26 +486,11 @@ spec:
                 - ip link set eth2 up
                 - ip -6 addr add fd00:0:5::1/127 dev eth2
                 - ip -6 addr add fd00:0:2::1/64 dev eth1
-                - ip -6 route add fd00:0:1::1/127 via fd00:0:5::0
+                - ip -6 addr add fd00:1:2::1/64 dev eth1
+                - ip -6 route add fd00:0:1::2/64 via fd00:0:5::0
                 binds:
-                - conf/rgnb1/daemons:/etc/frr/daemons
-                - conf/rgnb1/zebra.conf:/etc/frr/zebra.conf
-                ports: []
-              rgnb2:
-                kind: linux
-                image: avillaseca01/srv6-frrbase
-                exec:
-                - service frr start
-                - sysctl -p
-                - vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
-                - ip link set eth1 up
-                - ip link set eth2 up
-                - ip -6 addr add fd00:0:6::1/127 dev eth2
-                - ip -6 addr add fd00:0:2::1/64 dev eth1
-                - ip -6 route add fd00:0:1::1/127 via fd00:0:6::0
-                binds:
-                - conf/rgnb2/daemons:/etc/frr/daemons
-                - conf/rgnb2/zebra.conf:/etc/frr/zebra.conf
+                - conf/rgnb/daemons:/etc/frr/daemons
+                - conf/rgnb/zebra.conf:/etc/frr/zebra.conf
                 ports: []
               ru:
                 kind: linux
@@ -457,7 +506,7 @@ spec:
                 - ip link set eth2 up
                 - ip link set eth3 up
                 - ip -6 addr add fd00:0:4::0/127 dev eth1
-                - ip -6 route add fd00:0:1::1/127 via fd00:0:4::1
+                - ip -6 route add fd00:0:1::2/64 via fd00:0:4::1
                 binds:
                 - conf/ru/daemons:/etc/frr/daemons
                 - conf/ru/isisd.conf:/etc/frr/isisd.conf
@@ -470,10 +519,11 @@ spec:
                 - service frr start
                 - sysctl -p
                 - vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
+                - ip link set dev eth1 address 02:00:00:00:02:aa
                 - ip link set eth1 up
                 - ip link set eth2 up
                 - ip -6 addr add fd00:0:4::1/127 dev eth2
-                - ip -6 addr add fd00:0:1::/127 dev eth1
+                - ip -6 addr add fd00:0:1::1/64 dev eth1
                 - ip -6 route add fd00:0:2::0/64 via fd00:0:4::0
                 - ip -6 route add fd00:0:3::0/64 via fd00:0:4::0
                 binds:

@@ -209,7 +209,7 @@ topology:
         - ip link set eth2 up
         - ip link set eth3 up
         - ip -6 addr add fd00:0:4::0/127 dev eth1
-        - ip -6 route add fd00:0:1::1/127 via fd00:0:4::1
+        - ip -6 route add fd00:0:1::2/64 via fd00:0:4::1
     
     rgnb:
       kind: linux
@@ -225,7 +225,10 @@ topology:
         - ip link set eth2 up
         - ip -6 addr add fd00:0:5::1/127 dev eth2
         - ip -6 addr add fd00:0:2::1/64 dev eth1
-        - ip -6 route add fd00:0:1::1/127 via fd00:0:5::0
+        - ip -6 addr add fd00:1:2::1/64 dev eth1
+        - ip -6 route add fd00:0:1::2/64 via fd00:0:5::0
+        # - ip -6 route add fd00:0:2::/64 via fd00:1:2::b1 metric 10
+
     
     rcpd:
       kind: linux
@@ -240,8 +243,8 @@ topology:
         - ip link set eth1 up
         - ip link set eth2 up
         - ip -6 addr add fd00:0:6::1/127 dev eth2
-        - ip -6 addr add fd00:0:2::1/64 dev eth1
-        - ip -6 route add fd00:0:1::1/127 via fd00:0:6::0
+        - ip -6 addr add fd00:0:3::1/64 dev eth1
+        - ip -6 route add fd00:0:1::2/64 via fd00:0:6::0
     
     rupf:
       kind: linux
@@ -253,10 +256,11 @@ topology:
         - service frr start
         - sysctl -p
         - vtysh -c 'configure terminal' -f /etc/frr/zebra.conf
+        - ip link set dev eth1 address 02:00:00:00:02:aa
         - ip link set eth1 up
         - ip link set eth2 up
         - ip -6 addr add fd00:0:4::1/127 dev eth2
-        - ip -6 addr add fd00:0:1::/127 dev eth1
+        - ip -6 addr add fd00:0:1::1/64 dev eth1
         - ip -6 route add fd00:0:2::0/64 via fd00:0:4::0
         - ip -6 route add fd00:0:3::0/64 via fd00:0:4::0
 
@@ -266,7 +270,7 @@ topology:
       exec:
         - ip link set eth1 up
         - ip -6 addr add fd00:0:2::2/64 dev eth1
-        - ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
+        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
 
     hgnb-h2:
       kind: linux
@@ -274,7 +278,7 @@ topology:
       exec:
         - ip link set eth1 up
         - ip -6 addr add fd00:0:2::3/64 dev eth1
-        - ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
+        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
 
     hgnb-h3:
       kind: linux
@@ -282,7 +286,55 @@ topology:
       exec:
         - ip link set eth1 up
         - ip -6 addr add fd00:0:2::4/64 dev eth1
-        - ip -6 route add fd00:0:1::1/127 via fd00:0:2::1
+        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+    
+    hgnb-h4:
+      kind: linux
+      image: avillaseca01/acrossfinal
+      exec:
+        - ip link set eth1 up
+        - ip -6 addr add fd00:0:2::5/64 dev eth1
+        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+
+    hgnb-h5:
+      kind: linux
+      image: avillaseca01/acrossfinal
+      exec:
+        - ip link set eth1 up
+        - ip -6 addr add fd00:0:2::6/64 dev eth1
+        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+    
+    hgnb-h6:
+      kind: linux
+      image: avillaseca01/acrossfinal
+      exec:
+        - ip link set eth1 up
+        - ip -6 addr add fd00:0:2::7/64 dev eth1
+        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+    
+    hgnb-h7:
+      kind: linux
+      image: avillaseca01/acrossfinal
+      exec:
+        - ip link set eth1 up
+        - ip -6 addr add fd00:0:2::8/64 dev eth1
+        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+    
+    hgnb-h8:
+      kind: linux
+      image: avillaseca01/acrossfinal
+      exec:
+        - ip link set eth1 up
+        - ip -6 addr add fd00:0:2::9/64 dev eth1
+        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+    
+    hgnb-h9:
+      kind: linux
+      image: avillaseca01/acrossfinal
+      exec:
+        - ip link set eth1 up
+        - ip -6 addr add fd00:0:2::a/64 dev eth1
+        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
 
     hcpd-h1:
       kind: linux
@@ -290,7 +342,7 @@ topology:
       exec:
         - ip link set eth1 up
         - ip -6 addr add fd00:0:3::2/64 dev eth1
-        - ip -6 route add fd00:0:1::1/127 via fd00:0:3::1
+        - ip -6 route add fd00:0:1::2/64 via fd00:0:3::1
 
     hcpd-h2:
       kind: linux
@@ -298,7 +350,7 @@ topology:
       exec:
         - ip link set eth1 up
         - ip -6 addr add fd00:0:3::3/64 dev eth1
-        - ip -6 route add fd00:0:1::1/127 via fd00:0:3::1
+        - ip -6 route add fd00:0:1::2/64 via fd00:0:3::1
 
     hcpd-h3:
       kind: linux
@@ -306,16 +358,22 @@ topology:
       exec:
         - ip link set eth1 up
         - ip -6 addr add fd00:0:3::4/64 dev eth1
-        - ip -6 route add fd00:0:1::1/127 via fd00:0:3::1
+        - ip -6 route add fd00:0:1::2/64 via fd00:0:3::1
 
     hupf-h1:
       kind: linux
       image: avillaseca01/acrossfinal
       exec:
         - ip link set eth1 up
-        - ip -6 addr add fd00:0:1::1/127 dev eth1
+        - ip -6 addr add fd00:0:1::2/64 dev eth1
         - ip -6 route add fd00:0:2::/64 via fd00:0:1::0
         - ip -6 route add fd00:0:3::/64 via fd00:0:1::0
+    
+    # ixia-c:
+    #   kind: keysight_ixia-c-one
+    #   image: ghcr.io/open-traffic-generator/ixia-c-one:1.28.0-6
+    #   ports:
+    #     - 8443:8443
 
   links:
     - endpoints: ["r1:eth1", "multus:net1001"]
@@ -359,7 +417,16 @@ topology:
     - endpoints: ["hgnb-h1:eth1", "multus:net2002"]
     - endpoints: ["hgnb-h2:eth1", "multus:net2002"]
     - endpoints: ["hgnb-h3:eth1", "multus:net2002"]
+    - endpoints: ["hgnb-h4:eth1", "multus:net2002"]
+    - endpoints: ["hgnb-h5:eth1", "multus:net2002"]
+    - endpoints: ["hgnb-h6:eth1", "multus:net2002"]
+    - endpoints: ["hgnb-h7:eth1", "multus:net2002"]
+    - endpoints: ["hgnb-h8:eth1", "multus:net2002"]
+    - endpoints: ["hgnb-h9:eth1", "multus:net2002"]
     - endpoints: ["hcpd-h1:eth1", "multus:net2003"]
     - endpoints: ["hcpd-h2:eth1", "multus:net2003"]
     - endpoints: ["hcpd-h3:eth1", "multus:net2003"]
+    # - endpoints: ["ixia-c:eth1", "multus:net2001"]
+    # - endpoints: ["ixia-c:eth2", "multus:net2002"]
+    # - endpoints: ["ixia-c:eth3", "multus:net2003"]
 
