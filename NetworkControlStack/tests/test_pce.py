@@ -359,7 +359,7 @@ class TestPCENoTables(unittest.TestCase):
         self.assertEqual(body_dict["flows"], self.test_flows)
         self.assertEqual(body_dict["inactive_routers"], ["r4"])
     
-    # Test 8.1: Cálculo ruta normal (usar r2 por menor energía) - SIN incremento de versión en recalc_routes
+    # Test 8.1: Cálculo ruta normal (usar r2 por menor energía)
     @patch('subprocess.run')
     @patch('builtins.open', new_callable=mock_open)
     def test_recalc_routes_normal(self, mock_file, mock_subprocess):
