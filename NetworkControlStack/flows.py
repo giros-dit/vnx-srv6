@@ -53,10 +53,10 @@ def read_data():
         print(f"[flows] Leyendo: {latest_key}")
         obj = s3_client.get_object(Bucket=S3_BUCKET, Key=latest_key)
         content = obj['Body'].read().decode('utf-8').strip()
-        return json.loads(content) if content else {"flows": [], "tables": {}}
+        return json.loads(content) if content else {"flows": []}
     except Exception as e:
         print(f"[flows] Error leyendo flows: {e}")
-        return {"flows": [], "tables": {}}
+        return {"flows": []}
 
 
 
@@ -64,9 +64,7 @@ def write_data(flows, tables, inactive_routers=None, router_utilization=None):
     try:
         data = {
             "flows": flows,
-            "tables": tables,
-            "inactive_routers": inactive_routers or [],
-            "router_utilization": router_utilization or {}
+            "inactive_routers": inactive_routers or []
         }
         content = json.dumps(data, indent=4)
         timestamp = time.strftime("%Y%m%d_%H%M%S")
