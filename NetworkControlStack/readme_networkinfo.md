@@ -17,16 +17,16 @@ Por defecto, el programa asume que todos los nodos de red empiezan por "r" (r1, 
 
 ```bash
 # Topología con nodos r1, r2, r3... (valor por defecto)
-python3 networkinfo.py topology.yml
+python3 networkinfo.py /path/to/topology.clab.yml
 
 # Topología con nodos router1, router2, router3...
-python3 networkinfo.py topology.yml --full_filter "^(router.*)$"
+python3 networkinfo.py /path/to/topology.clab.yml --full_filter "^(router.*)$"
 
 # Topología mixta: nodos que empiecen por "r" o "router"
-python3 networkinfo.py topology.yml --full_filter "^(r.*|router.*)$"
+python3 networkinfo.py /path/to/topology.clab.yml --full_filter "^(r.*|router.*)$"
 
 # Topología con nodos sw1, sw2... y rt1, rt2...
-python3 networkinfo.py topology.yml --full_filter "^(sw.*|rt.*)$"
+python3 networkinfo.py /path/to/topology.clab.yml --full_filter "^(sw.*|rt.*)$"
 ```
 
 ### Fase 2: Selección de nodos frontera
@@ -37,16 +37,16 @@ De todos los nodos seleccionados en la fase anterior, el filtro final determina 
 
 ```bash
 # Nodos frontera: ru, rg, rc + numerados (valor por defecto)
-python3 networkinfo.py topology.yml
+python3 networkinfo.py /path/to/topology.clab.yml
 
 # Solo nodos numerados (r1, r2, r3...)
-python3 networkinfo.py topology.yml --final_filter "^(r\d+)$"
+python3 networkinfo.py /path/to/topology.clab.yml --final_filter "^(r\d+)$"
 
 # Nodos frontera personalizados: edge1, edge2, core
-python3 networkinfo.py topology.yml --final_filter "^(edge\d+|core)$"
+python3 networkinfo.py /path/to/topology.clab.yml --final_filter "^(edge\d+|core)$"
 
 # Nodos frontera: upstream, gateway, customer + numerados
-python3 networkinfo.py topology.yml --final_filter "^(r\d+|upstream|gateway|customer)$"
+python3 networkinfo.py /path/to/topology.clab.yml --final_filter "^(r\d+|upstream|gateway|customer)$"
 ```
 
 ## Ejemplos de uso completos
