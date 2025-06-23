@@ -14,9 +14,6 @@ Scenarios for studying and analyzing SRv6 (Segment Routing over IPv6 dataplane).
 - [Delete Experiment](#delete-experiment)
 - [Repository Structure](#repository-structure)
 - [Requirements](#requirements)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License](#license)
 
 ## Deploying b5g
 
