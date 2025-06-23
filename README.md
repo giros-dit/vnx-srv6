@@ -2,7 +2,25 @@
 
 Scenarios for studying and analyzing SRv6 (Segment Routing over IPv6 dataplane).
 
+## Table of Contents
+
+- [Deploying b5g](#deploying-b5g)
+    - [1. Launch the Scenario](#1-launch-the-scenario)
+        - [Step 1.1: Convert Containerlab Topology to Clabernetes Format](#step-11-convert-containerlab-topology-to-clabernetes-format)
+        - [Step 1.2: Deploy the Converted Topology](#step-12-deploy-the-converted-topology)
+    - [2. Launch the Controller](#2-launch-the-controller)
+    - [Using the Controller](#using-the-controller)
+    - [Iperf Example](#iperf-example)
+- [Delete Experiment](#delete-experiment)
+- [Repository Structure](#repository-structure)
+- [Requirements](#requirements)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Deploying b5g
+
+![SRv6 Scenario Overview](img/topologiafinalfullacross.png)
 
 ### 1. Launch the Scenario
 
@@ -15,8 +33,8 @@ Use the modified `clabverter` with the following alias:
 
 ```bash
 alias clabverter='sudo docker run --user $(id -u) \
-    -v $(pwd):/clabernetes/work --rm \
-    ghcr.io/giros-dit/clabernetes/clabverter'
+        -v $(pwd):/clabernetes/work --rm \
+        ghcr.io/giros-dit/clabernetes/clabverter'
 ```
 
 Convert the topology:
@@ -52,7 +70,6 @@ For example, if the `ru` loopback address is `fcff:5::1`:
 kubectl exec deploy/rg1 -- docker exec rg1 ip -6 route add fd00:0:1::/127 encap seg6 mode encap segs fcff:5::1 dev eth1
 ```
 
-
 ### 2. Launch the Controller
 
 Once the network, monitoring stack, and analysis stack are running, launch the controller using the script in `NetworkControlStack/k8s`:
@@ -83,7 +100,7 @@ Then run:
 python3 flows.py fd00:0:2::3/64
 ```
 
-### Iperf example
+### Iperf Example
 
 Example of iperf3 between systems hupf-h1 and hgnb1-h1
 
@@ -91,7 +108,6 @@ Example of iperf3 between systems hupf-h1 and hgnb1-h1
 
 ```bash
 iperf3 -c fd00:0:2::2 -V -u -b 20M -l 1000 -t 300
-
 ```
 
 #### hgnb1-h1
@@ -100,10 +116,27 @@ iperf3 -c fd00:0:2::2 -V -u -b 20M -l 1000 -t 300
 iperf3 -s -V -B fd00:0:2::2
 ```
 
-## Delete experiment
+## Repository Structure
 
-To delete experiment cofigurations use in **ru**:
-
-```bash
-sed -i '/tunnel/d' /etc/iproute2/rt_tables
 ```
+.
+├── NetworkControlStack/
+│   └── k8s/
+├── converted/
+├── topologies/
+├── scripts/
+├── README.md
+└── ...
+```
+
+- **NetworkControlStack/**: Controller and related Kubernetes manifests/scripts.
+- **converted/**: Output directory for converted topologies.
+- **topologies/**: Source Containerlab topology files.
+- **scripts/**: Utility scripts for deployment and management.
+
+## Requirements
+
+- Docker
+- Kubernetes (kubectl)
+- Containerlab
+- Python 3.x
