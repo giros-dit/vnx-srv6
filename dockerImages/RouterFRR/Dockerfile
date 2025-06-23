@@ -1,5 +1,8 @@
 FROM ubuntu:22.04
 
+LABEL maintainer="avillaseca01 <a.villasecam@alumnos.upm.es>"
+LABEL description="Docker image for FRR routing daemon"
+
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -22,6 +25,9 @@ RUN release=$(lsb_release -s -c) && \
 RUN apt-get update && apt-get install -y \
     frr \
     frr-pythontools
+
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.conf && \
     echo "net.ipv6.conf.default.seg6_enabled=1" >> /etc/sysctl.conf &&\

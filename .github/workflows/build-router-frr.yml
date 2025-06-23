@@ -1,32 +1,33 @@
-# name: Release
-# on:
-#   push:
-#     tags:
-#       - v[0-9]+.[0-9]+.[0-9]+
+name: build router frr
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - dockerImages/RouterFRR/**
 
-# jobs:
-#   deploy:
-#     runs-on: ubuntu-latest
-#     permissions:
-#       contents: read
-#       packages: write
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
-#     steps:
-#       - name: Checkout Code
-#         uses: actions/checkout@v4.2.2
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4.2.2
 
-#       - name: Login to GitHub Container Registry
-#         uses: docker/login-action@v3.4.0
-#         with:
-#           registry: ghcr.io
-#           username: ${{ github.actor }}
-#           password: ${{ secrets.GITHUB_TOKEN }}
-    
-#       - name: Build and push Docker image
-#         uses: docker/build-push-action@v6.18.0
-#         with:
-#           context: .
-#           push: true
-#           tags: |
-#             ghcr.io/${{ github.repository }}:latest
-#             ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6.18.0
+        with:
+          context: dockerImages/RouterFRR
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/srv6-frr:latest
+            
