@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y \
     frr \
     frr-pythontools
 
-RUN apt-clean && \
+RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 RUN echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.conf && \
