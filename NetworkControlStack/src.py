@@ -2,7 +2,6 @@
 import json
 import subprocess
 import shlex
-import ipaddress
 import argparse
 
 

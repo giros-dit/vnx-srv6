@@ -120,7 +120,7 @@ def main():
         mode = 'table'
         arg = sys.argv[2]
     else:
-        print("Uso:\n  python3 flows.py <flow_id>\n  python3 flows.py t <table_id>\n  python3 flows.py f")
+        print("Uso:\n  python3 flows.py <flow_id>  python3 flows.py f")
         sys.exit(1)
 
     data = read_data()
