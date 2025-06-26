@@ -4,7 +4,7 @@ topology:
   nodes:
     r1:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: ghcr.io/giros-dit/vnx-srv6/srv6-frr-nodeexporter:latest
       ports:
         - 9100:9100
       binds:
@@ -25,7 +25,7 @@ topology:
 
     r2:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: ghcr.io/giros-dit/vnx-srv6/srv6-frr-nodeexporter:latest
       ports:
         - 9100:9100
       binds:
@@ -48,7 +48,7 @@ topology:
 
     r3:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: ghcr.io/giros-dit/vnx-srv6/srv6-frr-nodeexporter:latest
       ports:
         - 9100:9100
       binds:
@@ -71,7 +71,7 @@ topology:
 
     r4:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: ghcr.io/giros-dit/vnx-srv6/srv6-frr-nodeexporter:latest
       ports:
         - 9100:9100
       binds:
@@ -92,7 +92,7 @@ topology:
 
     r5:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: ghcr.io/giros-dit/vnx-srv6/srv6-frr-nodeexporter:latest
       ports:
         - 9100:9100
       binds:
@@ -111,7 +111,7 @@ topology:
 
     r6:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: ghcr.io/giros-dit/vnx-srv6/srv6-frr-nodeexporter:latest
       ports:
         - 9100:9100
       binds:
@@ -132,7 +132,7 @@ topology:
 
     r7:
       kind: linux
-      image: avillaseca01/srv6-frr
+      image: ghcr.io/giros-dit/vnx-srv6/srv6-frr-nodeexporter:latest
       ports:
         - 9100:9100
       binds:
@@ -153,7 +153,7 @@ topology:
     
     rg:
       kind: linux
-      image: avillaseca01/srv6-frrbase
+      image: ghcr.io/giros-dit/vnx-srv6/srv6-frr:latest
       binds:
         - conf/rg/daemons:/etc/frr/daemons
         - conf/rg/isisd.conf:/etc/frr/isisd.conf
@@ -173,7 +173,7 @@ topology:
 
     rc:
       kind: linux
-      image: avillaseca01/srv6-frrbase
+      image: ghcr.io/giros-dit/vnx-srv6/srv6-frr:latest
       binds:
         - conf/rc/daemons:/etc/frr/daemons
         - conf/rc/isisd.conf:/etc/frr/isisd.conf
@@ -193,7 +193,7 @@ topology:
 
     ru:
       kind: linux
-      image: avillaseca01/srv6-frrbase
+      image: ghcr.io/giros-dit/vnx-srv6/srv6-frr:latest
       binds:
         - conf/ru/daemons:/etc/frr/daemons
         - conf/ru/isisd.conf:/etc/frr/isisd.conf
@@ -213,7 +213,7 @@ topology:
     
     rgnb:
       kind: linux
-      image: avillaseca01/srv6-frrbase
+      image: ghcr.io/giros-dit/vnx-srv6/srv6-frr:latest
       binds:
         - conf/rgnb/daemons:/etc/frr/daemons
         - conf/rgnb/zebra.conf:/etc/frr/zebra.conf
@@ -232,7 +232,7 @@ topology:
     
     rcpd:
       kind: linux
-      image: avillaseca01/srv6-frrbase
+      image: ghcr.io/giros-dit/vnx-srv6/srv6-frr:latest
       binds:
         - conf/rcpd/daemons:/etc/frr/daemons
         - conf/rcpd/zebra.conf:/etc/frr/zebra.conf
@@ -248,7 +248,7 @@ topology:
     
     rupf:
       kind: linux
-      image: avillaseca01/srv6-frrbase
+      image: ghcr.io/giros-dit/vnx-srv6/srv6-frr:latest
       binds:
         - conf/rupf/daemons:/etc/frr/daemons
         - conf/rupf/zebra.conf:/etc/frr/zebra.conf
@@ -264,116 +264,116 @@ topology:
         - ip -6 route add fd00:0:2::0/64 via fd00:0:4::0
         - ip -6 route add fd00:0:3::0/64 via fd00:0:4::0
 
-    hgnb-h1:
-      kind: linux
-      image: avillaseca01/acrossfinal
-      exec:
-        - ip link set eth1 up
-        - ip -6 addr add fd00:0:2::2/64 dev eth1
-        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+    # hgnb-h1:
+    #   kind: linux
+    #   image: avillaseca01/acrossfinal
+    #   exec:
+    #     - ip link set eth1 up
+    #     - ip -6 addr add fd00:0:2::2/64 dev eth1
+    #     - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
 
-    hgnb-h2:
-      kind: linux
-      image: avillaseca01/acrossfinal
-      exec:
-        - ip link set eth1 up
-        - ip -6 addr add fd00:0:2::3/64 dev eth1
-        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+    # hgnb-h2:
+    #   kind: linux
+    #   image: avillaseca01/acrossfinal
+    #   exec:
+    #     - ip link set eth1 up
+    #     - ip -6 addr add fd00:0:2::3/64 dev eth1
+    #     - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
 
-    hgnb-h3:
-      kind: linux
-      image: avillaseca01/acrossfinal
-      exec:
-        - ip link set eth1 up
-        - ip -6 addr add fd00:0:2::4/64 dev eth1
-        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+    # hgnb-h3:
+    #   kind: linux
+    #   image: avillaseca01/acrossfinal
+    #   exec:
+    #     - ip link set eth1 up
+    #     - ip -6 addr add fd00:0:2::4/64 dev eth1
+    #     - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
     
-    hgnb-h4:
-      kind: linux
-      image: avillaseca01/acrossfinal
-      exec:
-        - ip link set eth1 up
-        - ip -6 addr add fd00:0:2::5/64 dev eth1
-        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+    # hgnb-h4:
+    #   kind: linux
+    #   image: avillaseca01/acrossfinal
+    #   exec:
+    #     - ip link set eth1 up
+    #     - ip -6 addr add fd00:0:2::5/64 dev eth1
+    #     - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
 
-    hgnb-h5:
-      kind: linux
-      image: avillaseca01/acrossfinal
-      exec:
-        - ip link set eth1 up
-        - ip -6 addr add fd00:0:2::6/64 dev eth1
-        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+    # hgnb-h5:
+    #   kind: linux
+    #   image: avillaseca01/acrossfinal
+    #   exec:
+    #     - ip link set eth1 up
+    #     - ip -6 addr add fd00:0:2::6/64 dev eth1
+    #     - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
     
-    hgnb-h6:
-      kind: linux
-      image: avillaseca01/acrossfinal
-      exec:
-        - ip link set eth1 up
-        - ip -6 addr add fd00:0:2::7/64 dev eth1
-        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+    # hgnb-h6:
+    #   kind: linux
+    #   image: avillaseca01/acrossfinal
+    #   exec:
+    #     - ip link set eth1 up
+    #     - ip -6 addr add fd00:0:2::7/64 dev eth1
+    #     - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
     
-    hgnb-h7:
-      kind: linux
-      image: avillaseca01/acrossfinal
-      exec:
-        - ip link set eth1 up
-        - ip -6 addr add fd00:0:2::8/64 dev eth1
-        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+    # hgnb-h7:
+    #   kind: linux
+    #   image: avillaseca01/acrossfinal
+    #   exec:
+    #     - ip link set eth1 up
+    #     - ip -6 addr add fd00:0:2::8/64 dev eth1
+    #     - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
     
-    hgnb-h8:
-      kind: linux
-      image: avillaseca01/acrossfinal
-      exec:
-        - ip link set eth1 up
-        - ip -6 addr add fd00:0:2::9/64 dev eth1
-        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+    # hgnb-h8:
+    #   kind: linux
+    #   image: avillaseca01/acrossfinal
+    #   exec:
+    #     - ip link set eth1 up
+    #     - ip -6 addr add fd00:0:2::9/64 dev eth1
+    #     - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
     
-    hgnb-h9:
-      kind: linux
-      image: avillaseca01/acrossfinal
-      exec:
-        - ip link set eth1 up
-        - ip -6 addr add fd00:0:2::a/64 dev eth1
-        - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
+    # hgnb-h9:
+    #   kind: linux
+    #   image: avillaseca01/acrossfinal
+    #   exec:
+    #     - ip link set eth1 up
+    #     - ip -6 addr add fd00:0:2::a/64 dev eth1
+    #     - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
 
-    hcpd-h1:
-      kind: linux
-      image: avillaseca01/acrossfinal
-      exec:
-        - ip link set eth1 up
-        - ip -6 addr add fd00:0:3::2/64 dev eth1
-        - ip -6 route add fd00:0:1::2/64 via fd00:0:3::1
+    # hcpd-h1:
+    #   kind: linux
+    #   image: avillaseca01/acrossfinal
+    #   exec:
+    #     - ip link set eth1 up
+    #     - ip -6 addr add fd00:0:3::2/64 dev eth1
+    #     - ip -6 route add fd00:0:1::2/64 via fd00:0:3::1
 
-    hcpd-h2:
-      kind: linux
-      image: avillaseca01/acrossfinal
-      exec:
-        - ip link set eth1 up
-        - ip -6 addr add fd00:0:3::3/64 dev eth1
-        - ip -6 route add fd00:0:1::2/64 via fd00:0:3::1
+    # hcpd-h2:
+    #   kind: linux
+    #   image: avillaseca01/acrossfinal
+    #   exec:
+    #     - ip link set eth1 up
+    #     - ip -6 addr add fd00:0:3::3/64 dev eth1
+    #     - ip -6 route add fd00:0:1::2/64 via fd00:0:3::1
 
-    hcpd-h3:
-      kind: linux
-      image: avillaseca01/acrossfinal
-      exec:
-        - ip link set eth1 up
-        - ip -6 addr add fd00:0:3::4/64 dev eth1
-        - ip -6 route add fd00:0:1::2/64 via fd00:0:3::1
+    # hcpd-h3:
+    #   kind: linux
+    #   image: avillaseca01/acrossfinal
+    #   exec:
+    #     - ip link set eth1 up
+    #     - ip -6 addr add fd00:0:3::4/64 dev eth1
+    #     - ip -6 route add fd00:0:1::2/64 via fd00:0:3::1
 
-    hupf-h1:
-      kind: linux
-      image: avillaseca01/acrossfinal
-      exec:
-        - ip link set eth1 up
-        - ip -6 addr add fd00:0:1::2/64 dev eth1
-        - ip -6 route add fd00:0:2::/64 via fd00:0:1::0
-        - ip -6 route add fd00:0:3::/64 via fd00:0:1::0
+    # hupf-h1:
+    #   kind: linux
+    #   image: avillaseca01/acrossfinal
+    #   exec:
+    #     - ip link set eth1 up
+    #     - ip -6 addr add fd00:0:1::2/64 dev eth1
+    #     - ip -6 route add fd00:0:2::/64 via fd00:0:1::0
+    #     - ip -6 route add fd00:0:3::/64 via fd00:0:1::0
     
-    # ixia-c:
-    #   kind: keysight_ixia-c-one
-    #   image: ghcr.io/open-traffic-generator/ixia-c-one:1.28.0-6
-    #   ports:
-    #     - 8443:8443
+    ixia-c:
+      kind: keysight_ixia-c-one
+      image: ghcr.io/open-traffic-generator/ixia-c-one:1.28.0-6
+      ports:
+        - 8443:8443
 
   links:
     - endpoints: ["r1:eth1", "multus:net1001"]
@@ -413,20 +413,20 @@ topology:
     - endpoints: ["rgnb:eth2", "multus:net2005"]
     - endpoints: ["rcpd:eth1", "multus:net2003"]
     - endpoints: ["rcpd:eth2", "multus:net2006"]
-    - endpoints: ["hupf-h1:eth1", "multus:net2001"]
-    - endpoints: ["hgnb-h1:eth1", "multus:net2002"]
-    - endpoints: ["hgnb-h2:eth1", "multus:net2002"]
-    - endpoints: ["hgnb-h3:eth1", "multus:net2002"]
-    - endpoints: ["hgnb-h4:eth1", "multus:net2002"]
-    - endpoints: ["hgnb-h5:eth1", "multus:net2002"]
-    - endpoints: ["hgnb-h6:eth1", "multus:net2002"]
-    - endpoints: ["hgnb-h7:eth1", "multus:net2002"]
-    - endpoints: ["hgnb-h8:eth1", "multus:net2002"]
-    - endpoints: ["hgnb-h9:eth1", "multus:net2002"]
-    - endpoints: ["hcpd-h1:eth1", "multus:net2003"]
-    - endpoints: ["hcpd-h2:eth1", "multus:net2003"]
-    - endpoints: ["hcpd-h3:eth1", "multus:net2003"]
-    # - endpoints: ["ixia-c:eth1", "multus:net2001"]
-    # - endpoints: ["ixia-c:eth2", "multus:net2002"]
-    # - endpoints: ["ixia-c:eth3", "multus:net2003"]
+    # - endpoints: ["hupf-h1:eth1", "multus:net2001"]
+    # - endpoints: ["hgnb-h1:eth1", "multus:net2002"]
+    # - endpoints: ["hgnb-h2:eth1", "multus:net2002"]
+    # - endpoints: ["hgnb-h3:eth1", "multus:net2002"]
+    # - endpoints: ["hgnb-h4:eth1", "multus:net2002"]
+    # - endpoints: ["hgnb-h5:eth1", "multus:net2002"]
+    # - endpoints: ["hgnb-h6:eth1", "multus:net2002"]
+    # - endpoints: ["hgnb-h7:eth1", "multus:net2002"]
+    # - endpoints: ["hgnb-h8:eth1", "multus:net2002"]
+    # - endpoints: ["hgnb-h9:eth1", "multus:net2002"]
+    # - endpoints: ["hcpd-h1:eth1", "multus:net2003"]
+    # - endpoints: ["hcpd-h2:eth1", "multus:net2003"]
+    # - endpoints: ["hcpd-h3:eth1", "multus:net2003"]
+    - endpoints: ["ixia-c:eth1", "multus:net2001"]
+    - endpoints: ["ixia-c:eth2", "multus:net2002"]
+    - endpoints: ["ixia-c:eth3", "multus:net2003"]
 

@@ -172,114 +172,14 @@ spec:
             defaults:
               ports: []
             nodes:
-              hcpd-h1:
-                kind: linux
-                image: avillaseca01/acrossfinal
-                exec:
-                - ip link set eth1 up
-                - ip -6 addr add fd00:0:3::2/64 dev eth1
-                - ip -6 route add fd00:0:1::2/64 via fd00:0:3::1
-                ports: []
-              hcpd-h2:
-                kind: linux
-                image: avillaseca01/acrossfinal
-                exec:
-                - ip link set eth1 up
-                - ip -6 addr add fd00:0:3::3/64 dev eth1
-                - ip -6 route add fd00:0:1::2/64 via fd00:0:3::1
-                ports: []
-              hcpd-h3:
-                kind: linux
-                image: avillaseca01/acrossfinal
-                exec:
-                - ip link set eth1 up
-                - ip -6 addr add fd00:0:3::4/64 dev eth1
-                - ip -6 route add fd00:0:1::2/64 via fd00:0:3::1
-                ports: []
-              hgnb-h1:
-                kind: linux
-                image: avillaseca01/acrossfinal
-                exec:
-                - ip link set eth1 up
-                - ip -6 addr add fd00:0:2::2/64 dev eth1
-                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
-                ports: []
-              hgnb-h2:
-                kind: linux
-                image: avillaseca01/acrossfinal
-                exec:
-                - ip link set eth1 up
-                - ip -6 addr add fd00:0:2::3/64 dev eth1
-                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
-                ports: []
-              hgnb-h3:
-                kind: linux
-                image: avillaseca01/acrossfinal
-                exec:
-                - ip link set eth1 up
-                - ip -6 addr add fd00:0:2::4/64 dev eth1
-                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
-                ports: []
-              hgnb-h4:
-                kind: linux
-                image: avillaseca01/acrossfinal
-                exec:
-                - ip link set eth1 up
-                - ip -6 addr add fd00:0:2::5/64 dev eth1
-                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
-                ports: []
-              hgnb-h5:
-                kind: linux
-                image: avillaseca01/acrossfinal
-                exec:
-                - ip link set eth1 up
-                - ip -6 addr add fd00:0:2::6/64 dev eth1
-                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
-                ports: []
-              hgnb-h6:
-                kind: linux
-                image: avillaseca01/acrossfinal
-                exec:
-                - ip link set eth1 up
-                - ip -6 addr add fd00:0:2::7/64 dev eth1
-                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
-                ports: []
-              hgnb-h7:
-                kind: linux
-                image: avillaseca01/acrossfinal
-                exec:
-                - ip link set eth1 up
-                - ip -6 addr add fd00:0:2::8/64 dev eth1
-                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
-                ports: []
-              hgnb-h8:
-                kind: linux
-                image: avillaseca01/acrossfinal
-                exec:
-                - ip link set eth1 up
-                - ip -6 addr add fd00:0:2::9/64 dev eth1
-                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
-                ports: []
-              hgnb-h9:
-                kind: linux
-                image: avillaseca01/acrossfinal
-                exec:
-                - ip link set eth1 up
-                - ip -6 addr add fd00:0:2::a/64 dev eth1
-                - ip -6 route add fd00:0:1::2/64 via fd00:0:2::1
-                ports: []
-              hupf-h1:
-                kind: linux
-                image: avillaseca01/acrossfinal
-                exec:
-                - ip link set eth1 up
-                - ip -6 addr add fd00:0:1::2/64 dev eth1
-                - ip -6 route add fd00:0:2::/64 via fd00:0:1::0
-                - ip -6 route add fd00:0:3::/64 via fd00:0:1::0
-                ports: []
+              ixia-c:
+                kind: keysight_ixia-c-one
+                image: ghcr.io/open-traffic-generator/ixia-c-one:1.28.0-6
+                ports:
+                - 8443:8443
               r1:
                 kind: linux
-                image: avillaseca01/srv6-frr
+                image: ghcr.io/giros-dit/vnx-srv6/srv6-frr-nodeexporter:latest
                 exec:
                 - service frr start
                 - sysctl -p
@@ -299,7 +199,7 @@ spec:
                 - 9100:9100
               r2:
                 kind: linux
-                image: avillaseca01/srv6-frr
+                image: ghcr.io/giros-dit/vnx-srv6/srv6-frr-nodeexporter:latest
                 exec:
                 - service frr start
                 - sysctl -p
@@ -321,7 +221,7 @@ spec:
                 - 9100:9100
               r3:
                 kind: linux
-                image: avillaseca01/srv6-frr
+                image: ghcr.io/giros-dit/vnx-srv6/srv6-frr-nodeexporter:latest
                 exec:
                 - service frr start
                 - sysctl -p
@@ -343,7 +243,7 @@ spec:
                 - 9100:9100
               r4:
                 kind: linux
-                image: avillaseca01/srv6-frr
+                image: ghcr.io/giros-dit/vnx-srv6/srv6-frr-nodeexporter:latest
                 exec:
                 - service frr start
                 - sysctl -p
@@ -363,7 +263,7 @@ spec:
                 - 9100:9100
               r5:
                 kind: linux
-                image: avillaseca01/srv6-frr
+                image: ghcr.io/giros-dit/vnx-srv6/srv6-frr-nodeexporter:latest
                 exec:
                 - service frr start
                 - sysctl -p
@@ -381,7 +281,7 @@ spec:
                 - 9100:9100
               r6:
                 kind: linux
-                image: avillaseca01/srv6-frr
+                image: ghcr.io/giros-dit/vnx-srv6/srv6-frr-nodeexporter:latest
                 exec:
                 - service frr start
                 - sysctl -p
@@ -401,7 +301,7 @@ spec:
                 - 9100:9100
               r7:
                 kind: linux
-                image: avillaseca01/srv6-frr
+                image: ghcr.io/giros-dit/vnx-srv6/srv6-frr-nodeexporter:latest
                 exec:
                 - service frr start
                 - sysctl -p
@@ -421,7 +321,7 @@ spec:
                 - 9100:9100
               rc:
                 kind: linux
-                image: avillaseca01/srv6-frrbase
+                image: ghcr.io/giros-dit/vnx-srv6/srv6-frr:latest
                 exec:
                 - service frr start
                 - sysctl -p
@@ -441,7 +341,7 @@ spec:
                 ports: []
               rcpd:
                 kind: linux
-                image: avillaseca01/srv6-frrbase
+                image: ghcr.io/giros-dit/vnx-srv6/srv6-frr:latest
                 exec:
                 - service frr start
                 - sysctl -p
@@ -457,7 +357,7 @@ spec:
                 ports: []
               rg:
                 kind: linux
-                image: avillaseca01/srv6-frrbase
+                image: ghcr.io/giros-dit/vnx-srv6/srv6-frr:latest
                 exec:
                 - service frr start
                 - sysctl -p
@@ -477,7 +377,7 @@ spec:
                 ports: []
               rgnb:
                 kind: linux
-                image: avillaseca01/srv6-frrbase
+                image: ghcr.io/giros-dit/vnx-srv6/srv6-frr:latest
                 exec:
                 - service frr start
                 - sysctl -p
@@ -494,7 +394,7 @@ spec:
                 ports: []
               ru:
                 kind: linux
-                image: avillaseca01/srv6-frrbase
+                image: ghcr.io/giros-dit/vnx-srv6/srv6-frr:latest
                 exec:
                 - service frr start
                 - sysctl -p
@@ -514,7 +414,7 @@ spec:
                 ports: []
               rupf:
                 kind: linux
-                image: avillaseca01/srv6-frrbase
+                image: ghcr.io/giros-dit/vnx-srv6/srv6-frr:latest
                 exec:
                 - service frr start
                 - sysctl -p
