@@ -1,4 +1,7 @@
-FROM avillaseca01/networkstack:base
+FROM ghcr.io/giros-dit/vnx-srv6/network-control-stack-base:latest
+
+LABEL maintainer="avillaseca01 <a.villasecam@alumnos.upm.es>"
+LABEL description="Docker image for NSC with services"
 
 # Establece el directorio de trabajo en el contenedor
 WORKDIR /app

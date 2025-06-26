@@ -15,6 +15,9 @@ spec:
       containers:
       - name: networkstack
         image: avillaseca01/networkstack
+        ports:
+        - containerPort: 5000
+          name: flask-api
         env:
         - name: S3_ENDPOINT
           value: "http://138.4.21.162:9000"
@@ -42,8 +45,24 @@ spec:
         - name: networkinfo-volume
           mountPath: /app/networkinfo.json
           subPath: networkinfo.json
-        command: ["python3", "-u", "/app/pce.py"]
+        command: ["sh", "-c", "python3 -u /app/pce.py & python3 -u /app/app.py & wait"]
       volumes:
       - name: networkinfo-volume
         configMap:
           name: networkinfo
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: networkstack-service
+  namespace: across-tc32
+spec:
+  selector:
+    app: networkstack
+  ports:
+  - name: flask-api
+    port: 5000
+    targetPort: 5000
+    protocol: TCP
+  type: ClusterIP
