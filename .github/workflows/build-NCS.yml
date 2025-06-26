@@ -1,4 +1,4 @@
-name: build base nsc
+name: build nsc
 on:
   push:
     branches: [ main ]
