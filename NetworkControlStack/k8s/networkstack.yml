@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: networkstack
-        image: avillaseca01/networkstack
+        image: ghcr.io/giros-dit/vnx-srv6/network-control-stack:latest
         ports:
         - containerPort: 5000
           name: flask-api
