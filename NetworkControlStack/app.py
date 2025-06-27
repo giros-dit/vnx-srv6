@@ -115,26 +115,48 @@ def get_flows_data():
     """Obtiene los datos actuales de flows"""
     try:
         success, stdout, stderr = run_flows_command(['--list'])
+        logger.info(f"flows.py --list success: {success}")
+        logger.info(f"flows.py --list stdout: {repr(stdout)}")
+        
         if success:
-            # Buscar la línea que contiene el JSON válido
+            # Buscar el inicio del JSON (primera línea que empieza con {)
             lines = stdout.split('\n')
-            for line in lines:
+            json_start = -1
+            
+            for i, line in enumerate(lines):
                 line = line.strip()
-                if line.startswith('{') and line.endswith('}'):
-                    try:
-                        data = json.loads(line)
-                        # Asegurar que siempre tenga la estructura correcta
-                        if not isinstance(data, dict):
-                            return {"flows": []}
-                        if "flows" not in data:
-                            data["flows"] = []
-                        return data
-                    except json.JSONDecodeError as e:
-                        logger.warning(f"Error parseando JSON: {e}, línea: {line}")
-                        continue
-            # Si no hay JSON válido, retornar estructura vacía
-            logger.warning("No se encontró JSON válido en la salida de flows.py")
-            return {"flows": []}
+                if line.startswith('{'):
+                    json_start = i
+                    break
+            
+            if json_start >= 0:
+                # Tomar todas las líneas desde el inicio del JSON hasta el final
+                json_lines = lines[json_start:]
+                json_text = '\n'.join(json_lines).strip()
+                
+                logger.info(f"JSON text encontrado: {repr(json_text)}")
+                
+                try:
+                    data = json.loads(json_text)
+                    logger.info(f"JSON parseado exitosamente: {data}")
+                    
+                    # Asegurar que siempre tenga la estructura correcta
+                    if not isinstance(data, dict):
+                        logger.warning("Data no es dict, retornando vacío")
+                        return {"flows": []}
+                    if "flows" not in data:
+                        logger.warning("No hay campo 'flows', añadiéndolo")
+                        data["flows"] = []
+                    
+                    return data
+                    
+                except json.JSONDecodeError as e:
+                    logger.error(f"Error parseando JSON completo: {e}")
+                    logger.error(f"JSON text: {json_text}")
+                    return {"flows": []}
+            else:
+                logger.warning("No se encontró inicio de JSON válido")
+                return {"flows": []}
         else:
             logger.error(f"Error obteniendo flows: {stderr}")
             return {"flows": []}
