@@ -14,8 +14,21 @@ jobs:
       packages: write
 
     steps:
-      # - name: Checkout Code
-      #   uses: actions/checkout@v4.2.2
+      - name: Checkout Code
+        uses: actions/checkout@v4.2.2
+        with:
+          submodules: false
+
+      - name: Debug - List repository structure
+        run: |
+          echo "=== Current directory ==="
+          pwd
+          echo "=== Repository root contents ==="
+          ls -la
+          echo "=== Looking for NetworkControlStack ==="
+          find . -name "NetworkControlStack" -type d
+          echo "=== Tree structure (first 3 levels) ==="
+          tree -L 3 2>/dev/null || ls -R | head -50
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3.4.0
@@ -27,8 +40,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6.18.0
         with:
-          context: NetworkControlStack
-          file: NetworkControlStack/docker/Dockerfile
+          context: ./NetworkControlStack
+          file: ./NetworkControlStack/docker/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ github.repository }}/network-control-stack:latest
