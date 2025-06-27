@@ -3,7 +3,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - NetworkControlStack/docker/**
+      - NetworkControlStack/**
 
 jobs:
   deploy:
@@ -26,7 +26,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6.18.0
         with:
-          context: NetworkControlStack/docker
+          context: NetworkControlStack
+          file: NetworkControlStack/docker/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ github.repository }}/network-control-stack:latest
