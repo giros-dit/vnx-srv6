@@ -5,6 +5,7 @@ import os
 import time
 import re
 import boto3
+import argparse
 from botocore.exceptions import ClientError
 
 # Configuración S3 (Minio)
@@ -31,12 +32,12 @@ def read_data():
 
         if 'Contents' not in response or not response['Contents']:
             print("[flows] No se encontró ningún fichero en 'flows/'.")
-            return {"flows": [], "tables": {}}
+            return {"flows": []}
 
         json_files = [obj for obj in response['Contents'] if obj['Key'].endswith('.json') and 'flows_' in obj['Key']]
         if not json_files:
             print("[flows] No hay ficheros JSON válidos.")
-            return {"flows": [], "tables": {}}
+            return {"flows": []}
 
         pattern = re.compile(r'flows_(\d{8}_\d{6})\.json')
 
@@ -58,9 +59,7 @@ def read_data():
         print(f"[flows] Error leyendo flows: {e}")
         return {"flows": []}
 
-
-
-def write_data(flows, tables, inactive_routers=None, router_utilization=None):
+def write_data(flows, inactive_routers=None):
     try:
         data = {
             "flows": flows,
@@ -74,63 +73,139 @@ def write_data(flows, tables, inactive_routers=None, router_utilization=None):
     except Exception as e:
         print(f"[flows] Error escribiendo: {e}")
 
-def delete_table_and_flows(table_id, data):
-    table_id = str(table_id)
+def add_flow(flow_id, route=None, data=None):
     flows = data.get("flows", [])
-    tables = data.get("tables", {})
-
-    if table_id not in tables:
-        print(f"[flows] Tabla {table_id} no existe.")
-        return flows, tables
-
-    new_flows = [f for f in flows if str(f.get("table")) != table_id]
-    del tables[table_id]
-    print(f"[flows] Tabla {table_id} y flujos asociados eliminados.")
-    return new_flows, tables
-
-def delete_or_toggle_flow(flow_id, data):
-    flows = data.get("flows", [])
-    tables = data.get("tables", {})
-
+    
+    # Verificar si el flujo ya existe
     existing_flow = next((f for f in flows if f.get("_id") == flow_id), None)
     if existing_flow:
-        table_id = str(existing_flow.get("table"))
+        print(f"[flows] Error: El flujo {flow_id} ya existe. Use --update para modificarlo.")
+        return flows
+    
+    # Crear nuevo flujo
+    new_flow = {"_id": flow_id, "version": 1}
+    
+    # Procesar la ruta
+    if route:
+        try:
+            # Intentar parsear como JSON
+            route_array = json.loads(route)
+            if not isinstance(route_array, list):
+                print(f"[flows] Error: La ruta debe ser un array JSON válido.")
+                return flows
+            new_flow["route"] = route_array
+            route_msg = f" con ruta {route_array}"
+        except json.JSONDecodeError:
+            print(f"[flows] Error: La ruta debe ser un JSON válido. Ejemplo: '[\"ru\", \"r7\", \"r6\"]'")
+            return flows
+    else:
+        # Sin ruta, no añadir el campo route
+        route_msg = " sin ruta"
+    
+    flows.append(new_flow)
+    print(f"[flows] Flujo {flow_id} añadido{route_msg} con versión 1.")
+    
+    return flows
+
+def delete_flow(flow_id, data):
+    flows = data.get("flows", [])
+    
+    # Buscar y eliminar el flujo
+    existing_flow = next((f for f in flows if f.get("_id") == flow_id), None)
+    if existing_flow:
         flows = [f for f in flows if f.get("_id") != flow_id]
         print(f"[flows] Flujo {flow_id} eliminado.")
-        if table_id and not any(str(f.get("table")) == table_id for f in flows):
-            if table_id in tables:
-                del tables[table_id]
-                print(f"[flows] Tabla {table_id} eliminada al no quedar flujos.")
     else:
-        print(f"[flows] Añadiendo nuevo flujo {flow_id} con versión 1.")
-        flows.append({"_id": flow_id, "version": 1})
+        print(f"[flows] Error: Flujo {flow_id} no encontrado.")
+    
+    return flows
 
-    return flows, tables
+def update_flow(flow_id, route, data):
+    flows = data.get("flows", [])
+    
+    # Buscar el flujo existente
+    existing_flow = next((f for f in flows if f.get("_id") == flow_id), None)
+    if not existing_flow:
+        print(f"[flows] Error: Flujo {flow_id} no encontrado. Use --add para crearlo.")
+        return flows
+    
+    # Parsear la nueva ruta
+    try:
+        new_route = json.loads(route)
+        if not isinstance(new_route, list):
+            print(f"[flows] Error: La ruta debe ser un array JSON válido.")
+            return flows
+    except json.JSONDecodeError:
+        print(f"[flows] Error: La ruta debe ser un JSON válido. Ejemplo: '[\"ru\", \"r7\", \"r6\"]'")
+        return flows
+    
+    # Verificar si la ruta ha cambiado
+    current_route = existing_flow.get("route", [])
+    if current_route == new_route:
+        print(f"[flows] La ruta del flujo {flow_id} no ha cambiado.")
+        return flows
+    
+    # Actualizar la ruta y incrementar la versión
+    existing_flow["route"] = new_route
+    existing_flow["version"] = existing_flow.get("version", 1) + 1
+    
+    print(f"[flows] Flujo {flow_id} actualizado con nueva ruta {new_route}. Nueva versión: {existing_flow['version']}")
+    
+    return flows
 
 def main():
-    if len(sys.argv) == 2 and sys.argv[1] == "f":
+    parser = argparse.ArgumentParser(description='Gestión de flujos en S3')
+    parser.add_argument('flow_id', nargs='?', help='ID del flujo')
+    parser.add_argument('--add', action='store_true', help='Añadir un nuevo flujo')
+    parser.add_argument('--delete', action='store_true', help='Eliminar un flujo')
+    parser.add_argument('--update', action='store_true', help='Actualizar un flujo existente')
+    parser.add_argument('--route', type=str, help='Ruta del flujo en formato JSON array (ej: \'["ru", "r7", "r6"]\')')
+    parser.add_argument('--list', action='store_true', help='Listar todos los flujos')
+    
+    args = parser.parse_args()
+    
+    # Caso especial: listar flujos
+    if args.list:
         data = read_data()
         print(json.dumps(data, indent=4))
         return
-
-    if len(sys.argv) == 2:
-        mode = 'flow'
-        arg = sys.argv[1]
-    elif len(sys.argv) == 3 and sys.argv[1] == 't':
-        mode = 'table'
-        arg = sys.argv[2]
-    else:
-        print("Uso:\n  python3 flows.py <flow_id>  python3 flows.py f")
+    
+    # Validar argumentos
+    if not args.flow_id:
+        print("Error: Debe especificar un flow_id")
+        parser.print_help()
         sys.exit(1)
-
+    
+    # Contar las opciones seleccionadas
+    options_count = sum([args.add, args.delete, args.update])
+    if options_count == 0:
+        print("Error: Debe especificar una acción (--add, --delete, o --update)")
+        parser.print_help()
+        sys.exit(1)
+    elif options_count > 1:
+        print("Error: Solo puede especificar una acción a la vez")
+        parser.print_help()
+        sys.exit(1)
+    
+    # Validar que solo --update requiere --route obligatoriamente
+    if args.update and not args.route:
+        print("Error: --update requiere especificar --route")
+        parser.print_help()
+        sys.exit(1)
+    
+    # Leer datos actuales
     data = read_data()
-
-    if mode == 'flow':
-        flows, tables = delete_or_toggle_flow(arg, data)
-    else:
-        flows, tables = delete_table_and_flows(arg, data)
-
-    write_data(flows, tables)
+    
+    # Ejecutar la acción correspondiente
+    if args.add:
+        flows = add_flow(args.flow_id, args.route, data)
+    elif args.delete:
+        flows = delete_flow(args.flow_id, data)
+    elif args.update:
+        flows = update_flow(args.flow_id, args.route, data)
+    
+    # Guardar los cambios
+    write_data(flows, data.get("inactive_routers"))
 
 if __name__ == "__main__":
     main()
