@@ -9,10 +9,9 @@ WORKDIR /app
 
 COPY requirements.txt .
 
-# Instalar pymongo
 RUN apt-get update && \
     apt-get install -y openssh-server iputils-ping && \
-    apt -get install curl -y && \
+    apt-get install curl -y && \
     apt-get install telnetd -y && \
     pip install -r requirements.txt 
 
