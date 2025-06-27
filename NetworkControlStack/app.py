@@ -12,11 +12,6 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-S3_ENDPOINT = os.environ.get('S3_ENDPOINT')
-S3_ACCESS_KEY = os.environ.get('S3_ACCESS_KEY')
-S3_SECRET_KEY = os.environ.get('S3_SECRET_KEY')
-S3_BUCKET = os.environ.get('S3_BUCKET')
-
 def decode_ip_from_url(encoded_ip):
     """Decodifica la IP de la URL"""
     try:
@@ -62,7 +57,33 @@ def run_flows_command(args):
         logger.error(f"Error ejecutando flows.py: {e}")
         return False, "", str(e)
 
-def run_src_command(dest_prefix, path_json, replace=False, high_occupancy=False):
+def delete_route_from_ru(dest_ip):
+    """Elimina la ruta del destino en RU usando ip -6 route del"""
+    try:
+        # Construir el comando para eliminar la ruta
+        cmd = ['ssh', '-o', 'StrictHostKeyChecking=no', 'root@ru.across-tc32.svc.cluster.local', 
+               f'/usr/sbin/ip -6 route del {dest_ip}']
+        
+        logger.info(f"Eliminando ruta en RU: {' '.join(cmd)}")
+        
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            cwd='/app'
+        )
+        
+        logger.info(f"ip route del return code: {result.returncode}")
+        logger.info(f"ip route del stdout: {result.stdout}")
+        if result.stderr:
+            logger.warning(f"ip route del stderr: {result.stderr}")
+            
+        # Retornar True si no hay error, o si el error es que la ruta no existe
+        return result.returncode == 0 or "No such file or directory" in result.stderr or "No route to host" in result.stderr
+        
+    except Exception as e:
+        logger.error(f"Error eliminando ruta en RU: {e}")
+        return False
     """Ejecuta el comando src.py para crear/actualizar rutas"""
     try:
         cmd = ['python3', '/app/src.py', dest_prefix, path_json]
@@ -95,10 +116,24 @@ def get_flows_data():
     try:
         success, stdout, stderr = run_flows_command(['--list'])
         if success:
-            # Parsear la salida JSON
-            for line in stdout.split('\n'):
-                if line.strip().startswith('{'):
-                    return json.loads(line.strip())
+            # Buscar la línea que contiene el JSON válido
+            lines = stdout.split('\n')
+            for line in lines:
+                line = line.strip()
+                if line.startswith('{') and line.endswith('}'):
+                    try:
+                        data = json.loads(line)
+                        # Asegurar que siempre tenga la estructura correcta
+                        if not isinstance(data, dict):
+                            return {"flows": []}
+                        if "flows" not in data:
+                            data["flows"] = []
+                        return data
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"Error parseando JSON: {e}, línea: {line}")
+                        continue
+            # Si no hay JSON válido, retornar estructura vacía
+            logger.warning("No se encontró JSON válido en la salida de flows.py")
             return {"flows": []}
         else:
             logger.error(f"Error obteniendo flows: {stderr}")
@@ -111,11 +146,13 @@ def get_flows_data():
 def list_flows():
     """GET /flows - Lista todos los flujos"""
     try:
+        logger.info("Solicitando lista de flujos")
         data = get_flows_data()
+        logger.info(f"Datos obtenidos: {data}")
         return jsonify(data), 200
     except Exception as e:
         logger.error(f"Error en GET /flows: {e}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"error": "Error interno del servidor", "flows": []}), 500
 
 @app.route('/flows/<encoded_ip>', methods=['POST'])
 def create_flow(encoded_ip):
@@ -215,7 +252,7 @@ def update_flow(encoded_ip):
 
 @app.route('/flows/<encoded_ip>', methods=['DELETE'])
 def delete_flow(encoded_ip):
-    """DELETE /flows/<ip> - Elimina un flujo"""
+    """DELETE /flows/<ip> - Elimina un flujo y su ruta en RU"""
     try:
         # Decodificar la IP
         ip = decode_ip_from_url(encoded_ip)
@@ -224,15 +261,31 @@ def delete_flow(encoded_ip):
         
         logger.info(f"Eliminando flujo para IP: {ip}")
         
-        # Eliminar flujo con flows.py
+        # Primero eliminar la ruta en RU
+        dest_prefix = f"{ip}/64" if '/' not in ip else ip
+        dest_ip = ip if '/' not in ip else ip.split('/')[0]
+        
+        route_deleted = delete_route_from_ru(dest_ip)
+        if not route_deleted:
+            logger.warning(f"No se pudo eliminar la ruta en RU para {dest_ip}")
+        
+        # Luego eliminar el flujo del registro
         success, stdout, stderr = run_flows_command([ip, '--delete'])
         
         if not success:
             if "no encontrado" in stderr:
-                return jsonify({"error": f"El flujo {ip} no existe"}), 404
+                # Si la ruta se eliminó pero el flujo no existía
+                if route_deleted:
+                    return jsonify({"message": f"Ruta eliminada de RU, pero flujo {ip} no existía en el registro"}), 200
+                else:
+                    return jsonify({"error": f"El flujo {ip} no existe"}), 404
             return jsonify({"error": f"Error eliminando flujo: {stderr}"}), 500
         
-        return jsonify({"message": f"Flujo {ip} eliminado exitosamente"}), 200
+        # Mensaje de éxito
+        if route_deleted:
+            return jsonify({"message": f"Flujo {ip} y su ruta eliminados exitosamente"}), 200
+        else:
+            return jsonify({"message": f"Flujo {ip} eliminado del registro (advertencia: no se pudo eliminar ruta de RU)"}), 200
         
     except Exception as e:
         logger.error(f"Error en DELETE /flows/{encoded_ip}: {e}")
