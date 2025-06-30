@@ -45,7 +45,7 @@ spec:
         - name: networkinfo-volume
           mountPath: /app/networkinfo.json
           subPath: networkinfo.json
-        command: ["sh", "-c", "python3 -u /app/pce.py & python3 -u /app/app.py & wait"]
+        command: ["python3", "-u", "/app/app.py"]
       volumes:
       - name: networkinfo-volume
         configMap:
@@ -66,3 +66,20 @@ spec:
     targetPort: 5000
     protocol: TCP
   type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: nsc-api
+  name: nsc-api
+spec:
+  type: NodePort
+  ports:
+  - name: nsc-port
+    port: 5000
+    protocol: TCP
+    targetPort: 35000
+  selector:
+    service: nsc-api

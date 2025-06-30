@@ -5,6 +5,7 @@ import os
 import urllib.parse
 from flask import Flask, request, jsonify
 import logging
+import threading
 
 app = Flask(__name__)
 
@@ -307,5 +308,30 @@ if __name__ == '__main__':
             logger.error(f"Variable de entorno requerida no encontrada: {env_var}")
             exit(1)
     
+    # Lanzar pce.py como un subproceso, redirigiendo su salida a los logs del proceso principal
+
+    def stream_subprocess_output(pipe, log_func):
+        for line in iter(pipe.readline, ''):
+            if line:
+                log_func(line.rstrip())
+        pipe.close()
+
+    pce_cmd = ['python3', '-u', '/app/pce.py']
+    try:
+        pce_proc = subprocess.Popen(
+            pce_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd='/app'
+        )
+
+        # Hilos para redirigir stdout y stderr de pce.py a los logs
+        threading.Thread(target=stream_subprocess_output, args=(pce_proc.stdout, logger.info), daemon=True).start()
+        threading.Thread(target=stream_subprocess_output, args=(pce_proc.stderr, logger.error), daemon=True).start()
+    except Exception as e:
+        logger.error(f"Error lanzando pce.py: {e}")
+        exit(1)
+
     logger.info("Iniciando Flask API para gestión de flujos...")
     app.run(host='0.0.0.0', port=5000, debug=False)
