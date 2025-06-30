@@ -84,33 +84,7 @@ def delete_route_from_ru(dest_ip):
     except Exception as e:
         logger.error(f"Error eliminando ruta en RU: {e}")
         return False
-    """Ejecuta el comando src.py para crear/actualizar rutas"""
-    try:
-        cmd = ['python3', '/app/src.py', dest_prefix, path_json]
-        if replace:
-            cmd.append('--replace')
-        if high_occupancy:
-            cmd.append('--high-occupancy')
-            
-        logger.info(f"Ejecutando: {' '.join(cmd)}")
-        
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            cwd='/app'
-        )
-        
-        logger.info(f"src.py return code: {result.returncode}")
-        logger.info(f"src.py stdout: {result.stdout}")
-        if result.stderr:
-            logger.warning(f"src.py stderr: {result.stderr}")
-            
-        return result.returncode == 0, result.stdout, result.stderr
-    except Exception as e:
-        logger.error(f"Error ejecutando src.py: {e}")
-        return False, "", str(e)
-
+    
 def get_flows_data():
     """Obtiene los datos actuales de flows"""
     try:
