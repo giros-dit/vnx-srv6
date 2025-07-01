@@ -55,22 +55,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: networkstack-service
-  namespace: across-tc32
-spec:
-  selector:
-    app: networkstack
-  ports:
-  - name: flask-api
-    port: 5000
-    targetPort: 5000
-    protocol: TCP
-  type: ClusterIP
-
----
-apiVersion: v1
-kind: Service
-metadata:
   labels:
     service: nsc-api
   name: nsc-api
@@ -80,6 +64,6 @@ spec:
   - name: nsc-port
     port: 5000
     protocol: TCP
-    targetPort: 35000
+    targetPort: 32500
   selector:
     service: nsc-api
