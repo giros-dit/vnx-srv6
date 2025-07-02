@@ -18,6 +18,7 @@ ROUTER_LIMIT = 0.95
 NODE_TIMEOUT = 15  # Segundos tras los cuales un router se considera caído
 router_state = {}
 state_lock = threading.Lock()
+LOOP_PERIOD = 1  # Periodo de espera entre iteraciones del bucle principal
 
 # Configuración MinIO/S3 desde variables de entorno
 S3_ENDPOINT = os.environ.get('S3_ENDPOINT')
@@ -387,7 +388,7 @@ def main():
     
     start_kafka_consumers()
     while True:
-        time.sleep(5)
+        time.sleep(LOOP_PERIOD)
         G = create_graph()
         flows, inactive_routers = read_flows()
         G, flows, inactive_routers, m1 = remove_inactive_nodes(G, flows, inactive_routers)
