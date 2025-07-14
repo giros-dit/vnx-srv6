@@ -227,7 +227,8 @@ topology:
         - ip -6 addr add fd00:0:2::1/64 dev eth1
         - ip -6 addr add fd00:1:2::1/64 dev eth1
         - ip -6 route add fd00:0:1::2/64 via fd00:0:5::0
-        # - ip -6 route add fd00:0:2::/64 via fd00:1:2::b1 metric 10
+        #### CAMBIAR CON IP DEL IXIA
+        - ip -6 route add fd00:0:2::/64 via fd00:1:2::b1 metric 10
 
     
     rcpd:

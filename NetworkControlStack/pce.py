@@ -8,9 +8,11 @@ import re
 import subprocess
 import boto3
 import ipaddress
+import hashlib
 from kafka import KafkaConsumer
 from botocore.exceptions import ClientError
 from botocore.config import Config
+from acrosstc32_routing import RoutingEngine
 
 # Parámetros globales
 OCCUPANCY_LIMIT = 0.8
@@ -53,9 +55,25 @@ metrics = {
     "routes_recalculated": 0,
     "nodes_removed": 0,
     "nodes_restored": 0,
-    "flows_updated": 0
+    "flows_updated": 0,
+    "quick_validations": 0,
+    "full_recalculations": 0,
+    "flask_triggered_recalc": 0
 }
 
+# Variables para optimización de caché
+last_flows_hash = None
+
+# Event para sincronización con Flask API
+recalc_event = threading.Event()
+
+# Inicializar el motor de enrutamiento
+routing_engine = RoutingEngine(
+    occupancy_limit=OCCUPANCY_LIMIT,
+    router_limit=ROUTER_LIMIT,
+    energyaware=ENERGYAWARE,
+    debug_costs=DEBUG_COSTS
+)
 
 def ensure_bucket_exists(bucket_name):
     try:
@@ -65,7 +83,6 @@ def ensure_bucket_exists(bucket_name):
         print(f"[pce][ERROR] El bucket {bucket_name} no existe o no se puede acceder: {e}")
 
 ensure_bucket_exists(S3_BUCKET)
-
 
 def ensure_flows_folder_exists():
     try:
@@ -85,7 +102,6 @@ def ensure_flows_folder_exists():
 
 ensure_flows_folder_exists()
 
-
 def create_graph():
     with open("networkinfo.json") as f:
         data = json.load(f)
@@ -96,24 +112,23 @@ def create_graph():
         G.add_edge(e["source"], e["target"], cost=e["cost"])
     return G
 
-
 def read_flows():
     try:
         resp = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
         if 'Contents' not in resp or not resp['Contents']:
-            return [], []
+            return [], [], None
         latest_key = max(resp['Contents'], key=lambda o: o['LastModified'])['Key']
         obj = s3_client.get_object(Bucket=S3_BUCKET, Key=latest_key)
         flows_data = json.loads(obj['Body'].read().decode())
         if isinstance(flows_data, dict):
             return (flows_data.get("flows", []),
-                    flows_data.get("inactive_routers", []))
+                    flows_data.get("inactive_routers", []),
+                    latest_key)
         else:
-            return flows_data, []
+            return flows_data, [], latest_key
     except Exception as e:
         print(f"[pce][ERROR] read_flows: {e}")
-        return [], []
-
+        return [], [], None
 
 def write_flows(flows, inactive):
     payload = {"flows": flows,
@@ -131,22 +146,30 @@ def write_flows(flows, inactive):
     except Exception as e:
         print(f"[pce][ERROR] write_flows: {e}")
 
-
-def increment_version(flow):
-    """Incrementa la versión de un flujo de manera consistente"""
-    flow["version"] = flow.get("version", 1) + 1
-    return flow["version"]
-
-
-def is_route_valid(G, route):
-    """Verifica si una ruta sigue siendo válida en el grafo actual"""
-    if not route or len(route) < 2:
-        return False
-    for i in range(len(route) - 1):
-        if not G.has_edge(route[i], route[i + 1]):
-            return False
-    return True
-
+def calculate_flows_hash(flows, inactive_routers):
+    """Calcula un hash de los flujos y nodos inactivos para detectar cambios rápidamente"""
+    # Crear una representación estable para el hash
+    flows_repr = []
+    for f in flows:
+        # Solo incluir campos relevantes para el hash
+        flow_data = {
+            '_id': f.get('_id'),
+            'route': f.get('route'),
+            'version': f.get('version', 1)
+        }
+        flows_repr.append(flow_data)
+    
+    # Ordenar para consistencia
+    flows_repr.sort(key=lambda x: x['_id'])
+    inactive_routers_sorted = sorted(inactive_routers)
+    
+    combined_data = {
+        'flows': flows_repr,
+        'inactive_routers': inactive_routers_sorted
+    }
+    
+    data_str = json.dumps(combined_data, sort_keys=True)
+    return hashlib.md5(data_str.encode()).hexdigest()
 
 def remove_inactive_nodes(G, flows, inactive_routers):
     """
@@ -196,135 +219,43 @@ def remove_inactive_nodes(G, flows, inactive_routers):
                 if any(node in inactive_nodes_set for node in route):
                     print(f"[pce] Flujo {f.get('_id', '???')} afectado: ruta {route} pasa por nodos inactivos")
                     f.pop("route", None)  # Eliminar ruta para forzar recálculo
-                    increment_version(f)
+                    routing_engine.increment_version(f)
                     modified = True
                     metrics["flows_updated"] += 1
     
     return G, flows, inactive_routers, modified
 
-
-def assign_node_costs(G):
+def process_flows_optimized(G, flows, inactive_routers, flows_filename, nodes_changed):
+    global last_flows_hash
     
-    with state_lock:
-        for u, v in G.edges():
-            entry = router_state.get(v)
-            if entry:
-                cost = entry.get("energy") if ENERGYAWARE else 0.1
-            else:
-                cost = 9999
-            G[u][v]["cost"] = cost
-    return G
-
-
-def choose_destination(dest_ip):
-    addr = ipaddress.IPv6Address(dest_ip.split('/')[0])
-    if addr in ipaddress.IPv6Network('fd00:0:2::/64'):
-        return 'rg'
-    if addr in ipaddress.IPv6Network('fd00:0:3::/64'):
-        return 'rc'
-    raise ValueError(f"Dirección IP de destino {dest_ip} no pertenece a ninguna red conocida")
-
-
-def recalc_routes(G, flows, inactive_routers):
-    modified = False
+    current_hash = calculate_flows_hash(flows, inactive_routers)
     
-    # Debug de costes solo si está habilitado
-    if DEBUG_COSTS:
-        print("[pce] Costes de todos los enlaces en la red:")
-        for u, v, data in G.edges(data=True):
-            print(f"  {u} -> {v}: {data.get('cost')}")
+    # Verificar si necesitamos procesar
+    hash_changed = current_hash != last_flows_hash
     
-    for f in flows:
-        # Verificar si necesita recálculo
-        current_route = f.get("route")
-        needs_recalc = False
-        
-        if current_route:
-            if not is_route_valid(G, current_route):
-                needs_recalc = True
-                print(f"[pce] Flujo {f.get('_id', '???')} necesita recálculo: ruta inválida {current_route}")
-        else:
-            needs_recalc = True
-            print(f"[pce] Flujo {f.get('_id', '???')} necesita recálculo: sin ruta")
-        
-        if not needs_recalc:
-            continue
-        
-        source, target = "ru", choose_destination(f["_id"])
-        if not (G.has_node(source) and G.has_node(target)):
-            continue
-        
-        # Lógica de umbrales para evitar nodos congestionados
-        with state_lock:
-            excluded = [n for n, data in router_state.items() 
-                       if data.get("usage", 0) >= OCCUPANCY_LIMIT]
-            excluded_max = [n for n, data in router_state.items() 
-                           if data.get("usage", 0) >= ROUTER_LIMIT]
-        
-        # Crear subgrafos excluyendo nodos congestionados
-        G2 = G.copy()
-        G2.remove_nodes_from(excluded)
-        
-        G3 = G.copy()
-        G3.remove_nodes_from(excluded_max)
-        
-        # Flag para indicar si estamos usando la ruta con nodos de ocupación entre OCCUPANCY_LIMIT y ROUTER_LIMIT
-        using_high_occupancy = False
-        
-        # Intentar primero con el subgrafo más restrictivo (excluye nodos ≥ OCCUPANCY_LIMIT)
-        try:
-            path = nx.shortest_path(G2, source, target, weight="cost")
-        except nx.NetworkXNoPath:
-            print(f"[pce] No se encontró ruta en subgrafo con límite {OCCUPANCY_LIMIT}, intentando con límite {ROUTER_LIMIT}...")
-            # Intentar con el segundo subgrafo menos restrictivo (excluye nodos ≥ ROUTER_LIMIT)
-            try:
-                path = nx.shortest_path(G3, source, target, weight="cost")
-                if path:
-                    using_high_occupancy = True
-                    print(f"[pce] AVISO: Flujo {f.get('_id', '???')} usa ruta con nodos de ocupación entre {OCCUPANCY_LIMIT} y {ROUTER_LIMIT}")
-            except nx.NetworkXNoPath:
-                print(f"[pce] WARNING: No se encontró ruta para flujo {f.get('_id', '???')}")
-                continue
-        
-        # Debug de ruta seleccionada solo si está habilitado
-        if DEBUG_COSTS:
-            costs = [G[u][v]["cost"] for u, v in zip(path, path[1:])]
-            print(f"[pce] Ruta seleccionada: {path}")
-            print(f"[pce] Costes enlace a enlace: {costs}")
-        
-        print(f"[pce] Flujo {f.get('_id', '???')}: ruta calculada {path}")
-        
-        # Determinar si necesitamos usar replace (flujo ya tenía una ruta asignada)
-        has_existing_route = current_route is not None
-        
-        needs_replace = f.get("version", 1) > 1
-
-        # Actualizar flujo con nueva ruta
-        f.update({"route": path})
-        #increment_version(f)
-        modified = True
-        metrics["routes_recalculated"] += 1
-        metrics["flows_updated"] += 1
-        
-        # Construir el comando para src.py
-        cmd = [
-            "python3", "/app/src.py",
-            f"{f['_id']}", json.dumps(path)
-        ]
-        
-        # Agregar flag si ya existía una ruta (necesita replace)
-        if needs_replace:
-            cmd.append("--replace")
-        
-        # Agregar flag si estamos usando rutas con alta ocupación
-        if using_high_occupancy:
-            cmd.append("--high-occupancy")
-        
-        print(f"[pce] Ejecutando comando: {' '.join(cmd)}")
-        subprocess.run(cmd, check=False)
+    # Si no hay cambios en nodos Y el hash es el mismo, no hacer nada
+    if not nodes_changed and not hash_changed:
+        print("[pce] Optimización: Sin cambios detectados, saltando procesamiento completo")
+        metrics["quick_validations"] += 1
+        return flows, False
+    
+    # Hay cambios, procesar
+    if nodes_changed:
+        print("[pce] Procesando debido a cambios en nodos")
+    if hash_changed:
+        print("[pce] Procesando debido a cambios en flujos")
+    
+    print("[pce] Ejecutando recálculo completo de rutas de menor coste")
+    metrics["full_recalculations"] += 1
+    
+    # Asignar costes y recalcular rutas usando algoritmo de Dijkstra
+    G = routing_engine.assign_node_costs(G, router_state)
+    flows, modified = routing_engine.recalculate_routes(G, flows, inactive_routers, router_state, metrics)
+    
+    # Actualizar cache
+    last_flows_hash = calculate_flows_hash(flows, inactive_routers)
     
     return flows, modified
-
 
 def kafka_consumer_thread(router_id):
     topic = f"ML_{router_id}"
@@ -377,23 +308,45 @@ def start_kafka_consumers():
             t.daemon = True
             t.start()
 
+def trigger_immediate_recalc():
+    """Función para que la API de Flask pueda disparar un recálculo inmediato"""
+    global last_flows_hash
+    print("[pce] Recálculo inmediato solicitado por API Flask")
+    last_flows_hash = None  # Invalidar cache
+    metrics["flask_triggered_recalc"] += 1
+    recalc_event.set()
+
+# Hacer la función disponible globalmente para que app.py pueda importarla
+def get_trigger_function():
+    return trigger_immediate_recalc
 
 def main():
-    print("[pce] Iniciando PCE sin gestión de tablas...")
+    print("[pce] Iniciando PCE optimizado...")
     print(f"[pce] ENERGYAWARE: {ENERGYAWARE}")
     print(f"[pce] DEBUG_COSTS: {DEBUG_COSTS}")
     print(f"[pce] OCCUPANCY_LIMIT: {OCCUPANCY_LIMIT}")
     print(f"[pce] ROUTER_LIMIT: {ROUTER_LIMIT}")
+    print("[pce] Optimización ultra-eficiente: Solo procesa si hay cambios en nodos o flujos")
     
     start_kafka_consumers()
+    
     while True:
-        time.sleep(LOOP_PERIOD)
+        # Esperar el tiempo del loop o hasta que se dispare un evento
+        if recalc_event.wait(timeout=LOOP_PERIOD):
+            print("[pce] Evento de recálculo recibido")
+            recalc_event.clear()
+        
         G = create_graph()
-        flows, inactive_routers = read_flows()
-        G, flows, inactive_routers, m1 = remove_inactive_nodes(G, flows, inactive_routers)
-        G = assign_node_costs(G)
-        flows, m2 = recalc_routes(G, flows, inactive_routers)
-        if m1 or m2:
+        flows, inactive_routers, flows_filename = read_flows()
+        
+        # Procesar nodos inactivos
+        G, flows, inactive_routers, nodes_modified = remove_inactive_nodes(G, flows, inactive_routers)
+        
+        # Procesar flujos con optimización ultra-eficiente
+        flows, routes_modified = process_flows_optimized(G, flows, inactive_routers, flows_filename, nodes_modified)
+        
+        # Escribir solo si hubo modificaciones
+        if nodes_modified or routes_modified:
             write_flows(flows, inactive_routers)
 
 if __name__ == "__main__":
