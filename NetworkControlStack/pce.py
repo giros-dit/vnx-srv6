@@ -368,7 +368,6 @@ def kafka_consumer_thread(router_id):
             with state_lock:
                 router_state[router_id] = {"energy": energy, "usage": usage, "ts": ts}
 
-
 def start_kafka_consumers():
     with open("networkinfo.json") as f:
         nodes = json.load(f)["graph"]["nodes"]
