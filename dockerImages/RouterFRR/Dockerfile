@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y \
     iperf3 \
     openssh-server
 
+RUN mkdir -p /run/sshd
+
 RUN wget https://deb.frrouting.org/frr/keys.asc && \
     apt-key add keys.asc && \
     rm keys.asc
@@ -39,5 +41,6 @@ RUN bash -c 'echo "PermitEmptyPasswords yes" >> /etc/ssh/sshd_config'
 RUN passwd -d root
 
 ENTRYPOINT ["/usr/sbin/sshd", "-D"]
+
 
 
