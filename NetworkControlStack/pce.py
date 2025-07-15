@@ -15,12 +15,12 @@ from botocore.config import Config
 from acrosstc32_routing import RoutingEngine
 
 # Parámetros globales
-OCCUPANCY_LIMIT = 0.8
-ROUTER_LIMIT = 0.95
-NODE_TIMEOUT = 15  # Segundos tras los cuales un router se considera caído
+OCCUPANCY_LIMIT = os.environ.get('OCCUPANCY_LIMIT', '0.8')
+ROUTER_LIMIT = os.environ.get('ROUTER_LIMIT', '0.95')
+NODE_TIMEOUT = os.environ.get('NODE_TIMEOUT', '15')
 router_state = {}
 state_lock = threading.Lock()
-LOOP_PERIOD = 1  # Periodo de espera entre iteraciones del bucle principal
+LOOP_PERIOD = os.environ.get('LOOP_PERIOD', '1')
 
 # Configuración MinIO/S3 desde variables de entorno
 S3_ENDPOINT = os.environ.get('S3_ENDPOINT')
@@ -33,6 +33,9 @@ ENERGYAWARE = os.environ.get('ENERGYAWARE', 'true').lower() == 'true'
 
 # Flag para debug de costes
 DEBUG_COSTS = os.environ.get('DEBUG_COSTS', 'false').lower() == 'true'
+
+# Variable de entorno para medir tiempos
+LOGTS = os.environ.get('LOGTS', 'false').lower() == 'true'
 
 # Configurar boto3 para path-style (no virtual host)
 s3_cfg = Config(
@@ -174,7 +177,7 @@ def calculate_flows_hash(flows, inactive_routers):
 def remove_inactive_nodes(G, flows, inactive_routers):
     """
     1. Comprobar si algún nodo inactivo ha vuelto a funcionar
-    2. Comprobar si algún nodo activo se ha caído
+    2. Comprobar si algún nodo se ha caído
     3. Gestionar flujos: quitar ruta a los que pasen por nodos inactivos
     """
     now = time.time()
@@ -226,6 +229,10 @@ def remove_inactive_nodes(G, flows, inactive_routers):
     return G, flows, inactive_routers, modified
 
 def process_flows_optimized(G, flows, inactive_routers, flows_filename, nodes_changed):
+    """
+    Versión ultra-optimizada del procesamiento de flujos
+    Solo procesa si hay cambios en nodos o en el hash de flujos
+    """
     global last_flows_hash
     
     current_hash = calculate_flows_hash(flows, inactive_routers)
@@ -324,6 +331,7 @@ def main():
     print("[pce] Iniciando PCE optimizado...")
     print(f"[pce] ENERGYAWARE: {ENERGYAWARE}")
     print(f"[pce] DEBUG_COSTS: {DEBUG_COSTS}")
+    print(f"[pce] LOGTS: {LOGTS}") 
     print(f"[pce] OCCUPANCY_LIMIT: {OCCUPANCY_LIMIT}")
     print(f"[pce] ROUTER_LIMIT: {ROUTER_LIMIT}")
     print("[pce] Optimización ultra-eficiente: Solo procesa si hay cambios en nodos o flujos")

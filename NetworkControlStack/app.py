@@ -4,6 +4,7 @@ import subprocess
 import os
 import urllib.parse
 from flask import Flask, request, jsonify
+import time
 import logging
 import threading
 
@@ -12,6 +13,10 @@ app = Flask(__name__)
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Variable de entorno
+LOGTS = os.environ.get('LOGTS', 'false').lower() == 'true'
+
 
 def decode_ip_from_url(encoded_ip):
     """Decodifica la IP de la URL"""
@@ -85,6 +90,25 @@ def delete_route_from_ru(dest_ip):
     except Exception as e:
         logger.error(f"Error eliminando ruta en RU: {e}")
         return False
+    
+def add_timestamp_to_flow(flow_data, event_type, counter=1):
+    """Añade timestamp al flujo si LOGTS está habilitado"""
+    if not LOGTS:
+        return
+    
+    timestamp = time.time()
+    base_key = f"ts_{event_type}"
+    
+    if counter > 1:
+        key = f"{base_key}_{counter}"
+    else:
+        key = base_key
+    
+    if "timestamps" not in flow_data:
+        flow_data["timestamps"] = {}
+    
+    flow_data["timestamps"][key] = timestamp
+    logger.info(f"Timestamp añadido: {key} = {timestamp} para flujo {flow_data.get('_id', '???')}")
     
 def get_flows_data():
     """Obtiene los datos actuales de flows"""
@@ -179,6 +203,18 @@ def create_flow(encoded_ip):
             if "ya existe" in stderr:
                 return jsonify({"error": f"El flujo {ip} ya existe"}), 409
             return jsonify({"error": f"Error creando flujo: {stderr}"}), 500
+        
+        if LOGTS:
+            # Obtener el flujo recién creado y añadir timestamp
+            flows_data = get_flows_data()
+            for flow in flows_data.get("flows", []):
+                if flow.get("_id") == ip:
+                    add_timestamp_to_flow(flow, "api_created")
+                    # Actualizar el flujo con el timestamp
+                    timestamps_json = json.dumps(flow.get("timestamps", {}))
+                    route_json_for_update = json.dumps(flow.get("route", []))
+                    run_flows_command([ip, '--update', '--route', route_json_for_update, '--timestamps', timestamps_json])
+                    break
         
         # Si tiene ruta, ejecutar src.py para instalar la ruta
         if route:

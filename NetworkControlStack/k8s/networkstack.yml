@@ -41,6 +41,8 @@ spec:
           value: "true"
         - name: DEBUG_COSTS
           value: "true"
+        - name: LOGTS # Variable para medida de tiempo
+          value: "true"  
         # Variables de configuración para optimizaciones
         - name: OCCUPANCY_LIMIT
           value: "0.8"
@@ -48,6 +50,8 @@ spec:
           value: "0.95"
         - name: NODE_TIMEOUT
           value: "15"
+        - name: LOOP_PERIOD
+          value: "1"
         volumeMounts:
         - name: networkinfo-volume
           mountPath: /app/networkinfo.json

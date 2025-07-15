@@ -22,6 +22,9 @@ s3_client = boto3.client(
     region_name='local'
 )
 
+# Variable de entorno para medida de latencia
+LOGTS = os.environ.get('LOGTS', 'false').lower() == 'true'
+
 def read_data():
     try:
         response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
@@ -73,41 +76,51 @@ def write_data(flows, inactive_routers=None):
     except Exception as e:
         print(f"[flows] Error escribiendo: {e}")
 
-def add_flow(flow_id, route=None, data=None):
-    flows = data.get("flows", [])
+# Funciones de compatibilidad para mantener la interfaz existente
+def read_flows():
+    """Función de compatibilidad que devuelve flows, inactive_routers y filename"""
+    data = read_data()
+    return data.get("flows", []), data.get("inactive_routers", []), None
+
+def write_flows(flows, inactive_routers=None):
+    """Función de compatibilidad que usa write_data"""
+    write_data(flows, inactive_routers)
+
+def list_flows():
+    """Lista todos los flujos"""
+    data = read_data()
+    print(json.dumps(data, indent=4))
+
+def add_flow(ip, route=None, timestamps=None):
+    """Añade un nuevo flujo"""
+    flows, inactive, filename = read_flows()
     
-    # Verificar si el flujo ya existe
-    existing_flow = next((f for f in flows if f.get("_id") == flow_id), None)
-    if existing_flow:
-        print(f"[flows] Error: El flujo {flow_id} ya existe. Use --update para modificarlo.")
-        return flows
+    # Verificar si ya existe
+    for f in flows:
+        if f["_id"] == ip:
+            print(f"ERROR: El flujo {ip} ya existe")
+            return False
     
     # Crear nuevo flujo
-    new_flow = {"_id": flow_id, "version": 1}
+    new_flow = {"_id": ip, "version": 1}
     
-    # Procesar la ruta
     if route:
-        try:
-            # Intentar parsear como JSON
-            route_array = json.loads(route)
-            if not isinstance(route_array, list):
-                print(f"[flows] Error: La ruta debe ser un array JSON válido.")
-                return flows
-            new_flow["route"] = route_array
-            route_msg = f" con ruta {route_array}"
-        except json.JSONDecodeError:
-            print(f"[flows] Error: La ruta debe ser un JSON válido. Ejemplo: '[\"ru\", \"r7\", \"r6\"]'")
-            return flows
-    else:
-        # Sin ruta, no añadir el campo route
-        route_msg = " sin ruta"
+        new_flow["route"] = route
+    
+    # Añadir timestamps si se proporcionan y LOGTS está habilitado
+    if timestamps and LOGTS:
+        new_flow["timestamps"] = timestamps
     
     flows.append(new_flow)
-    print(f"[flows] Flujo {flow_id} añadido{route_msg} con versión 1.")
-    
-    return flows
+    write_flows(flows, inactive)
+    print(f"Flujo {ip} añadido exitosamente")
+    return True
 
-def delete_flow(flow_id, data):
+def delete_flow(flow_id, data=None):
+    """Elimina un flujo existente"""
+    if data is None:
+        data = read_data()
+    
     flows = data.get("flows", [])
     
     # Buscar y eliminar el flujo
@@ -115,59 +128,50 @@ def delete_flow(flow_id, data):
     if existing_flow:
         flows = [f for f in flows if f.get("_id") != flow_id]
         print(f"[flows] Flujo {flow_id} eliminado.")
+        write_data(flows, data.get("inactive_routers"))
+        return True
     else:
         print(f"[flows] Error: Flujo {flow_id} no encontrado.")
-    
-    return flows
+        return False
 
-def update_flow(flow_id, route, data):
-    flows = data.get("flows", [])
+def update_flow(ip, route=None, timestamps=None):
+    """Actualiza un flujo existente"""
+    flows, inactive, filename = read_flows()
     
-    # Buscar el flujo existente
-    existing_flow = next((f for f in flows if f.get("_id") == flow_id), None)
-    if not existing_flow:
-        print(f"[flows] Error: Flujo {flow_id} no encontrado. Use --add para crearlo.")
-        return flows
+    for f in flows:
+        if f["_id"] == ip:
+            if route is not None:
+                f["route"] = route
+                f["version"] = f.get("version", 1) + 1
+            
+            # Actualizar timestamps si se proporcionan y LOGTS está habilitado
+            if timestamps and LOGTS:
+                if "timestamps" not in f:
+                    f["timestamps"] = {}
+                f["timestamps"].update(timestamps)
+            
+            write_flows(flows, inactive)
+            print(f"Flujo {ip} actualizado exitosamente")
+            return True
     
-    # Parsear la nueva ruta
-    try:
-        new_route = json.loads(route)
-        if not isinstance(new_route, list):
-            print(f"[flows] Error: La ruta debe ser un array JSON válido.")
-            return flows
-    except json.JSONDecodeError:
-        print(f"[flows] Error: La ruta debe ser un JSON válido. Ejemplo: '[\"ru\", \"r7\", \"r6\"]'")
-        return flows
-    
-    # Verificar si la ruta ha cambiado
-    current_route = existing_flow.get("route", [])
-    if current_route == new_route:
-        print(f"[flows] La ruta del flujo {flow_id} no ha cambiado.")
-        return flows
-    
-    # Actualizar la ruta y incrementar la versión
-    existing_flow["route"] = new_route
-    existing_flow["version"] = existing_flow.get("version", 1) + 1
-    
-    print(f"[flows] Flujo {flow_id} actualizado con nueva ruta {new_route}. Nueva versión: {existing_flow['version']}")
-    
-    return flows
+    print(f"ERROR: Flujo {ip} no encontrado")
+    return False
 
 def main():
     parser = argparse.ArgumentParser(description='Gestión de flujos en S3')
-    parser.add_argument('flow_id', nargs='?', help='ID del flujo')
+    parser.add_argument('flow_id', nargs='?', help='ID del flujo (dirección IPv6)')
     parser.add_argument('--add', action='store_true', help='Añadir un nuevo flujo')
     parser.add_argument('--delete', action='store_true', help='Eliminar un flujo')
     parser.add_argument('--update', action='store_true', help='Actualizar un flujo existente')
     parser.add_argument('--route', type=str, help='Ruta del flujo en formato JSON array (ej: \'["ru", "r7", "r6"]\')')
+    parser.add_argument('--timestamps', type=str, help='Timestamps en formato JSON')
     parser.add_argument('--list', action='store_true', help='Listar todos los flujos')
     
     args = parser.parse_args()
     
     # Caso especial: listar flujos
     if args.list:
-        data = read_data()
-        print(json.dumps(data, indent=4))
+        list_flows()
         return
     
     # Validar argumentos
@@ -187,25 +191,39 @@ def main():
         parser.print_help()
         sys.exit(1)
     
-    # Validar que solo --update requiere --route obligatoriamente
-    if args.update and not args.route:
-        print("Error: --update requiere especificar --route")
-        parser.print_help()
-        sys.exit(1)
+    # Procesar argumentos JSON
+    route = None
+    timestamps = None
     
-    # Leer datos actuales
-    data = read_data()
+    if args.route:
+        try:
+            route = json.loads(args.route)
+        except json.JSONDecodeError:
+            print("Error: El formato de --route no es JSON válido")
+            sys.exit(1)
+    
+    if args.timestamps:
+        try:
+            timestamps = json.loads(args.timestamps)
+        except json.JSONDecodeError:
+            print("Error: El formato de --timestamps no es JSON válido")
+            sys.exit(1)
     
     # Ejecutar la acción correspondiente
-    if args.add:
-        flows = add_flow(args.flow_id, args.route, data)
-    elif args.delete:
-        flows = delete_flow(args.flow_id, data)
-    elif args.update:
-        flows = update_flow(args.flow_id, args.route, data)
+    success = False
     
-    # Guardar los cambios
-    write_data(flows, data.get("inactive_routers"))
+    if args.add:
+        success = add_flow(args.flow_id, route, timestamps)
+    elif args.delete:
+        success = delete_flow(args.flow_id)
+    elif args.update:
+        if not args.route:
+            print("Error: --update requiere especificar --route")
+            parser.print_help()
+            sys.exit(1)
+        success = update_flow(args.flow_id, route, timestamps)
+    
+    sys.exit(0 if success else 1)
 
 if __name__ == "__main__":
     main()

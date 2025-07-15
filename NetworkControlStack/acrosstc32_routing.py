@@ -3,6 +3,8 @@ import ipaddress
 import json
 import subprocess
 import threading
+import time
+import os
 from typing import List, Dict, Tuple, Optional, Any
 
 class RoutingEngine:
@@ -13,6 +15,7 @@ class RoutingEngine:
         self.energyaware = energyaware
         self.debug_costs = debug_costs
         self.state_lock = threading.Lock()
+        self.logts = os.environ.get('LOGTS', 'false').lower() == 'true'
         
     def assign_node_costs(self, G: nx.DiGraph, router_state: Dict[str, Any]) -> nx.DiGraph:
         """Asigna costes a los nodos del grafo basado en el estado de los routers"""
@@ -48,6 +51,50 @@ class RoutingEngine:
         """Incrementa la versión de un flujo de manera consistente"""
         flow["version"] = flow.get("version", 1) + 1
         return flow["version"]
+    
+    def add_timestamp_to_flow(self, flow: Dict[str, Any], event_type: str, counter: int = 1) -> None:
+        """Añade timestamp al flujo si LOGTS está habilitado"""
+        if not self.logts:
+            return
+        
+        timestamp = time.time()
+        base_key = f"ts_{event_type}"
+        
+        if counter > 1:
+            key = f"{base_key}_{counter}"
+        else:
+            key = base_key
+        
+        if "timestamps" not in flow:
+            flow["timestamps"] = {}
+        
+        flow["timestamps"][key] = timestamp
+        print(f"[routing] Timestamp añadido: {key} = {timestamp} para flujo {flow.get('_id', '???')}")
+
+    def get_next_counter_for_event(self, flow: Dict[str, Any], event_type: str) -> int:
+        """Obtiene el siguiente contador para un tipo de evento"""
+        if not self.logts or "timestamps" not in flow:
+            return 1
+        
+        base_key = f"ts_{event_type}"
+        existing_keys = [k for k in flow["timestamps"].keys() if k.startswith(base_key)]
+        
+        if not existing_keys:
+            return 1
+        
+        # Encontrar el contador más alto
+        max_counter = 1
+        for key in existing_keys:
+            if key == base_key:
+                max_counter = max(max_counter, 1)
+            elif key.startswith(f"{base_key}_"):
+                try:
+                    counter = int(key.split("_")[-1])
+                    max_counter = max(max_counter, counter)
+                except ValueError:
+                    continue
+        
+        return max_counter + 1
     
     def calculate_lowest_cost_path(self, G: nx.DiGraph, source: str, target: str, 
                               router_state: Dict[str, Any]) -> Tuple[Optional[List[str]], bool]:
@@ -113,7 +160,9 @@ class RoutingEngine:
             print(f"[routing] Número de saltos: {len(path) - 1}")
     
     def execute_src_command(self, flow_id: str, path: List[str], 
-                           needs_replace: bool = False, using_high_occupancy: bool = False) -> bool:
+                           needs_replace: bool = False, using_high_occupancy: bool = False,
+                           flow_ref: Optional[Dict[str, Any]] = None) -> bool:
+        """Ejecuta el comando src.py para instalar la ruta"""
         """Ejecuta el comando src.py para instalar la ruta"""
         cmd = [
             "python3", "/app/src.py",
@@ -130,7 +179,31 @@ class RoutingEngine:
         
         print(f"[routing] Ejecutando comando: {' '.join(cmd)}")
         try:
-            result = subprocess.run(cmd, check=False, capture_output=True, text=True)
+            result = subprocess.run(cmd, check=False, capture_output=True, text=True)       
+            # Añadir timestamp de ejecución SSH si el comando fue exitoso
+            if result.returncode == 0 and flow_ref and self.logts:
+                counter = self.get_next_counter_for_event(flow_ref, "ssh_executed")
+                self.add_timestamp_to_flow(flow_ref, "ssh_executed", counter)
+                
+                # Intentar extraer timestamp más preciso del output de src.py
+                try:
+                    import re
+                    timestamp_match = re.search(r'ssh_success:\s*([0-9.]+)', result.stdout)
+                    if timestamp_match:
+                        precise_timestamp = float(timestamp_match.group(1))
+                        
+                        # Actualizar con timestamp más preciso
+                        base_key = f"ts_ssh_executed"
+                        if counter > 1:
+                            key = f"{base_key}_{counter}"
+                        else:
+                            key = base_key
+                        
+                        flow_ref["timestamps"][key] = precise_timestamp
+                        print(f"[routing] Timestamp SSH preciso: {key} = {precise_timestamp}")
+                except (ValueError, KeyError):
+                    pass  # Usar el timestamp normal si no se puede parsear
+            
             if result.returncode != 0:
                 print(f"[routing] Error ejecutando src.py: {result.stderr}")
                 return False
@@ -194,6 +267,11 @@ class RoutingEngine:
             
             print(f"[routing] Flujo {f.get('_id', '???')}: ruta de menor coste calculada {path}")
             
+            # Añadir timestamp de cuando se asigna nueva ruta
+            if self.logts:
+                counter = self.get_next_counter_for_event(f, "route_assigned")
+                self.add_timestamp_to_flow(f, "route_assigned", counter)
+            
             # Determinar si necesitamos usar replace
             needs_replace = f.get("version", 1) > 1
             
@@ -204,8 +282,8 @@ class RoutingEngine:
             metrics["routes_recalculated"] += 1
             metrics["flows_updated"] += 1
             
-            # Ejecutar comando src.py
-            success = self.execute_src_command(f["_id"], path, needs_replace, using_high_occupancy)
+            # Ejecutar comando src.py (pasando referencia al flujo para timestamps)
+            success = self.execute_src_command(f["_id"], path, needs_replace, using_high_occupancy, f)
             if not success:
                 print(f"[routing] Error instalando ruta para flujo {f.get('_id', '???')}")
         

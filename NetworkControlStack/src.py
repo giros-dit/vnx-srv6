@@ -3,19 +3,75 @@ import json
 import subprocess
 import shlex
 import argparse
+import time
+import os
+
+LOGTS = os.environ.get('LOGTS', 'false').lower() == 'true'
 
 
-def ssh_ru(cmd):
+def ssh_ru(cmd, flow_id=None):
     """
     Ejecuta un comando de shell en RU vía SSH, asegurando rutas a /usr/sbin y /sbin.
-    Devuelve el objeto CompletedProcess con stdout y stderr.
+    Versión mejorada que trackea timestamps para experimentos.
     """
+    # Timestamp preciso justo antes de iniciar SSH
+    start_time = time.time()
+    
     remote_cmd = f"PATH=$PATH:/usr/sbin:/sbin {cmd}"
-    proc = subprocess.run(
-        ['ssh', '-o', 'StrictHostKeyChecking=no', 'root@ru.across-tc32.svc.cluster.local', remote_cmd],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
+    
+    if flow_id and LOGTS:
+        print(f"[src] Iniciando comando SSH para flujo {flow_id} en timestamp: {start_time}")
+    
+    try:
+        proc = subprocess.run(
+            ['ssh', '-o', 'StrictHostKeyChecking=no', 
+             '-o', 'ConnectTimeout=10',
+             'root@ru.across-tc32.svc.cluster.local', remote_cmd],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=30  # Timeout de 30 segundos
+        )
+        
+        # Timestamp inmediatamente después de que SSH retorne
+        completion_time = time.time()
+        
+        # Solo marcar como exitoso si el return code es 0
+        if proc.returncode == 0:
+            if flow_id and LOGTS:
+                print(f"[src] OK Comando SSH exitoso para flujo {flow_id}")
+                print(f"[src]    Timestamp de éxito: {completion_time}")
+                print(f"[src]    Duración total: {completion_time - start_time:.3f}s")
+                # Imprimir para que pueda ser parseado por acrosstc32_routing.py
+                print(f"ssh_success: {completion_time}")
+        else:
+            if flow_id:
+                print(f"[src]   Comando SSH falló para flujo {flow_id}")
+                print(f"[src]   Return code: {proc.returncode}")
+    
+    except subprocess.TimeoutExpired:
+        if flow_id:
+            print(f"[src] ⚠ Timeout SSH para flujo {flow_id} después de 30s")
+        
+        class FakeProc:
+            def __init__(self):
+                self.returncode = -1
+                self.stdout = b''
+                self.stderr = b'SSH timeout after 30 seconds'
+        
+        proc = FakeProc()
+    
+    except Exception as e:
+        if flow_id:
+            print(f"[src] ✗ Error SSH para flujo {flow_id}: {e}")
+        
+        class FakeProc:
+            def __init__(self, error):
+                self.returncode = -1
+                self.stdout = b''
+                self.stderr = str(error).encode()
+        
+        proc = FakeProc(e)
+    
     return proc
 
 
@@ -92,7 +148,11 @@ def main():
     )
     
     print(f"[src] Instalando ruta: {cmd_route}")
-    res_route = ssh_ru(cmd_route)
+    
+    # Usar la versión mejorada de ssh_ru con timestamps
+    res_route = ssh_ru(cmd_route, flow_id=dest)
+    
+    # Imprimir información básica
     print(f"[src]   return {res_route.returncode}, stdout: {res_route.stdout.decode().strip()}, stderr: {res_route.stderr.decode().strip()}")
 
     # Si el comando falló con 'add' porque la ruta ya existe, intentar con 'replace'
@@ -103,7 +163,8 @@ def main():
             f"encap seg6 mode encap segs {segs} dev eth1"
         )
         print(f"[src] Reintentando: {cmd_route_replace}")
-        res_route = ssh_ru(cmd_route_replace)
+        
+        res_route = ssh_ru(cmd_route_replace, flow_id=dest)
         print(f"[src]   return {res_route.returncode}, stdout: {res_route.stdout.decode().strip()}, stderr: {res_route.stderr.decode().strip()}")
 
     print(f"[src] Done: flow {dest} → path={path}")
