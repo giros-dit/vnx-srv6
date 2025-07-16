@@ -15,12 +15,12 @@ from botocore.config import Config
 from acrosstc32_routing import RoutingEngine
 
 # Parámetros globales
-OCCUPANCY_LIMIT = os.environ.get('OCCUPANCY_LIMIT', '0.8')
-ROUTER_LIMIT = os.environ.get('ROUTER_LIMIT', '0.95')
-NODE_TIMEOUT = os.environ.get('NODE_TIMEOUT', '15')
+OCCUPANCY_LIMIT = float(os.environ.get('OCCUPANCY_LIMIT', '0.8'))
+ROUTER_LIMIT = float(os.environ.get('ROUTER_LIMIT', '0.95'))
+NODE_TIMEOUT = float(os.environ.get('NODE_TIMEOUT', '15'))
 router_state = {}
 state_lock = threading.Lock()
-LOOP_PERIOD = os.environ.get('LOOP_PERIOD', '1')
+LOOP_PERIOD = float(os.environ.get('LOOP_PERIOD', '1'))
 
 # Configuración MinIO/S3 desde variables de entorno
 S3_ENDPOINT = os.environ.get('S3_ENDPOINT')
