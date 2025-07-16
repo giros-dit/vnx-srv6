@@ -348,23 +348,29 @@ def main():
     start_kafka_consumers()
     
     while True:
-        # Esperar el tiempo del loop o hasta que se dispare un evento
+    # Esperar evento o timeout
         if recalc_event.wait(timeout=LOOP_PERIOD):
             print("[pce] Evento de recálculo recibido")
-            recalc_event.clear()
-        
+            while recalc_event.is_set():
+                recalc_event.clear()
+
         G = create_graph()
         flows, inactive_routers, flows_filename = read_flows()
-        
+
+        # Debug: Ver estado del hash antes de decidir
+        current_hash = calculate_flows_hash(flows, inactive_routers)
+        print(f"[pce] current_hash={current_hash} last_flows_hash={last_flows_hash}")
+
         # Procesar nodos inactivos
         G, flows, inactive_routers, nodes_modified = remove_inactive_nodes(G, flows, inactive_routers)
-        
+
         # Procesar flujos con optimización ultra-eficiente
         flows, routes_modified = process_flows_optimized(G, flows, inactive_routers, flows_filename, nodes_modified)
-        
-        # Escribir solo si hubo modificaciones
+
         if nodes_modified or routes_modified:
             write_flows(flows, inactive_routers)
+
+
 
 if __name__ == "__main__":
     main()
