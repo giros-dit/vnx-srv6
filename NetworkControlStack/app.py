@@ -8,6 +8,11 @@ import time
 import logging
 import threading
 
+from pce import get_trigger_function
+
+trigger_recalc = get_trigger_function()
+
+
 app = Flask(__name__)
 
 # Configurar logging
@@ -198,7 +203,11 @@ def create_flow(encoded_ip):
         else:
             # Crear sin ruta
             success, stdout, stderr = run_flows_command([ip, '--add'])
-        
+            
+            # Forzar recálculo si se crea SIN ruta
+            trigger_recalc()
+            logger.info(f"Recálculo inmediato forzado porque se creó flujo {ip} SIN ruta.")
+ 
         if not success:
             if "ya existe" in stderr:
                 return jsonify({"error": f"El flujo {ip} ya existe"}), 409
