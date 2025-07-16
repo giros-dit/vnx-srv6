@@ -40,7 +40,7 @@ spec:
         - name: ENERGYAWARE
           value: "true"
         - name: DEBUG_COSTS
-          value: "true"
+          value: "false"
         - name: LOGTS # Variable para medida de tiempo
           value: "true"  
         # Variables de configuración para optimizaciones

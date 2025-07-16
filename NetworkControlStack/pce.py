@@ -150,29 +150,38 @@ def write_flows(flows, inactive):
         print(f"[pce][ERROR] write_flows: {e}")
 
 def calculate_flows_hash(flows, inactive_routers):
-    """Calcula un hash de los flujos y nodos inactivos para detectar cambios rápidamente"""
-    # Crear una representación estable para el hash
+    """Calcula un hash robusto de los flujos y nodos inactivos.
+    Distingue entre:
+      - route inexistente
+      - route vacía
+      - route con hops
+    """
     flows_repr = []
     for f in flows:
-        # Solo incluir campos relevantes para el hash
+        # Distinguir route
+        route = f.get('route', '__missing__')
+        if isinstance(route, list) and len(route) == 0:
+            route = '__empty__'
+        
         flow_data = {
             '_id': f.get('_id'),
-            'route': f.get('route'),
+            'route': route,
             'version': f.get('version', 1)
         }
         flows_repr.append(flow_data)
-    
+
     # Ordenar para consistencia
     flows_repr.sort(key=lambda x: x['_id'])
     inactive_routers_sorted = sorted(inactive_routers)
-    
+
     combined_data = {
         'flows': flows_repr,
         'inactive_routers': inactive_routers_sorted
     }
-    
+
     data_str = json.dumps(combined_data, sort_keys=True)
     return hashlib.md5(data_str.encode()).hexdigest()
+
 
 def remove_inactive_nodes(G, flows, inactive_routers):
     """
