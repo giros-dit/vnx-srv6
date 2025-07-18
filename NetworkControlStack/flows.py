@@ -44,7 +44,6 @@ def read_data():
 
         pattern = re.compile(r'flows_(\d{8}_\d{6})\.json')
 
-        # Filtrar los que coinciden con el patrón
         valid_files = [f for f in json_files if pattern.search(f['Key'])]
 
         if valid_files:
@@ -59,7 +58,7 @@ def read_data():
         content = obj['Body'].read().decode('utf-8').strip()
         return json.loads(content) if content else {"flows": []}
     except Exception as e:
-        print(f"[flows] Error leyendo flows: {e}")
+        print(f"[flows] Error leyendo flows: {e}", file=sys.stderr)
         return {"flows": []}
 
 def write_data(flows, inactive_routers=None):
@@ -74,56 +73,42 @@ def write_data(flows, inactive_routers=None):
         s3_client.put_object(Bucket=S3_BUCKET, Key=file_key, Body=content.encode("utf-8"))
         print(f"[flows] Datos guardados en s3://{S3_BUCKET}/{file_key}")
     except Exception as e:
-        print(f"[flows] Error escribiendo: {e}")
+        print(f"[flows] Error escribiendo: {e}", file=sys.stderr)
 
-# Funciones de compatibilidad para mantener la interfaz existente
 def read_flows():
-    """Función de compatibilidad que devuelve flows, inactive_routers y filename"""
     data = read_data()
     return data.get("flows", []), data.get("inactive_routers", []), None
 
 def write_flows(flows, inactive_routers=None):
-    """Función de compatibilidad que usa write_data"""
     write_data(flows, inactive_routers)
 
 def list_flows():
-    """Lista todos los flujos"""
     data = read_data()
     print(json.dumps(data, indent=4))
 
 def add_flow(ip, route=None, timestamps=None):
-    """Añade un nuevo flujo"""
     flows, inactive, filename = read_flows()
-    
-    # Verificar si ya existe
     for f in flows:
         if f["_id"] == ip:
-            print(f"ERROR: El flujo {ip} ya existe")
+            print(f"[flows] ERROR: El flujo {ip} ya existe", file=sys.stderr)
             return False
-    
-    # Crear nuevo flujo
+
     new_flow = {"_id": ip, "version": 1}
-    
     if route:
         new_flow["route"] = route
-    
-    # Añadir timestamps si se proporcionan y LOGTS está habilitado
     if timestamps and LOGTS:
         new_flow["timestamps"] = timestamps
-    
+
     flows.append(new_flow)
     write_flows(flows, inactive)
-    print(f"Flujo {ip} añadido exitosamente")
+    print(f"[flows] Flujo {ip} añadido exitosamente")
     return True
 
 def delete_flow(flow_id, data=None):
-    """Elimina un flujo existente"""
     if data is None:
         data = read_data()
-    
+
     flows = data.get("flows", [])
-    
-    # Buscar y eliminar el flujo
     existing_flow = next((f for f in flows if f.get("_id") == flow_id), None)
     if existing_flow:
         flows = [f for f in flows if f.get("_id") != flow_id]
@@ -131,30 +116,26 @@ def delete_flow(flow_id, data=None):
         write_data(flows, data.get("inactive_routers"))
         return True
     else:
-        print(f"[flows] Error: Flujo {flow_id} no encontrado.")
+        print(f"[flows] ERROR: Flujo {flow_id} no encontrado.", file=sys.stderr)
         return False
 
 def update_flow(ip, route=None, timestamps=None):
-    """Actualiza un flujo existente"""
     flows, inactive, filename = read_flows()
-    
     for f in flows:
         if f["_id"] == ip:
             if route is not None:
                 f["route"] = route
                 f["version"] = f.get("version", 1) + 1
-            
-            # Actualizar timestamps si se proporcionan y LOGTS está habilitado
             if timestamps and LOGTS:
                 if "timestamps" not in f:
                     f["timestamps"] = {}
                 f["timestamps"].update(timestamps)
-            
+
             write_flows(flows, inactive)
-            print(f"Flujo {ip} actualizado exitosamente")
+            print(f"[flows] Flujo {ip} actualizado exitosamente")
             return True
-    
-    print(f"ERROR: Flujo {ip} no encontrado")
+
+    print(f"[flows] ERROR: Flujo {ip} no encontrado", file=sys.stderr)
     return False
 
 def main():
@@ -163,66 +144,61 @@ def main():
     parser.add_argument('--add', action='store_true', help='Añadir un nuevo flujo')
     parser.add_argument('--delete', action='store_true', help='Eliminar un flujo')
     parser.add_argument('--update', action='store_true', help='Actualizar un flujo existente')
-    parser.add_argument('--route', type=str, help='Ruta del flujo en formato JSON array (ej: \'["ru", "r7", "r6"]\')')
+    parser.add_argument('--route', type=str, help='Ruta del flujo en formato JSON array')
     parser.add_argument('--timestamps', type=str, help='Timestamps en formato JSON')
     parser.add_argument('--list', action='store_true', help='Listar todos los flujos')
-    
+
     args = parser.parse_args()
-    
-    # Caso especial: listar flujos
+
     if args.list:
         list_flows()
         return
-    
-    # Validar argumentos
+
     if not args.flow_id:
-        print("Error: Debe especificar un flow_id")
+        print("Error: Debe especificar un flow_id", file=sys.stderr)
         parser.print_help()
         sys.exit(1)
-    
-    # Contar las opciones seleccionadas
+
     options_count = sum([args.add, args.delete, args.update])
     if options_count == 0:
-        print("Error: Debe especificar una acción (--add, --delete, o --update)")
+        print("Error: Debe especificar una acción (--add, --delete, o --update)", file=sys.stderr)
         parser.print_help()
         sys.exit(1)
     elif options_count > 1:
-        print("Error: Solo puede especificar una acción a la vez")
+        print("Error: Solo puede especificar una acción a la vez", file=sys.stderr)
         parser.print_help()
         sys.exit(1)
-    
-    # Procesar argumentos JSON
+
     route = None
     timestamps = None
-    
     if args.route:
         try:
             route = json.loads(args.route)
         except json.JSONDecodeError:
-            print("Error: El formato de --route no es JSON válido")
+            print("Error: El formato de --route no es JSON válido", file=sys.stderr)
             sys.exit(1)
-    
     if args.timestamps:
         try:
             timestamps = json.loads(args.timestamps)
         except json.JSONDecodeError:
-            print("Error: El formato de --timestamps no es JSON válido")
+            print("Error: El formato de --timestamps no es JSON válido", file=sys.stderr)
             sys.exit(1)
-    
-    # Ejecutar la acción correspondiente
+
     success = False
-    
     if args.add:
         success = add_flow(args.flow_id, route, timestamps)
     elif args.delete:
         success = delete_flow(args.flow_id)
     elif args.update:
         if not args.route:
-            print("Error: --update requiere especificar --route")
+            print("Error: --update requiere especificar --route", file=sys.stderr)
             parser.print_help()
             sys.exit(1)
         success = update_flow(args.flow_id, route, timestamps)
-    
+
+    if not success:
+        print(f"[flows] ERROR: Acción fallida sobre flujo {args.flow_id}", file=sys.stderr)
+
     sys.exit(0 if success else 1)
 
 if __name__ == "__main__":
