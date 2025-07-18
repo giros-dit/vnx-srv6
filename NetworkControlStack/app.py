@@ -301,37 +301,52 @@ def delete_flow(encoded_ip):
         if not ip:
             return jsonify({"error": "IP inválida"}), 400
         
-        logger.info(f"Eliminando flujo para IP: {ip}")
-        
-        # Primero eliminar la ruta en RU
+        logger.info(f"[DELETE] Iniciando eliminación de flujo: {ip}")
+
+        # Eliminar la ruta en RU
         dest_prefix = f"{ip}/64" if '/' not in ip else ip
         dest_ip = ip if '/' not in ip else ip.split('/')[0]
         
+        logger.info(f"[DELETE] Eliminando ruta en RU para: {dest_ip}")
         route_deleted = delete_route_from_ru(dest_ip)
-        if not route_deleted:
-            logger.warning(f"No se pudo eliminar la ruta en RU para {dest_ip}")
+        logger.info(f"[DELETE] Resultado eliminación ruta: {route_deleted}")
         
-        # Luego eliminar el flujo del registro
+        # Eliminar flujo con flows.py
+        logger.info(f"[DELETE] Ejecutando flows.py {ip} --delete")
         success, stdout, stderr = run_flows_command([ip, '--delete'])
-        
+        logger.info(f"[DELETE] Resultado eliminación flujo: success={success}")
+        logger.info(f"[DELETE] stdout: {stdout}")
+        logger.info(f"[DELETE] stderr: {stderr}")
+
         if not success:
-            if "no encontrado" in stderr:
-                # Si la ruta se eliminó pero el flujo no existía
+            if "no encontrado" in stderr or "no encontrado" in stdout:
                 if route_deleted:
-                    return jsonify({"message": f"Ruta eliminada de RU, pero flujo {ip} no existía en el registro"}), 200
+                    return jsonify({
+                        "message": f"Ruta eliminada de RU, pero flujo {ip} no existía en el registro",
+                        "warning": f"flows.py: {stderr or stdout}"
+                    }), 200
                 else:
-                    return jsonify({"error": f"El flujo {ip} no existe"}), 404
-            return jsonify({"error": f"Error eliminando flujo: {stderr}"}), 500
-        
-        # Mensaje de éxito
+                    return jsonify({
+                        "error": f"El flujo {ip} no existe",
+                        "details": stderr or stdout
+                    }), 404
+            return jsonify({
+                "error": f"Error eliminando flujo: {stderr or stdout or 'desconocido'}"
+            }), 500
+
+        # Éxito
         if route_deleted:
             return jsonify({"message": f"Flujo {ip} y su ruta eliminados exitosamente"}), 200
         else:
-            return jsonify({"message": f"Flujo {ip} eliminado del registro (advertencia: no se pudo eliminar ruta de RU)"}), 200
-        
+            return jsonify({
+                "message": f"Flujo {ip} eliminado del registro",
+                "warning": "Advertencia: no se pudo eliminar ruta en RU"
+            }), 200
+
     except Exception as e:
-        logger.error(f"Error en DELETE /flows/{encoded_ip}: {e}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        logger.exception(f"[DELETE] Excepción inesperada al eliminar flujo {encoded_ip}")
+        return jsonify({"error": f"Excepción: {str(e)}"}), 500
+
 
 @app.route('/health', methods=['GET'])
 def health_check():
