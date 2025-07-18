@@ -302,7 +302,7 @@ def kafka_consumer_thread(router_id):
             if isinstance(val, list) and val:
                 val = val[0]
             try:
-                usage = float(val) / 100.0
+                usage = float(val)
             except Exception:
                 usage = None
         
