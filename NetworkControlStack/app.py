@@ -184,6 +184,9 @@ def list_flows():
 def create_flow(encoded_ip):
     """POST /flows/<ip> - Crea un nuevo flujo"""
     try:
+        # Capturar timestamp de la API inmediatamente
+        api_timestamp = time.time() if LOGTS else None
+        
         # Decodificar la IP
         ip = decode_ip_from_url(encoded_ip)
         if not ip:
@@ -195,35 +198,31 @@ def create_flow(encoded_ip):
         
         logger.info(f"Creando flujo para IP: {ip} con ruta: {route}")
         
-        # Crear flujo con flows.py
+        # Preparar argumentos para flows.py
+        cmd_args = [ip, '--add']
+        
         if route:
             # Crear con ruta
             route_json = json.dumps(route)
-            success, stdout, stderr = run_flows_command([ip, '--add', '--route', route_json])
-        else:
-            # Crear sin ruta
-            success, stdout, stderr = run_flows_command([ip, '--add'])
-            
-            # Forzar recálculo si se crea SIN ruta
-            trigger_recalc()
-            logger.info(f"Recálculo inmediato forzado porque se creó flujo {ip} SIN ruta.")
- 
+            cmd_args.extend(['--route', route_json])
+        
+        # Añadir timestamp de API si LOGTS está habilitado
+        if api_timestamp is not None:
+            cmd_args.extend(['--api-timestamp', str(api_timestamp)])
+            logger.info(f"Pasando timestamp de API: {api_timestamp}")
+        
+        # Crear flujo con flows.py
+        success, stdout, stderr = run_flows_command(cmd_args)
+        
         if not success:
             if "ya existe" in stderr:
                 return jsonify({"error": f"El flujo {ip} ya existe"}), 409
             return jsonify({"error": f"Error creando flujo: {stderr}"}), 500
         
-        if LOGTS:
-            # Obtener el flujo recién creado y añadir timestamp
-            flows_data = get_flows_data()
-            for flow in flows_data.get("flows", []):
-                if flow.get("_id") == ip:
-                    add_timestamp_to_flow(flow, "api_created")
-                    # Actualizar el flujo con el timestamp
-                    timestamps_json = json.dumps(flow.get("timestamps", {}))
-                    route_json_for_update = json.dumps(flow.get("route", []))
-                    run_flows_command([ip, '--update', '--route', route_json_for_update, '--timestamps', timestamps_json])
-                    break
+        # Si no tiene ruta, forzar recálculo
+        if not route:
+            trigger_recalc()
+            logger.info(f"Recálculo inmediato forzado porque se creó flujo {ip} SIN ruta.")
         
         # Si tiene ruta, ejecutar src.py para instalar la ruta
         if route:

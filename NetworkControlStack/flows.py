@@ -86,7 +86,7 @@ def list_flows():
     data = read_data()
     print(json.dumps(data, indent=4))
 
-def add_flow(ip, route=None, timestamps=None):
+def add_flow(ip, route=None, timestamps=None, api_timestamp=None):
     flows, inactive, filename = read_flows()
     for f in flows:
         if f["_id"] == ip:
@@ -96,8 +96,19 @@ def add_flow(ip, route=None, timestamps=None):
     new_flow = {"_id": ip, "version": 1}
     if route:
         new_flow["route"] = route
-    if timestamps and LOGTS:
-        new_flow["timestamps"] = timestamps
+    
+    # Manejar timestamps
+    if LOGTS:
+        new_flow["timestamps"] = {}
+        
+        # Añadir timestamp de API si se proporciona
+        if api_timestamp is not None:
+            new_flow["timestamps"]["ts_api_created"] = api_timestamp
+            print(f"[flows] Timestamp API añadido: ts_api_created = {api_timestamp}")
+        
+        # Añadir timestamps adicionales si se proporcionan
+        if timestamps:
+            new_flow["timestamps"].update(timestamps)
 
     flows.append(new_flow)
     write_flows(flows, inactive)
@@ -146,6 +157,7 @@ def main():
     parser.add_argument('--update', action='store_true', help='Actualizar un flujo existente')
     parser.add_argument('--route', type=str, help='Ruta del flujo en formato JSON array')
     parser.add_argument('--timestamps', type=str, help='Timestamps en formato JSON')
+    parser.add_argument('--api-timestamp', type=float, help='Timestamp de cuando se recibió la petición en la API')
     parser.add_argument('--list', action='store_true', help='Listar todos los flujos')
 
     args = parser.parse_args()
@@ -186,7 +198,7 @@ def main():
 
     success = False
     if args.add:
-        success = add_flow(args.flow_id, route, timestamps)
+        success = add_flow(args.flow_id, route, timestamps, args.api_timestamp)
     elif args.delete:
         success = delete_flow(args.flow_id)
     elif args.update:
