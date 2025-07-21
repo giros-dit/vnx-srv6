@@ -36,7 +36,7 @@ spec:
         - name: S3_PATH
           value: "auto"
         - name: S3_BUCKET
-          value: "test-experiment"
+          value: "test-energy-aware-1"
         - name: ENERGYAWARE
           value: "true"
         - name: DEBUG_COSTS
