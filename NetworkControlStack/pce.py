@@ -241,6 +241,7 @@ def process_flows_optimized(G, flows, inactive_routers, flows_filename, nodes_ch
     """
     Versión ultra-optimizada del procesamiento de flujos
     Solo procesa si hay cambios en nodos o en el hash de flujos
+    CORREGIDA: Ahora preserva TODOS los flujos, no solo los que procesa
     """
     global last_flows_hash
     
@@ -266,12 +267,35 @@ def process_flows_optimized(G, flows, inactive_routers, flows_filename, nodes_ch
     
     # Asignar costes y recalcular rutas usando algoritmo de Dijkstra
     G = routing_engine.assign_node_costs(G, router_state)
-    flows, modified = routing_engine.recalculate_routes(G, flows, inactive_routers, router_state, metrics)
+    
+    # CRÍTICO: Procesar flows pero preservar TODOS los flujos
+    processed_flows, processing_modified = routing_engine.recalculate_routes(G, flows, inactive_routers, router_state, metrics)
+    
+    # GARANTIZAR que todos los flujos se mantienen
+    # (la función recalculate_routes ya debería hacer esto, pero vamos a verificarlo)
+    
+    # Debug: verificar que no se perdieron flujos
+    original_ids = set(f.get('_id') for f in flows)
+    processed_ids = set(f.get('_id') for f in processed_flows)
+    
+    if original_ids != processed_ids:
+        print(f"[pce] ERROR: Se perdieron flujos!")
+        print(f"[pce] Originales: {original_ids}")
+        print(f"[pce] Procesados: {processed_ids}")
+        print(f"[pce] Perdidos: {original_ids - processed_ids}")
+        
+        # Recuperar flujos perdidos
+        lost_flow_ids = original_ids - processed_ids
+        for flow in flows:
+            if flow.get('_id') in lost_flow_ids:
+                print(f"[pce] Recuperando flujo perdido: {flow.get('_id')}")
+                processed_flows.append(flow)
     
     # Actualizar cache
-    last_flows_hash = calculate_flows_hash(flows, inactive_routers)
+    last_flows_hash = calculate_flows_hash(processed_flows, inactive_routers)
     
-    return flows, modified
+    return processed_flows, processing_modified
+
 
 def kafka_consumer_thread(router_id):
     topic = f"ML_{router_id}"

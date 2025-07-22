@@ -213,12 +213,16 @@ class RoutingEngine:
             return False
     
     def recalculate_routes(self, G: nx.DiGraph, flows: List[Dict[str, Any]], 
-                          inactive_routers: List[str], router_state: Dict[str, Any],
-                          metrics: Dict[str, int]) -> Tuple[List[Dict[str, Any]], bool]:
+                      inactive_routers: List[str], router_state: Dict[str, Any],
+                      metrics: Dict[str, int]) -> Tuple[List[Dict[str, Any]], bool]:
         """
         Recalcula las rutas para todos los flujos que lo necesiten
+        CORREGIDA: Ahora preserva TODOS los flujos, incluso los que no necesitan recálculo
         """
         modified = False
+        
+        # IMPORTANTE: Trabajar con una copia de la lista para preservar todos los flujos
+        result_flows = flows.copy()  # Preservar TODOS los flujos
         
         # Debug de costes solo si está habilitado
         if self.debug_costs:
@@ -226,7 +230,7 @@ class RoutingEngine:
             for u, v, data in G.edges(data=True):
                 print(f"  {u} -> {v}: {data.get('cost')}")
         
-        for f in flows:
+        for i, f in enumerate(result_flows):
             # Verificar si necesita recálculo
             current_route = f.get("route")
             needs_recalc = False
@@ -235,12 +239,14 @@ class RoutingEngine:
                 if not self.is_route_valid(G, current_route):
                     needs_recalc = True
                     print(f"[routing] Flujo {f.get('_id', '???')} necesita recálculo: "
-                          f"ruta inválida {current_route}")
+                        f"ruta inválida {current_route}")
             else:
                 needs_recalc = True
                 print(f"[routing] Flujo {f.get('_id', '???')} necesita recálculo: sin ruta")
             
+            # Si NO necesita recálculo, MANTENER el flujo como está
             if not needs_recalc:
+                print(f"[routing] Flujo {f.get('_id', '???')} OK, manteniendo ruta actual: {current_route}")
                 continue
             
             # Determinar nodos origen y destino
@@ -275,19 +281,30 @@ class RoutingEngine:
             # Determinar si necesitamos usar replace
             needs_replace = f.get("version", 1) > 1
             
-            # Actualizar flujo con nueva ruta
-            f.update({"route": path})
-            self.increment_version(f)
+            # Actualizar flujo con nueva ruta (MODIFICAR en su lugar)
+            result_flows[i].update({"route": path})
+            self.increment_version(result_flows[i])
             modified = True
             metrics["routes_recalculated"] += 1
             metrics["flows_updated"] += 1
             
             # Ejecutar comando src.py (pasando referencia al flujo para timestamps)
-            success = self.execute_src_command(f["_id"], path, needs_replace, using_high_occupancy, f)
+            success = self.execute_src_command(f["_id"], path, needs_replace, using_high_occupancy, result_flows[i])
             if not success:
                 print(f"[routing] Error instalando ruta para flujo {f.get('_id', '???')}")
         
-        return flows, modified
+        # Debug final: verificar que no se perdieron flujos
+        original_count = len(flows)
+        result_count = len(result_flows)
+        
+        if original_count != result_count:
+            print(f"[routing] ERROR: Se perdieron flujos! Original: {original_count}, Resultado: {result_count}")
+            print(f"[routing] IDs originales: {[f.get('_id') for f in flows]}")
+            print(f"[routing] IDs resultado: {[f.get('_id') for f in result_flows]}")
+        else:
+            print(f"[routing] Todos los flujos preservados: {result_count} flujos")
+        
+        return result_flows, modified
     
     def quick_validation_check(self, G: nx.DiGraph, flows: List[Dict[str, Any]], 
                               inactive_routers: List[str]) -> bool:
