@@ -203,13 +203,15 @@ def delete_route_from_ru(dest_ip):
         logger.error(f"Error eliminando ruta en RU: {e}")
         return False
 
-def get_flows_data():
-    """Obtiene los datos actuales de flows - NO necesita lock adicional"""
+def get_flows_data_with_debug():
+    """Obtiene los datos actuales de flows con logging detallado"""
     try:
         success, stdout, stderr = run_flows_command(['--list'])
-        logger.info(f"flows.py --list success: {success}")
+        logger.info(f"[DEBUG] flows.py --list success: {success}")
         
         if success and stdout:
+            logger.info(f"[DEBUG] flows.py raw stdout:\n{stdout}")
+            
             lines = stdout.split('\n')
             json_start = -1
             
@@ -223,50 +225,61 @@ def get_flows_data():
                 json_lines = lines[json_start:]
                 json_text = '\n'.join(json_lines).strip()
                 
+                logger.info(f"[DEBUG] Extracted JSON text:\n{json_text}")
+                
                 try:
                     data = json.loads(json_text)
-                    logger.info(f"JSON parseado exitosamente")
+                    logger.info(f"[DEBUG] Parsed JSON successfully: {len(data.get('flows', []))} flows found")
+                    
+                    # Log cada flujo individualmente para debugging
+                    for i, flow in enumerate(data.get('flows', [])):
+                        logger.info(f"[DEBUG] Flow {i+1}: {flow.get('_id')} -> route: {flow.get('route')} (v{flow.get('version', 1)})")
                     
                     if not isinstance(data, dict):
-                        logger.warning("Data no es dict, retornando vacío")
+                        logger.warning("[DEBUG] Data no es dict, retornando vacío")
                         return {"flows": []}
                     if "flows" not in data:
-                        logger.warning("No hay campo 'flows', añadiéndolo")
+                        logger.warning("[DEBUG] No hay campo 'flows', añadiéndolo")
                         data["flows"] = []
                     
                     return data
                     
                 except json.JSONDecodeError as e:
-                    logger.error(f"Error parseando JSON: {e}")
-                    logger.error(f"JSON text: {json_text}")
+                    logger.error(f"[DEBUG] Error parseando JSON: {e}")
+                    logger.error(f"[DEBUG] JSON text que falló: {repr(json_text)}")
                     return {"flows": []}
             else:
-                logger.warning("No se encontró inicio de JSON válido")
+                logger.warning("[DEBUG] No se encontró inicio de JSON válido en stdout")
+                logger.warning(f"[DEBUG] Todas las líneas: {lines}")
                 return {"flows": []}
         else:
-            logger.error(f"Error obteniendo flows: {stderr}")
+            logger.error(f"[DEBUG] Error obteniendo flows - success: {success}")
+            if stderr:
+                logger.error(f"[DEBUG] flows.py stderr: {stderr}")
+            if stdout:
+                logger.error(f"[DEBUG] flows.py stdout: {stdout}")
             return {"flows": []}
     except Exception as e:
-        logger.error(f"Error parseando flows data: {e}")
+        logger.error(f"[DEBUG] Excepción parseando flows data: {e}")
         return {"flows": []}
 
 @app.route('/flows', methods=['GET'])
 def list_flows():
     """GET /flows - Lista todos los flujos"""
     try:
-        logger.info("Solicitando lista de flujos")
+        logger.info("[GET] Solicitando lista de flujos")
         
         # Para lectura, usar timeout más corto y lock más simple
         with acquire_flows_lock(timeout=5):
-            data = get_flows_data()
+            data = get_flows_data_with_debug()
             
-        logger.info(f"Datos obtenidos exitosamente")
+        logger.info(f"[GET] Datos obtenidos exitosamente: {len(data.get('flows', []))} flujos")
         return jsonify(data), 200
     except RuntimeError as e:
-        logger.error(f"Error adquiriendo lock en GET /flows: {e}")
+        logger.error(f"[GET] Error adquiriendo lock en GET /flows: {e}")
         return jsonify({"error": "Sistema ocupado, reintente en unos momentos"}), 503
     except Exception as e:
-        logger.error(f"Error en GET /flows: {e}")
+        logger.error(f"[GET] Error en GET /flows: {e}")
         return jsonify({"error": "Error interno del servidor", "flows": []}), 500
 
 @app.route('/flows/<encoded_ip>', methods=['POST'])
@@ -313,6 +326,23 @@ def create_flow(encoded_ip):
                 return jsonify({"error": f"Error creando flujo: {stderr}"}), 500
             
             logger.info(f"[CREATE] Flujo {ip} creado exitosamente en base de datos")
+            
+            # INMEDIATAMENTE después de crear, mostrar contenido del archivo
+            logger.info(f"[CREATE] === CONTENIDO DEL ARCHIVO DESPUÉS DE CREAR {ip} ===")
+            debug_data = get_flows_data_with_debug()
+            logger.info(f"[CREATE] Flujos en archivo después de crear:")
+            for flow in debug_data.get('flows', []):
+                logger.info(f"[CREATE]   - {flow.get('_id')} (route: {flow.get('route')}, v{flow.get('version', 1)})")
+            logger.info(f"[CREATE] === FIN CONTENIDO ARCHIVO ===")
+            
+            # Verificar específicamente si nuestro flujo está presente
+            our_flow = next((f for f in debug_data.get('flows', []) if f.get('_id') == ip), None)
+            if our_flow:
+                logger.info(f"[CREATE] ✅ CONFIRMADO: Flujo {ip} SÍ está en el archivo")
+                logger.info(f"[CREATE] Detalles: {our_flow}")
+            else:
+                logger.error(f"[CREATE] ❌ ERROR: Flujo {ip} NO está en el archivo después de crearlo!")
+                logger.error(f"[CREATE] IDs encontradas: {[f.get('_id') for f in debug_data.get('flows', [])]}")
         
         # El lock se libera aquí automáticamente
         
@@ -380,6 +410,22 @@ def update_flow(encoded_ip):
                 return jsonify({"error": f"Error actualizando flujo: {stderr}"}), 500
             
             logger.info(f"[UPDATE] Flujo {ip} actualizado exitosamente en base de datos")
+            
+            # INMEDIATAMENTE después de actualizar, mostrar contenido del archivo
+            logger.info(f"[UPDATE] === CONTENIDO DEL ARCHIVO DESPUÉS DE ACTUALIZAR {ip} ===")
+            debug_data = get_flows_data_with_debug()
+            logger.info(f"[UPDATE] Flujos en archivo después de actualizar:")
+            for flow in debug_data.get('flows', []):
+                logger.info(f"[UPDATE]   - {flow.get('_id')} (route: {flow.get('route')}, v{flow.get('version', 1)})")
+            logger.info(f"[UPDATE] === FIN CONTENIDO ARCHIVO ===")
+            
+            # Verificar específicamente si nuestro flujo está presente con la nueva ruta
+            our_flow = next((f for f in debug_data.get('flows', []) if f.get('_id') == ip), None)
+            if our_flow:
+                logger.info(f"[UPDATE] ✅ CONFIRMADO: Flujo {ip} SÍ está en el archivo")
+                logger.info(f"[UPDATE] Nueva ruta: {our_flow.get('route')}")
+            else:
+                logger.error(f"[UPDATE] ❌ ERROR: Flujo {ip} NO está en el archivo después de actualizarlo!")
         
         # El lock se libera aquí automáticamente
         
@@ -423,6 +469,14 @@ def delete_flow(encoded_ip):
             success, stdout, stderr = run_flows_command([ip, '--delete'])
             logger.info(f"[DELETE] Resultado eliminación flujo: success={success}")
             
+            # INMEDIATAMENTE después de eliminar, mostrar contenido del archivo
+            logger.info(f"[DELETE] === CONTENIDO DEL ARCHIVO DESPUÉS DE ELIMINAR {ip} ===")
+            debug_data = get_flows_data_with_debug()
+            logger.info(f"[DELETE] Flujos en archivo después de eliminar:")
+            for flow in debug_data.get('flows', []):
+                logger.info(f"[DELETE]   - {flow.get('_id')} (route: {flow.get('route')}, v{flow.get('version', 1)})")
+            logger.info(f"[DELETE] === FIN CONTENIDO ARCHIVO ===")
+            
             flow_existed = True
             if not success:
                 if "no encontrado" in stderr or "no encontrado" in stdout:
@@ -435,6 +489,13 @@ def delete_flow(encoded_ip):
                     }), 500
             else:
                 logger.info(f"[DELETE] Flujo {ip} eliminado exitosamente del registro")
+                
+            # Verificar específicamente que el flujo ya no está
+            our_flow = next((f for f in debug_data.get('flows', []) if f.get('_id') == ip), None)
+            if our_flow:
+                logger.warning(f"[DELETE] ⚠️  ADVERTENCIA: Flujo {ip} AÚN está en el archivo después de eliminarlo!")
+            else:
+                logger.info(f"[DELETE] ✅ CONFIRMADO: Flujo {ip} eliminado correctamente del archivo")
         
         # El lock se libera aquí automáticamente
         
