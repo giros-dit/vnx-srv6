@@ -39,147 +39,55 @@ s3_client = boto3.client(
     region_name='local'
 )
 
-class DistributedLock:
+class SimplifiedLock:
     """
-    Implementa un lock distribuido usando S3 como backend
+    Lock simplificado usando solo threading local
+    Para evitar problemas con S3 distributed locks
     """
-    def __init__(self, lock_name, s3_client, bucket, timeout=30):
-        self.lock_name = lock_name
-        self.s3_client = s3_client
-        self.bucket = bucket
-        self.timeout = timeout
-        self.lock_key = f"locks/{lock_name}.lock"
-        self.owner_id = f"{os.getpid()}_{threading.current_thread().ident}_{time.time()}"
-        
+    def __init__(self, name):
+        self.name = name
+        self.lock = threading.RLock()
+        self.acquired_count = 0
+    
     def acquire(self, blocking=True, timeout=None):
-        """
-        Intenta adquirir el lock distribuido
-        """
-        start_time = time.time()
-        actual_timeout = timeout or self.timeout
-        
-        while True:
-            try:
-                # Intentar crear el lock atomicamente
-                lock_data = {
-                    "owner": self.owner_id,
-                    "acquired_at": time.time(),
-                    "expires_at": time.time() + self.timeout
-                }
-                
-                # Usar IfNoneMatch='*' para crear solo si no existe
-                self.s3_client.put_object(
-                    Bucket=self.bucket,
-                    Key=self.lock_key,
-                    Body=json.dumps(lock_data).encode(),
-                    Metadata={'owner': self.owner_id},
-                    IfNoneMatch='*'  # Solo crear si no existe
-                )
-                
-                logger.info(f"Lock '{self.lock_name}' adquirido por {self.owner_id}")
-                return True
-                
-            except ClientError as e:
-                error_code = e.response['Error']['Code']
-                
-                if error_code == 'PreconditionFailed':
-                    # El lock ya existe, verificar si ha expirado
-                    try:
-                        obj = self.s3_client.get_object(Bucket=self.bucket, Key=self.lock_key)
-                        lock_data = json.loads(obj['Body'].read().decode())
-                        
-                        # Verificar si el lock ha expirado
-                        if time.time() > lock_data.get('expires_at', 0):
-                            logger.info(f"Lock '{self.lock_name}' expirado, intentando renovar")
-                            # Intentar eliminar el lock expirado y reintentarlo
-                            try:
-                                self.s3_client.delete_object(Bucket=self.bucket, Key=self.lock_key)
-                                continue  # Reintentar adquisición
-                            except:
-                                pass  # Si no se puede eliminar, continuar esperando
-                        
-                        # Lock activo, esperar si es modo blocking
-                        if not blocking:
-                            return False
-                            
-                        if timeout and (time.time() - start_time) >= actual_timeout:
-                            logger.warning(f"Timeout esperando lock '{self.lock_name}'")
-                            return False
-                            
-                        time.sleep(0.1)  # Esperar antes de reintentar
-                        
-                    except ClientError:
-                        # Error leyendo el lock, asumir que está activo
-                        if not blocking:
-                            return False
-                        time.sleep(0.1)
-                else:
-                    logger.error(f"Error adquiriendo lock: {e}")
-                    return False
-                    
-            except Exception as e:
-                logger.error(f"Error inesperado adquiriendo lock: {e}")
-                return False
+        """Acquire the lock"""
+        try:
+            acquired = self.lock.acquire(blocking=blocking, timeout=timeout or 30)
+            if acquired:
+                self.acquired_count += 1
+                logger.info(f"Lock '{self.name}' acquired (count: {self.acquired_count})")
+            return acquired
+        except Exception as e:
+            logger.error(f"Error acquiring lock '{self.name}': {e}")
+            return False
     
     def release(self):
-        """
-        Libera el lock distribuido
-        """
+        """Release the lock"""
         try:
-            # Verificar que somos el propietario antes de eliminar
-            obj = self.s3_client.get_object(Bucket=self.bucket, Key=self.lock_key)
-            lock_data = json.loads(obj['Body'].read().decode())
-            
-            if lock_data.get('owner') == self.owner_id:
-                self.s3_client.delete_object(Bucket=self.bucket, Key=self.lock_key)
-                logger.info(f"Lock '{self.lock_name}' liberado por {self.owner_id}")
-                return True
-            else:
-                logger.warning(f"Intento de liberar lock '{self.lock_name}' sin ser propietario")
-                return False
-                
-        except ClientError as e:
-            if e.response['Error']['Code'] == 'NoSuchKey':
-                # El lock ya no existe, probablemente expiró
-                logger.info(f"Lock '{self.lock_name}' ya no existe (probablemente expiró)")
-                return True
-            else:
-                logger.error(f"Error liberando lock: {e}")
-                return False
+            self.lock.release()
+            self.acquired_count = max(0, self.acquired_count - 1)
+            logger.info(f"Lock '{self.name}' released (count: {self.acquired_count})")
+            return True
         except Exception as e:
-            logger.error(f"Error inesperado liberando lock: {e}")
+            logger.error(f"Error releasing lock '{self.name}': {e}")
             return False
 
-# Lock local para operaciones en memoria
-local_lock = threading.RLock()
-
-# Lock distribuido para operaciones de archivo
-flows_lock = DistributedLock("flows_operations", s3_client, S3_BUCKET, timeout=60)
+# Lock simplificado para operaciones de flows
+flows_lock = SimplifiedLock("flows_operations")
 
 @contextlib.contextmanager
 def acquire_flows_lock(timeout=30):
     """
-    Context manager para adquirir el lock de flujos de forma segura
+    Context manager simplificado para adquirir el lock
     """
-    # Primero adquirir el lock local
-    local_acquired = local_lock.acquire(timeout=1)
-    if not local_acquired:
-        raise RuntimeError("No se pudo adquirir el lock local")
+    acquired = flows_lock.acquire(blocking=True, timeout=timeout)
+    if not acquired:
+        raise RuntimeError(f"No se pudo adquirir el lock en {timeout}s")
     
     try:
-        # Luego adquirir el lock distribuido
-        distributed_acquired = flows_lock.acquire(blocking=True, timeout=timeout)
-        if not distributed_acquired:
-            raise RuntimeError(f"No se pudo adquirir el lock distribuido en {timeout}s")
-        
-        try:
-            yield
-        finally:
-            # Liberar lock distribuido
-            flows_lock.release()
+        yield
     finally:
-        # Liberar lock local
-        local_lock.release()
+        flows_lock.release()
 
 def decode_ip_from_url(encoded_ip):
     """Decodifica la IP de la URL"""
@@ -209,15 +117,20 @@ def run_flows_command(args):
             cmd,
             capture_output=True,
             text=True,
-            cwd='/app'
+            cwd='/app',
+            timeout=60  # Timeout de 60 segundos
         )
         
         logger.info(f"flows.py return code: {result.returncode}")
-        logger.info(f"flows.py stdout: {result.stdout}")
+        if result.stdout:
+            logger.info(f"flows.py stdout: {result.stdout}")
         if result.stderr:
             logger.warning(f"flows.py stderr: {result.stderr}")
             
         return result.returncode == 0, result.stdout, result.stderr
+    except subprocess.TimeoutExpired:
+        logger.error("flows.py timeout después de 60 segundos")
+        return False, "", "Timeout después de 60 segundos"
     except Exception as e:
         logger.error(f"Error ejecutando flows.py: {e}")
         return False, "", str(e)
@@ -235,10 +148,20 @@ def run_src_command(dest_prefix, route_json, replace=False):
             cmd,
             capture_output=True,
             text=True,
-            cwd='/app'
+            cwd='/app',
+            timeout=60  # Timeout de 60 segundos
         )
         
+        logger.info(f"src.py return code: {result.returncode}")
+        if result.stdout:
+            logger.info(f"src.py stdout: {result.stdout}")
+        if result.stderr:
+            logger.warning(f"src.py stderr: {result.stderr}")
+        
         return result.returncode == 0, result.stdout, result.stderr
+    except subprocess.TimeoutExpired:
+        logger.error("src.py timeout después de 60 segundos")
+        return False, "", "Timeout después de 60 segundos"
     except Exception as e:
         logger.error(f"Error ejecutando src.py: {e}")
         return False, "", str(e)
@@ -246,36 +169,47 @@ def run_src_command(dest_prefix, route_json, replace=False):
 def delete_route_from_ru(dest_ip):
     """Elimina la ruta del destino en RU usando ip -6 route del"""
     try:
-        cmd = ['ssh', '-o', 'StrictHostKeyChecking=no', 'root@ru.across-tc32.svc.cluster.local', 
-               f'/usr/sbin/ip -6 route del {dest_ip}']
+        cmd = ['ssh', '-o', 'StrictHostKeyChecking=no', 
+               '-o', 'ConnectTimeout=10',
+               'root@ru.across-tc32.svc.cluster.local', 
+               f'PATH=$PATH:/usr/sbin:/sbin /usr/sbin/ip -6 route del {dest_ip}']
         
-        logger.info(f"Eliminando ruta en RU: {' '.join(cmd)}")
+        logger.info(f"Eliminando ruta en RU: {' '.join(cmd[:-1])} '{cmd[-1]}'")
         
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            cwd='/app'
+            cwd='/app',
+            timeout=30
         )
         
         logger.info(f"ip route del return code: {result.returncode}")
-        logger.info(f"ip route del stdout: {result.stdout}")
+        if result.stdout:
+            logger.info(f"ip route del stdout: {result.stdout}")
         if result.stderr:
             logger.warning(f"ip route del stderr: {result.stderr}")
             
-        return result.returncode == 0 or "No such file or directory" in result.stderr or "No route to host" in result.stderr
+        # Retornar True si no hay error, o si el error es que la ruta no existe
+        return (result.returncode == 0 or 
+                "No such file or directory" in result.stderr or 
+                "No route to host" in result.stderr or
+                "Network is unreachable" in result.stderr)
         
+    except subprocess.TimeoutExpired:
+        logger.error("SSH timeout eliminando ruta")
+        return False
     except Exception as e:
         logger.error(f"Error eliminando ruta en RU: {e}")
         return False
 
 def get_flows_data():
-    """Obtiene los datos actuales de flows - DEBE ejecutarse dentro del lock"""
+    """Obtiene los datos actuales de flows - NO necesita lock adicional"""
     try:
         success, stdout, stderr = run_flows_command(['--list'])
         logger.info(f"flows.py --list success: {success}")
         
-        if success:
+        if success and stdout:
             lines = stdout.split('\n')
             json_start = -1
             
@@ -304,6 +238,7 @@ def get_flows_data():
                     
                 except json.JSONDecodeError as e:
                     logger.error(f"Error parseando JSON: {e}")
+                    logger.error(f"JSON text: {json_text}")
                     return {"flows": []}
             else:
                 logger.warning("No se encontró inicio de JSON válido")
@@ -321,8 +256,8 @@ def list_flows():
     try:
         logger.info("Solicitando lista de flujos")
         
-        # Para lectura, usar un timeout más corto
-        with acquire_flows_lock(timeout=10):
+        # Para lectura, usar timeout más corto y lock más simple
+        with acquire_flows_lock(timeout=5):
             data = get_flows_data()
             
         logger.info(f"Datos obtenidos exitosamente")
@@ -353,7 +288,7 @@ def create_flow(encoded_ip):
         logger.info(f"[CREATE] Iniciando creación de flujo para IP: {ip}")
         
         # Adquirir lock antes de cualquier operación
-        with acquire_flows_lock(timeout=30):
+        with acquire_flows_lock(timeout=15):
             logger.info(f"[CREATE] Lock adquirido para IP: {ip}")
             
             # Preparar argumentos para flows.py
@@ -431,7 +366,7 @@ def update_flow(encoded_ip):
         logger.info(f"[UPDATE] Iniciando actualización de flujo para IP: {ip}")
         
         # Adquirir lock antes de cualquier operación
-        with acquire_flows_lock(timeout=30):
+        with acquire_flows_lock(timeout=15):
             logger.info(f"[UPDATE] Lock adquirido para IP: {ip}")
             
             # Actualizar flujo con flows.py
@@ -481,7 +416,7 @@ def delete_flow(encoded_ip):
         logger.info(f"[DELETE] Iniciando eliminación de flujo: {ip}")
 
         # Adquirir lock antes de cualquier operación
-        with acquire_flows_lock(timeout=30):
+        with acquire_flows_lock(timeout=15):
             logger.info(f"[DELETE] Lock adquirido para IP: {ip}")
             
             # Eliminar flujo con flows.py
@@ -543,24 +478,11 @@ def locks_status():
     """Endpoint para verificar el estado de los locks (para debugging)"""
     try:
         status = {
-            "local_lock_locked": local_lock._count > 0 if hasattr(local_lock, '_count') else False,
-            "distributed_lock_name": flows_lock.lock_name,
-            "distributed_lock_key": flows_lock.lock_key
+            "local_lock_locked": flows_lock.acquired_count > 0,
+            "local_lock_count": flows_lock.acquired_count,
+            "lock_type": "simplified_threading_lock",
+            "lock_name": flows_lock.name
         }
-        
-        # Intentar obtener información del lock distribuido
-        try:
-            obj = s3_client.get_object(Bucket=S3_BUCKET, Key=flows_lock.lock_key)
-            lock_data = json.loads(obj['Body'].read().decode())
-            status["distributed_lock_exists"] = True
-            status["distributed_lock_owner"] = lock_data.get('owner', 'unknown')
-            status["distributed_lock_expires_at"] = lock_data.get('expires_at', 0)
-            status["distributed_lock_expired"] = time.time() > lock_data.get('expires_at', 0)
-        except ClientError as e:
-            if e.response['Error']['Code'] == 'NoSuchKey':
-                status["distributed_lock_exists"] = False
-            else:
-                status["distributed_lock_error"] = str(e)
         
         return jsonify(status), 200
     except Exception as e:
@@ -580,19 +502,6 @@ if __name__ == '__main__':
         if not os.environ.get(env_var):
             logger.error(f"Variable de entorno requerida no encontrada: {env_var}")
             exit(1)
-    
-    # Crear directorio de locks si no existe
-    try:
-        # Verificar/crear directorio de locks en S3
-        s3_client.put_object(
-            Bucket=S3_BUCKET,
-            Key="locks/.gitkeep",
-            Body=b"# Directorio para locks distribuidos"
-        )
-        logger.info("Directorio de locks inicializado")
-    except Exception as e:
-        logger.error(f"Error inicializando directorio de locks: {e}")
-        exit(1)
     
     # Lanzar pce.py como subproceso
     def stream_subprocess_output(pipe, log_func):
@@ -618,5 +527,5 @@ if __name__ == '__main__':
         logger.error(f"Error lanzando pce.py: {e}")
         exit(1)
 
-    logger.info("Iniciando Flask API con sistema de cerrojos distribuidos...")
+    logger.info("Iniciando Flask API con sistema de cerrojos simplificados...")
     app.run(host='0.0.0.0', port=5000, debug=False)
