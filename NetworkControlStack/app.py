@@ -41,8 +41,7 @@ s3_client = boto3.client(
 
 class SimplifiedLock:
     """
-    Lock simplificado usando solo threading local
-    Para evitar problemas con S3 distributed locks
+    Lock simplificado con timeout más corto para operaciones de lectura
     """
     def __init__(self, name):
         self.name = name
@@ -52,7 +51,7 @@ class SimplifiedLock:
     def acquire(self, blocking=True, timeout=None):
         """Acquire the lock"""
         try:
-            acquired = self.lock.acquire(blocking=blocking, timeout=timeout or 30)
+            acquired = self.lock.acquire(blocking=blocking, timeout=timeout or 10)  # Timeout más corto
             if acquired:
                 self.acquired_count += 1
                 logger.info(f"Lock '{self.name}' acquired (count: {self.acquired_count})")
@@ -72,22 +71,22 @@ class SimplifiedLock:
             logger.error(f"Error releasing lock '{self.name}': {e}")
             return False
 
-# Lock simplificado para operaciones de flows
-flows_lock = SimplifiedLock("flows_operations")
+# Lock simplificado para operaciones de flows - ahora solo para coordinación API
+api_coordination_lock = SimplifiedLock("api_coordination")
 
 @contextlib.contextmanager
-def acquire_flows_lock(timeout=30):
+def acquire_api_lock(timeout=5):
     """
-    Context manager simplificado para adquirir el lock
+    Context manager para coordinar las APIs (timeout más corto)
     """
-    acquired = flows_lock.acquire(blocking=True, timeout=timeout)
+    acquired = api_coordination_lock.acquire(blocking=True, timeout=timeout)
     if not acquired:
-        raise RuntimeError(f"No se pudo adquirir el lock en {timeout}s")
+        raise RuntimeError(f"No se pudo adquirir el lock de API en {timeout}s")
     
     try:
         yield
     finally:
-        flows_lock.release()
+        api_coordination_lock.release()
 
 def decode_ip_from_url(encoded_ip):
     """Decodifica la IP de la URL"""
@@ -265,12 +264,12 @@ def get_flows_data_with_debug():
 
 @app.route('/flows', methods=['GET'])
 def list_flows():
-    """GET /flows - Lista todos los flujos"""
+    """GET /flows - Lista todos los flujos (solo lectura, sin cola)"""
     try:
         logger.info("[GET] Solicitando lista de flujos")
         
-        # Para lectura, usar timeout más corto y lock más simple
-        with acquire_flows_lock(timeout=5):
+        # Para lectura, usar timeout muy corto y sin cola
+        with acquire_api_lock(timeout=2):
             data = get_flows_data_with_debug()
             
         logger.info(f"[GET] Datos obtenidos exitosamente: {len(data.get('flows', []))} flujos")
@@ -284,7 +283,7 @@ def list_flows():
 
 @app.route('/flows/<encoded_ip>', methods=['POST'])
 def create_flow(encoded_ip):
-    """POST /flows/<ip> - Crea un nuevo flujo"""
+    """POST /flows/<ip> - Crea un nuevo flujo usando cola FIFO"""
     try:
         # Capturar timestamp de la API inmediatamente
         api_timestamp = time.time() if LOGTS else None
@@ -300,9 +299,9 @@ def create_flow(encoded_ip):
         
         logger.info(f"[CREATE] Iniciando creación de flujo para IP: {ip}")
         
-        # Adquirir lock antes de cualquier operación
-        with acquire_flows_lock(timeout=15):
-            logger.info(f"[CREATE] Lock adquirido para IP: {ip}")
+        # Solo coordinación ligera de API, el flows.py maneja la cola
+        with acquire_api_lock(timeout=3):
+            logger.info(f"[CREATE] Lock de API adquirido para IP: {ip}")
             
             # Preparar argumentos para flows.py
             cmd_args = [ip, '--add']
@@ -316,7 +315,7 @@ def create_flow(encoded_ip):
                 cmd_args.extend(['--api-timestamp', str(api_timestamp)])
                 logger.info(f"Pasando timestamp de API: {api_timestamp}")
             
-            # Crear flujo con flows.py
+            # Crear flujo con flows.py (ahora usa cola interna)
             success, stdout, stderr = run_flows_command(cmd_args)
             
             if not success:
@@ -325,26 +324,19 @@ def create_flow(encoded_ip):
                     return jsonify({"error": f"El flujo {ip} ya existe"}), 409
                 return jsonify({"error": f"Error creando flujo: {stderr}"}), 500
             
-            logger.info(f"[CREATE] Flujo {ip} creado exitosamente en base de datos")
-            
-            # INMEDIATAMENTE después de crear, mostrar contenido del archivo
-            logger.info(f"[CREATE] === CONTENIDO DEL ARCHIVO DESPUÉS DE CREAR {ip} ===")
-            debug_data = get_flows_data_with_debug()
-            logger.info(f"[CREATE] Flujos en archivo después de crear:")
-            for flow in debug_data.get('flows', []):
-                logger.info(f"[CREATE]   - {flow.get('_id')} (route: {flow.get('route')}, v{flow.get('version', 1)})")
-            logger.info(f"[CREATE] === FIN CONTENIDO ARCHIVO ===")
-            
-            # Verificar específicamente si nuestro flujo está presente
-            our_flow = next((f for f in debug_data.get('flows', []) if f.get('_id') == ip), None)
-            if our_flow:
-                logger.info(f"[CREATE] ✅ CONFIRMADO: Flujo {ip} SÍ está en el archivo")
-                logger.info(f"[CREATE] Detalles: {our_flow}")
-            else:
-                logger.error(f"[CREATE] ❌ ERROR: Flujo {ip} NO está en el archivo después de crearlo!")
-                logger.error(f"[CREATE] IDs encontradas: {[f.get('_id') for f in debug_data.get('flows', [])]}")
+            logger.info(f"[CREATE] Flujo {ip} encolado exitosamente")
         
         # El lock se libera aquí automáticamente
+        
+        # Verificación post-creación (fuera del lock)
+        time.sleep(0.1)  # Breve pausa para que se procese la cola
+        logger.info(f"[CREATE] === VERIFICACIÓN POST-CREACIÓN {ip} ===")
+        debug_data = get_flows_data_with_debug()
+        our_flow = next((f for f in debug_data.get('flows', []) if f.get('_id') == ip), None)
+        if our_flow:
+            logger.info(f"[CREATE] ✅ CONFIRMADO: Flujo {ip} creado correctamente")
+        else:
+            logger.warning(f"[CREATE] ⚠️  Flujo {ip} aún procesándose en cola")
         
         # Si no tiene ruta, forzar recálculo
         if not route:
@@ -376,7 +368,7 @@ def create_flow(encoded_ip):
 
 @app.route('/flows/<encoded_ip>', methods=['PUT'])
 def update_flow(encoded_ip):
-    """PUT /flows/<ip> - Actualiza la ruta de un flujo"""
+    """PUT /flows/<ip> - Actualiza la ruta de un flujo usando cola FIFO"""
     try:
         # Decodificar la IP
         ip = decode_ip_from_url(encoded_ip)
@@ -395,11 +387,11 @@ def update_flow(encoded_ip):
         
         logger.info(f"[UPDATE] Iniciando actualización de flujo para IP: {ip}")
         
-        # Adquirir lock antes de cualquier operación
-        with acquire_flows_lock(timeout=15):
-            logger.info(f"[UPDATE] Lock adquirido para IP: {ip}")
+        # Solo coordinación ligera de API
+        with acquire_api_lock(timeout=3):
+            logger.info(f"[UPDATE] Lock de API adquirido para IP: {ip}")
             
-            # Actualizar flujo con flows.py
+            # Actualizar flujo con flows.py (ahora usa cola interna)
             route_json = json.dumps(route)
             success, stdout, stderr = run_flows_command([ip, '--update', '--route', route_json])
             
@@ -409,25 +401,17 @@ def update_flow(encoded_ip):
                     return jsonify({"error": f"El flujo {ip} no existe"}), 404
                 return jsonify({"error": f"Error actualizando flujo: {stderr}"}), 500
             
-            logger.info(f"[UPDATE] Flujo {ip} actualizado exitosamente en base de datos")
-            
-            # INMEDIATAMENTE después de actualizar, mostrar contenido del archivo
-            logger.info(f"[UPDATE] === CONTENIDO DEL ARCHIVO DESPUÉS DE ACTUALIZAR {ip} ===")
-            debug_data = get_flows_data_with_debug()
-            logger.info(f"[UPDATE] Flujos en archivo después de actualizar:")
-            for flow in debug_data.get('flows', []):
-                logger.info(f"[UPDATE]   - {flow.get('_id')} (route: {flow.get('route')}, v{flow.get('version', 1)})")
-            logger.info(f"[UPDATE] === FIN CONTENIDO ARCHIVO ===")
-            
-            # Verificar específicamente si nuestro flujo está presente con la nueva ruta
-            our_flow = next((f for f in debug_data.get('flows', []) if f.get('_id') == ip), None)
-            if our_flow:
-                logger.info(f"[UPDATE] ✅ CONFIRMADO: Flujo {ip} SÍ está en el archivo")
-                logger.info(f"[UPDATE] Nueva ruta: {our_flow.get('route')}")
-            else:
-                logger.error(f"[UPDATE] ❌ ERROR: Flujo {ip} NO está en el archivo después de actualizarlo!")
+            logger.info(f"[UPDATE] Flujo {ip} encolado para actualización")
         
-        # El lock se libera aquí automáticamente
+        # Verificación post-actualización (fuera del lock)
+        time.sleep(0.1)  # Breve pausa para que se procese la cola
+        logger.info(f"[UPDATE] === VERIFICACIÓN POST-ACTUALIZACIÓN {ip} ===")
+        debug_data = get_flows_data_with_debug()
+        our_flow = next((f for f in debug_data.get('flows', []) if f.get('_id') == ip), None)
+        if our_flow:
+            logger.info(f"[UPDATE] ✅ CONFIRMADO: Flujo {ip} actualizado")
+        else:
+            logger.warning(f"[UPDATE] ⚠️  Flujo {ip} aún procesándose en cola")
         
         # Ejecutar src.py con --replace para actualizar la ruta
         dest_prefix = f"{ip}/64" if '/' not in ip else ip
@@ -452,7 +436,7 @@ def update_flow(encoded_ip):
 
 @app.route('/flows/<encoded_ip>', methods=['DELETE'])
 def delete_flow(encoded_ip):
-    """DELETE /flows/<ip> - Elimina un flujo y su ruta en RU"""
+    """DELETE /flows/<ip> - Elimina un flujo usando cola FIFO"""
     try:
         # Decodificar la IP
         ip = decode_ip_from_url(encoded_ip)
@@ -461,21 +445,13 @@ def delete_flow(encoded_ip):
         
         logger.info(f"[DELETE] Iniciando eliminación de flujo: {ip}")
 
-        # Adquirir lock antes de cualquier operación
-        with acquire_flows_lock(timeout=15):
-            logger.info(f"[DELETE] Lock adquirido para IP: {ip}")
+        # Solo coordinación ligera de API
+        with acquire_api_lock(timeout=3):
+            logger.info(f"[DELETE] Lock de API adquirido para IP: {ip}")
             
-            # Eliminar flujo con flows.py
+            # Eliminar flujo con flows.py (ahora usa cola interna)
             success, stdout, stderr = run_flows_command([ip, '--delete'])
             logger.info(f"[DELETE] Resultado eliminación flujo: success={success}")
-            
-            # INMEDIATAMENTE después de eliminar, mostrar contenido del archivo
-            logger.info(f"[DELETE] === CONTENIDO DEL ARCHIVO DESPUÉS DE ELIMINAR {ip} ===")
-            debug_data = get_flows_data_with_debug()
-            logger.info(f"[DELETE] Flujos en archivo después de eliminar:")
-            for flow in debug_data.get('flows', []):
-                logger.info(f"[DELETE]   - {flow.get('_id')} (route: {flow.get('route')}, v{flow.get('version', 1)})")
-            logger.info(f"[DELETE] === FIN CONTENIDO ARCHIVO ===")
             
             flow_existed = True
             if not success:
@@ -488,16 +464,17 @@ def delete_flow(encoded_ip):
                         "error": f"Error eliminando flujo: {stderr or stdout or 'desconocido'}"
                     }), 500
             else:
-                logger.info(f"[DELETE] Flujo {ip} eliminado exitosamente del registro")
-                
-            # Verificar específicamente que el flujo ya no está
-            our_flow = next((f for f in debug_data.get('flows', []) if f.get('_id') == ip), None)
-            if our_flow:
-                logger.warning(f"[DELETE] ⚠️  ADVERTENCIA: Flujo {ip} AÚN está en el archivo después de eliminarlo!")
-            else:
-                logger.info(f"[DELETE] ✅ CONFIRMADO: Flujo {ip} eliminado correctamente del archivo")
+                logger.info(f"[DELETE] Flujo {ip} encolado para eliminación")
         
-        # El lock se libera aquí automáticamente
+        # Verificación post-eliminación (fuera del lock)
+        time.sleep(0.1)  # Breve pausa para que se procese la cola
+        logger.info(f"[DELETE] === VERIFICACIÓN POST-ELIMINACIÓN {ip} ===")
+        debug_data = get_flows_data_with_debug()
+        our_flow = next((f for f in debug_data.get('flows', []) if f.get('_id') == ip), None)
+        if our_flow:
+            logger.warning(f"[DELETE] ⚠️  Flujo {ip} aún en cola de procesamiento")
+        else:
+            logger.info(f"[DELETE] ✅ CONFIRMADO: Flujo {ip} eliminado correctamente")
         
         # Eliminar la ruta en RU (fuera del lock)
         dest_ip = ip if '/' not in ip else ip.split('/')[0]
@@ -539,10 +516,28 @@ def locks_status():
     """Endpoint para verificar el estado de los locks (para debugging)"""
     try:
         status = {
-            "local_lock_locked": flows_lock.acquired_count > 0,
-            "local_lock_count": flows_lock.acquired_count,
+            "local_lock_locked": api_coordination_lock.acquired_count > 0,
+            "local_lock_count": api_coordination_lock.acquired_count,
             "lock_type": "simplified_threading_lock",
-            "lock_name": flows_lock.name
+            "lock_name": api_coordination_lock.name
+        }
+        
+        return jsonify(status), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/queue/status', methods=['GET'])
+def queue_status():
+    """Endpoint para verificar el estado de la cola (para debugging)"""
+    try:
+        # Importar flows para acceder a la cola
+        import flows
+        
+        status = {
+            "queue_size": flows.write_queue.qsize() if hasattr(flows, 'write_queue') else 0,
+            "worker_running": flows.write_worker_running if hasattr(flows, 'write_worker_running') else False,
+            "api_lock_count": api_coordination_lock.acquired_count,
+            "queue_dir_exists": os.path.exists("/tmp/flows_queue")
         }
         
         return jsonify(status), 200

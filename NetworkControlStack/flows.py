@@ -7,6 +7,8 @@ import re
 import boto3
 import argparse
 import threading
+import queue
+import uuid
 from botocore.exceptions import ClientError
 
 # Configuración S3 (Minio)
@@ -28,6 +30,18 @@ LOGTS = os.environ.get('LOGTS', 'false').lower() == 'true'
 
 # Lock local simple para evitar condiciones de carrera dentro del mismo proceso
 local_lock = threading.RLock()
+
+# Nueva configuración para cola FIFO
+QUEUE_DIR = "/tmp/flows_queue"
+PROCESSING_FLAG = "/tmp/flows_processing.lock"
+
+# Crear directorio de cola si no existe
+os.makedirs(QUEUE_DIR, exist_ok=True)
+
+# Cola thread-safe para operaciones de escritura
+write_queue = queue.Queue()
+write_worker_thread = None
+write_worker_running = False
 
 def read_data():
     """Lee datos de S3"""
@@ -81,114 +95,215 @@ def write_data(flows, inactive_routers=None):
     except Exception as e:
         print(f"[flows] Error escribiendo: {e}", file=sys.stderr)
 
+def start_write_worker():
+    """Inicia el worker thread para procesar la cola de escrituras"""
+    global write_worker_thread, write_worker_running
+    if write_worker_thread is None or not write_worker_thread.is_alive():
+        write_worker_running = True
+        write_worker_thread = threading.Thread(target=write_worker, daemon=True)
+        write_worker_thread.start()
+        print("[flows] Write worker iniciado")
+
+def write_worker():
+    """Worker thread que procesa la cola de escrituras de forma serializada"""
+    global write_worker_running
+    while write_worker_running:
+        try:
+            # Esperar por una operación de escritura
+            operation = write_queue.get(timeout=1.0)
+            
+            if operation is None:  # Señal de parada
+                break
+                
+            # Procesar la operación con lock completo
+            with local_lock:
+                try:
+                    _process_write_operation(operation)
+                except Exception as e:
+                    print(f"[flows] ERROR en write worker: {e}", file=sys.stderr)
+                finally:
+                    write_queue.task_done()
+                    
+        except queue.Empty:
+            continue
+        except Exception as e:
+            print(f"[flows] ERROR crítico en write worker: {e}", file=sys.stderr)
+
+def _process_write_operation(operation):
+    """Procesa una operación de escritura individual"""
+    op_type = operation.get('type')
+    op_id = operation.get('id')
+    
+    print(f"[flows] Procesando operación {op_type} ID:{op_id}")
+    
+    # Leer estado actual
+    data = read_data()
+    flows = data.get("flows", [])
+    inactive = data.get("inactive_routers", [])
+    
+    if op_type == 'add':
+        result = _execute_add_operation(flows, inactive, operation)
+    elif op_type == 'delete':
+        result = _execute_delete_operation(flows, inactive, operation)
+    elif op_type == 'update':
+        result = _execute_update_operation(flows, inactive, operation)
+    else:
+        print(f"[flows] ERROR: Tipo de operación desconocido: {op_type}", file=sys.stderr)
+        return
+    
+    if result['success']:
+        write_data(result['flows'], result['inactive'])
+        print(f"[flows] Operación {op_type} ID:{op_id} completada exitosamente")
+    else:
+        print(f"[flows] ERROR: Operación {op_type} ID:{op_id} falló: {result['error']}", file=sys.stderr)
+
+def _execute_add_operation(flows, inactive, operation):
+    """Ejecuta operación de añadir flujo"""
+    ip = operation['ip']
+    route = operation.get('route')
+    timestamps = operation.get('timestamps')
+    api_timestamp = operation.get('api_timestamp')
+    
+    # Verificar si ya existe
+    for f in flows:
+        if f["_id"] == ip:
+            return {'success': False, 'error': f"El flujo {ip} ya existe"}
+    
+    new_flow = {"_id": ip, "version": 1}
+    if route:
+        new_flow["route"] = route
+    
+    # Manejar timestamps
+    if LOGTS:
+        new_flow["timestamps"] = {}
+        if api_timestamp is not None:
+            new_flow["timestamps"]["ts_api_created"] = api_timestamp
+        if timestamps:
+            new_flow["timestamps"].update(timestamps)
+    
+    flows.append(new_flow)
+    return {'success': True, 'flows': flows, 'inactive': inactive}
+
+def _execute_delete_operation(flows, inactive, operation):
+    """Ejecuta operación de eliminar flujo"""
+    flow_id = operation['flow_id']
+    
+    existing_flow = next((f for f in flows if f.get("_id") == flow_id), None)
+    if existing_flow:
+        flows = [f for f in flows if f.get("_id") != flow_id]
+        return {'success': True, 'flows': flows, 'inactive': inactive}
+    else:
+        return {'success': False, 'error': f"Flujo {flow_id} no encontrado"}
+
+def _execute_update_operation(flows, inactive, operation):
+    """Ejecuta operación de actualizar flujo"""
+    ip = operation['ip']
+    route = operation.get('route')
+    timestamps = operation.get('timestamps')
+    
+    for f in flows:
+        if f["_id"] == ip:
+            if route is not None:
+                f["route"] = route
+                f["version"] = f.get("version", 1) + 1
+            if timestamps and LOGTS:
+                if "timestamps" not in f:
+                    f["timestamps"] = {}
+                f["timestamps"].update(timestamps)
+            return {'success': True, 'flows': flows, 'inactive': inactive}
+    
+    return {'success': False, 'error': f"Flujo {ip} no encontrado"}
+
 def read_flows():
-    """Lee flujos con lock local"""
-    with local_lock:
-        data = read_data()
-        return data.get("flows", []), data.get("inactive_routers", []), None
+    """Lee flujos sin lock de escritura (solo lectura rápida)"""
+    data = read_data()
+    return data.get("flows", []), data.get("inactive_routers", []), None
 
 def write_flows(flows, inactive_routers=None):
-    """Escribe flujos con lock local"""
-    with local_lock:
-        write_data(flows, inactive_routers)
+    """Mantener compatibilidad - ahora usa la cola"""
+    operation = {
+        'type': 'write_direct',
+        'id': str(uuid.uuid4())[:8],
+        'flows': flows,
+        'inactive': inactive_routers or []
+    }
+    write_queue.put(operation)
 
 def list_flows():
-    """Lista flujos con lock local"""
-    with local_lock:
-        data = read_data()
-        print(json.dumps(data, indent=4))
+    """Lista flujos - solo lectura, sin cola"""
+    data = read_data()
+    print(json.dumps(data, indent=4))
 
 def add_flow(ip, route=None, timestamps=None, api_timestamp=None):
-    """Añade flujo con lock local"""
+    """Añade flujo usando cola FIFO"""
     try:
-        with local_lock:
-            print(f"[flows] Añadiendo flujo {ip}")
-            
-            data = read_data()
-            flows = data.get("flows", [])
-            inactive = data.get("inactive_routers", [])
-            
-            # Verificar si ya existe
-            for f in flows:
-                if f["_id"] == ip:
-                    print(f"[flows] ERROR: El flujo {ip} ya existe", file=sys.stderr)
-                    return False
-
-            new_flow = {"_id": ip, "version": 1}
-            if route:
-                new_flow["route"] = route
-            
-            # Manejar timestamps
-            if LOGTS:
-                new_flow["timestamps"] = {}
-                
-                if api_timestamp is not None:
-                    new_flow["timestamps"]["ts_api_created"] = api_timestamp
-                    print(f"[flows] Timestamp API añadido: ts_api_created = {api_timestamp}")
-                
-                if timestamps:
-                    new_flow["timestamps"].update(timestamps)
-
-            flows.append(new_flow)
-            write_data(flows, inactive)
-            print(f"[flows] Flujo {ip} añadido exitosamente")
-            return True
-            
+        start_write_worker()  # Asegurar que el worker está ejecutándose
+        
+        operation = {
+            'type': 'add',
+            'id': str(uuid.uuid4())[:8],
+            'ip': ip,
+            'route': route,
+            'timestamps': timestamps,
+            'api_timestamp': api_timestamp
+        }
+        
+        print(f"[flows] Encolando operación ADD para {ip} (ID: {operation['id']})")
+        write_queue.put(operation)
+        
+        # Esperar a que se procese (con timeout)
+        write_queue.join()
+        print(f"[flows] Operación ADD para {ip} procesada")
+        return True
+        
     except Exception as e:
         print(f"[flows] ERROR: Excepción añadiendo {ip}: {e}", file=sys.stderr)
         return False
 
 def delete_flow(flow_id, data=None):
-    """Elimina flujo con lock local"""
+    """Elimina flujo usando cola FIFO"""
     try:
-        with local_lock:
-            print(f"[flows] Eliminando flujo {flow_id}")
-            
-            if data is None:
-                data = read_data()
-
-            flows = data.get("flows", [])
-            existing_flow = next((f for f in flows if f.get("_id") == flow_id), None)
-            if existing_flow:
-                flows = [f for f in flows if f.get("_id") != flow_id]
-                print(f"[flows] Flujo {flow_id} eliminado.")
-                write_data(flows, data.get("inactive_routers"))
-                return True
-            else:
-                print(f"[flows] ERROR: Flujo {flow_id} no encontrado.", file=sys.stderr)
-                return False
-                
+        start_write_worker()
+        
+        operation = {
+            'type': 'delete',
+            'id': str(uuid.uuid4())[:8],
+            'flow_id': flow_id
+        }
+        
+        print(f"[flows] Encolando operación DELETE para {flow_id} (ID: {operation['id']})")
+        write_queue.put(operation)
+        
+        # Esperar a que se procese
+        write_queue.join()
+        print(f"[flows] Operación DELETE para {flow_id} procesada")
+        return True
+        
     except Exception as e:
         print(f"[flows] ERROR: Excepción eliminando {flow_id}: {e}", file=sys.stderr)
         return False
 
 def update_flow(ip, route=None, timestamps=None):
-    """Actualiza flujo con lock local"""
+    """Actualiza flujo usando cola FIFO"""
     try:
-        with local_lock:
-            print(f"[flows] Actualizando flujo {ip}")
-            
-            data = read_data()
-            flows = data.get("flows", [])
-            inactive = data.get("inactive_routers", [])
-            
-            for f in flows:
-                if f["_id"] == ip:
-                    if route is not None:
-                        f["route"] = route
-                        f["version"] = f.get("version", 1) + 1
-                    if timestamps and LOGTS:
-                        if "timestamps" not in f:
-                            f["timestamps"] = {}
-                        f["timestamps"].update(timestamps)
-
-                    write_data(flows, inactive)
-                    print(f"[flows] Flujo {ip} actualizado exitosamente")
-                    return True
-
-            print(f"[flows] ERROR: Flujo {ip} no encontrado", file=sys.stderr)
-            return False
-            
+        start_write_worker()
+        
+        operation = {
+            'type': 'update',
+            'id': str(uuid.uuid4())[:8],
+            'ip': ip,
+            'route': route,
+            'timestamps': timestamps
+        }
+        
+        print(f"[flows] Encolando operación UPDATE para {ip} (ID: {operation['id']})")
+        write_queue.put(operation)
+        
+        # Esperar a que se procese
+        write_queue.join()
+        print(f"[flows] Operación UPDATE para {ip} procesada")
+        return True
+        
     except Exception as e:
         print(f"[flows] ERROR: Excepción actualizando {ip}: {e}", file=sys.stderr)
         return False
