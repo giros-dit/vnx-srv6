@@ -317,7 +317,13 @@ def create_flow(encoded_ip):
                 logger.info(f"Pasando timestamp de API: {api_timestamp}")
             
             # Crear flujo con flows.py
-            success, stdout, stderr = run_flows_command(cmd_args)
+            try:
+                success, stdout, stderr = run_flows_command(cmd_args)
+            except Exception as e:
+                if "No se pudo adquirir lock S3" in str(e):
+                    logger.error(f"[CREATE] Timeout en lock S3: {e}")
+                    return jsonify({"error": "Sistema ocupado escribiendo a S3, reintente en unos momentos"}), 503
+                raise e
             
             if not success:
                 logger.error(f"[CREATE] Error en flows.py: {stderr}")
@@ -368,6 +374,8 @@ def create_flow(encoded_ip):
         return jsonify({"message": f"Flujo {ip} creado exitosamente"}), 201
         
     except RuntimeError as e:
+        if "Sistema ocupado escribiendo a S3" in str(e):
+            return jsonify({"error": str(e)}), 503
         logger.error(f"[CREATE] Error adquiriendo lock: {e}")
         return jsonify({"error": "Sistema ocupado, reintente en unos momentos"}), 503
     except Exception as e:

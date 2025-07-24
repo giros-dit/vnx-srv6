@@ -9,6 +9,9 @@ import argparse
 import threading
 from botocore.exceptions import ClientError
 
+# Importar el lock compartido
+from shared_lock import acquire_s3_lock
+
 # Configuración S3 (Minio)
 S3_ENDPOINT = os.environ.get('S3_ENDPOINT')
 S3_ACCESS_KEY = os.environ.get('S3_ACCESS_KEY')
@@ -30,54 +33,58 @@ LOGTS = os.environ.get('LOGTS', 'false').lower() == 'true'
 local_lock = threading.RLock()
 
 def read_data():
-    """Lee datos de S3"""
+    """Lee datos de S3 con lock compartido"""
     try:
-        response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
+        with acquire_s3_lock(timeout=10):  # Lock compartido para lectura
+            response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
 
-        print("[flows] Objetos en S3/flows/:")
-        for obj in response.get("Contents", []):
-            print("  -", obj["Key"], "(LastModified:", obj["LastModified"], ")")
+            print("[flows] Objetos en S3/flows/:")
+            for obj in response.get("Contents", []):
+                print("  -", obj["Key"], "(LastModified:", obj["LastModified"], ")")
 
-        if 'Contents' not in response or not response['Contents']:
-            print("[flows] No se encontró ningún fichero en 'flows/'.")
-            return {"flows": []}
+            if 'Contents' not in response or not response['Contents']:
+                print("[flows] No se encontró ningún fichero en 'flows/'.")
+                return {"flows": []}
 
-        json_files = [obj for obj in response['Contents'] if obj['Key'].endswith('.json') and 'flows_' in obj['Key']]
-        if not json_files:
-            print("[flows] No hay ficheros JSON válidos.")
-            return {"flows": []}
+            json_files = [obj for obj in response['Contents'] if obj['Key'].endswith('.json') and 'flows_' in obj['Key']]
+            if not json_files:
+                print("[flows] No hay ficheros JSON válidos.")
+                return {"flows": []}
 
-        pattern = re.compile(r'flows_(\d{8}_\d{6})\.json')
+            pattern = re.compile(r'flows_(\d{8}_\d{6})\.json')
 
-        valid_files = [f for f in json_files if pattern.search(f['Key'])]
+            valid_files = [f for f in json_files if pattern.search(f['Key'])]
 
-        if valid_files:
-            sorted_files = sorted(valid_files, key=lambda x: pattern.search(x['Key']).group(1), reverse=True)
-        else:
-            print("[flows] Ningún fichero válido por nombre, usando LastModified.")
-            sorted_files = sorted(json_files, key=lambda x: x['LastModified'], reverse=True)
+            if valid_files:
+                sorted_files = sorted(valid_files, key=lambda x: pattern.search(x['Key']).group(1), reverse=True)
+            else:
+                print("[flows] Ningún fichero válido por nombre, usando LastModified.")
+                sorted_files = sorted(json_files, key=lambda x: x['LastModified'], reverse=True)
 
-        latest_key = sorted_files[0]['Key']
-        print(f"[flows] Leyendo: {latest_key}")
-        obj = s3_client.get_object(Bucket=S3_BUCKET, Key=latest_key)
-        content = obj['Body'].read().decode('utf-8').strip()
-        return json.loads(content) if content else {"flows": []}
+            latest_key = sorted_files[0]['Key']
+            print(f"[flows] Leyendo: {latest_key}")
+            obj = s3_client.get_object(Bucket=S3_BUCKET, Key=latest_key)
+            content = obj['Body'].read().decode('utf-8').strip()
+            return json.loads(content) if content else {"flows": []}
     except Exception as e:
         print(f"[flows] Error leyendo flows: {e}", file=sys.stderr)
         return {"flows": []}
 
 def write_data(flows, inactive_routers=None):
-    """Escribe datos a S3"""
+    """Escribe datos a S3 con lock compartido"""
     try:
-        data = {
-            "flows": flows,
-            "inactive_routers": inactive_routers or []
-        }
-        content = json.dumps(data, indent=4)
-        timestamp = time.strftime("%Y%m%d_%H%M%S")
-        file_key = f"flows/flows_{timestamp}.json"
-        s3_client.put_object(Bucket=S3_BUCKET, Key=file_key, Body=content.encode("utf-8"))
-        print(f"[flows] Datos guardados en s3://{S3_BUCKET}/{file_key}")
+        with acquire_s3_lock(timeout=15):  # Lock compartido para escritura
+            data = {
+                "flows": flows,
+                "inactive_routers": inactive_routers or []
+            }
+            content = json.dumps(data, indent=4)
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            file_key = f"flows/flows_{timestamp}.json"
+            
+            print(f"[flows] Adquirido lock S3, escribiendo {file_key}")
+            s3_client.put_object(Bucket=S3_BUCKET, Key=file_key, Body=content.encode("utf-8"))
+            print(f"[flows] Datos guardados en s3://{S3_BUCKET}/{file_key}")
     except Exception as e:
         print(f"[flows] Error escribiendo: {e}", file=sys.stderr)
 

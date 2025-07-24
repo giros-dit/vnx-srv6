@@ -14,6 +14,9 @@ from botocore.exceptions import ClientError
 from botocore.config import Config
 from acrosstc32_routing import RoutingEngine
 
+# Importar el lock compartido
+from shared_lock import acquire_s3_lock
+
 # Parámetros globales
 OCCUPANCY_LIMIT = float(os.environ.get('OCCUPANCY_LIMIT', '0.8'))
 ROUTER_LIMIT = float(os.environ.get('ROUTER_LIMIT', '0.95'))
@@ -87,48 +90,21 @@ def ensure_bucket_exists(bucket_name):
 
 ensure_bucket_exists(S3_BUCKET)
 
-def ensure_flows_folder_exists():
-    try:
-        resp = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
-        if 'Contents' not in resp or not resp['Contents']:
-            initial = {"flows": [], "inactive_routers": []}
-            s3_client.put_object(
-                Bucket=S3_BUCKET,
-                Key="flows/flows_initial.json",
-                Body=json.dumps(initial, indent=4).encode()
-            )
-            print("[pce] flows/ creado e inicializado.")
-        else:
-            print("[pce] Ya existe al menos un fichero en flows/.")
-    except Exception as e:
-        print(f"[pce][ERROR] ensure_flows_folder_exists: {e}")
-
-ensure_flows_folder_exists()
-
-def create_graph():
-    with open("networkinfo.json") as f:
-        data = json.load(f)
-    G = nx.DiGraph()
-    for n in data["graph"]["nodes"]:
-        G.add_node(n)
-    for e in data["graph"]["edges"]:
-        G.add_edge(e["source"], e["target"], cost=e["cost"])
-    return G
-
 def read_flows():
     try:
-        resp = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
-        if 'Contents' not in resp or not resp['Contents']:
-            return [], [], None
-        latest_key = max(resp['Contents'], key=lambda o: o['LastModified'])['Key']
-        obj = s3_client.get_object(Bucket=S3_BUCKET, Key=latest_key)
-        flows_data = json.loads(obj['Body'].read().decode())
-        if isinstance(flows_data, dict):
-            return (flows_data.get("flows", []),
-                    flows_data.get("inactive_routers", []),
-                    latest_key)
-        else:
-            return flows_data, [], latest_key
+        with acquire_s3_lock(timeout=10):  # Lock compartido para lectura S3
+            resp = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
+            if 'Contents' not in resp or not resp['Contents']:
+                return [], [], None
+            latest_key = max(resp['Contents'], key=lambda o: o['LastModified'])['Key']
+            obj = s3_client.get_object(Bucket=S3_BUCKET, Key=latest_key)
+            flows_data = json.loads(obj['Body'].read().decode())
+            if isinstance(flows_data, dict):
+                return (flows_data.get("flows", []),
+                        flows_data.get("inactive_routers", []),
+                        latest_key)
+            else:
+                return flows_data, [], latest_key
     except Exception as e:
         print(f"[pce][ERROR] read_flows: {e}")
         return [], [], None
@@ -139,15 +115,44 @@ def write_flows(flows, inactive):
     ts = time.strftime("%Y%m%d_%H%M%S")
     key = f"flows/flows_{ts}.json"
     try:
-        s3_client.put_object(
-            Bucket=S3_BUCKET,
-            Key=key,
-            Body=json.dumps(payload, indent=4).encode()
-        )
-        print(f"[pce] write_flows: guardado {key}")
-        print(f"[pce] Métricas: {metrics}")
+        with acquire_s3_lock(timeout=15):  # Lock compartido para escritura S3
+            print(f"[pce] Adquirido lock S3, escribiendo {key}")
+            s3_client.put_object(
+                Bucket=S3_BUCKET,
+                Key=key,
+                Body=json.dumps(payload, indent=4).encode()
+            )
+            print(f"[pce] write_flows: guardado {key}")
+            print(f"[pce] Métricas: {metrics}")
     except Exception as e:
         print(f"[pce][ERROR] write_flows: {e}")
+
+def ensure_flows_folder_exists():
+    try:
+        with acquire_s3_lock(timeout=10):  # Lock compartido para operación S3
+            resp = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix="flows/")
+            if 'Contents' not in resp or not resp['Contents']:
+                initial = {"flows": [], "inactive_routers": []}
+                s3_client.put_object(
+                    Bucket=S3_BUCKET,
+                    Key="flows/flows_initial.json",
+                    Body=json.dumps(initial, indent=4).encode()
+                )
+                print("[pce] flows/ creado e inicializado.")
+            else:
+                print("[pce] Ya existe al menos un fichero en flows/.")
+    except Exception as e:
+        print(f"[pce][ERROR] ensure_flows_folder_exists: {e}")
+
+def create_graph():
+    with open("networkinfo.json") as f:
+        data = json.load(f)
+    G = nx.DiGraph()
+    for n in data["graph"]["nodes"]:
+        G.add_node(n)
+    for e in data["graph"]["edges"]:
+        G.add_edge(e["source"], e["target"], cost=e["cost"])
+    return G
 
 def calculate_flows_hash(flows, inactive_routers):
     """Calcula un hash robusto de los flujos y nodos inactivos.
