@@ -7,6 +7,7 @@ import re
 import boto3
 import argparse
 import threading
+import traceback
 from botocore.exceptions import ClientError
 
 # Configuración S3 (Minio)
@@ -22,6 +23,59 @@ s3_client = boto3.client(
     aws_secret_access_key=S3_SECRET_KEY,
     region_name='local'
 )
+
+# *** DETECTIVE S3 PARA ATRAPAR AL CULPABLE ***
+_original_put_object = s3_client.put_object
+def logged_put_object(*args, **kwargs):
+    """Log all S3 writes to catch the culprit - FLOWS.PY VERSION"""
+    key = kwargs.get('Key', 'unknown')
+    if 'flows/' in key:
+        print(f"[S3_DETECTIVE_FLOWS.PY] ========== S3 WRITE DETECTED ==========")
+        print(f"[S3_DETECTIVE_FLOWS.PY] Key: {key}")
+        print(f"[S3_DETECTIVE_FLOWS.PY] Timestamp: {time.time()}")
+        
+        # CAPTURAR Y MOSTRAR EL CONTENIDO DEL ARCHIVO
+        body = kwargs.get('Body', b'')
+        if hasattr(body, 'encode'):  # Es string
+            content = body
+        elif hasattr(body, 'read'):  # Es BytesIO
+            content = body.read().decode('utf-8')
+            body.seek(0)  # Reset para que el put_object original funcione
+        else:  # Es bytes
+            content = body.decode('utf-8') if isinstance(body, bytes) else str(body)
+        
+        print(f"[S3_DETECTIVE_FLOWS.PY] ========== CONTENIDO DEL ARCHIVO ==========")
+        print(f"[S3_DETECTIVE_FLOWS.PY] {content}")
+        print(f"[S3_DETECTIVE_FLOWS.PY] ===============================================")
+        
+        # Analizar el contenido para detectar el problema
+        try:
+            data = json.loads(content)
+            flows = data.get('flows', [])
+            print(f"[S3_DETECTIVE_FLOWS.PY] ANÁLISIS: {len(flows)} flujos en este archivo")
+            for flow in flows:
+                route = flow.get('route', 'SIN_RUTA')
+                version = flow.get('version', 'NO_VERSION')
+                print(f"[S3_DETECTIVE_FLOWS.PY] - {flow.get('_id')} -> route: {route}, version: {version}")
+            
+            # DETECTAR EL ARCHIVO PROBLEMÁTICO
+            flows_without_routes = [f for f in flows if not f.get('route')]
+            if len(flows_without_routes) > 0:
+                print(f"[S3_DETECTIVE_FLOWS.PY] *** ARCHIVO PROBLEMÁTICO DETECTADO ***")
+                print(f"[S3_DETECTIVE_FLOWS.PY] *** {len(flows_without_routes)} flujos SIN RUTA ***")
+                print(f"[S3_DETECTIVE_FLOWS.PY] *** FLOWS.PY ES EL CULPABLE ***")
+        except:
+            print(f"[S3_DETECTIVE_FLOWS.PY] No se pudo parsear JSON")
+        
+        print(f"[S3_DETECTIVE_FLOWS.PY] ========== STACK TRACE ==========")
+        for line in traceback.format_stack():
+            print(f"[S3_DETECTIVE_FLOWS.PY] {line.strip()}")
+        print(f"[S3_DETECTIVE_FLOWS.PY] ===================================")
+    
+    return _original_put_object(*args, **kwargs)
+
+s3_client.put_object = logged_put_object
+# *** FIN DETECTIVE S3 ***
 
 # Variable de entorno para medida de latencia
 LOGTS = os.environ.get('LOGTS', 'false').lower() == 'true'
@@ -76,6 +130,7 @@ def write_data(flows, inactive_routers=None):
         content = json.dumps(data, indent=4)
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         file_key = f"flows/flows_{timestamp}.json"
+        print(f"[flows] *** FLOWS.PY ESCRIBIENDO ARCHIVO: {file_key} ***")
         s3_client.put_object(Bucket=S3_BUCKET, Key=file_key, Body=content.encode("utf-8"))
         print(f"[flows] Datos guardados en s3://{S3_BUCKET}/{file_key}")
     except Exception as e:
