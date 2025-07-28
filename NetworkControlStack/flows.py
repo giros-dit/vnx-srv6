@@ -106,7 +106,7 @@ def read_data():
         valid_files = [f for f in json_files if pattern.search(f['Key'])]
 
         if valid_files:
-            sorted_files = sorted(valid_files, key=lambda x: pattern.search(x['Key']).group(1), reverse=True)
+            sorted_files = sorted(valid_files, key=lambda x: x['LastModified'], reverse=True)
         else:
             print("[flows] Ningún fichero válido por nombre, usando LastModified.")
             sorted_files = sorted(json_files, key=lambda x: x['LastModified'], reverse=True)
