@@ -38,9 +38,9 @@ spec:
         - name: S3_PATH
           value: "auto"
         - name: S3_BUCKET
-          value: "energy-aware-1"
+          value: "no-energy-aware-3"
         - name: ENERGYAWARE
-          value: "true"
+          value: "false"
         - name: DEBUG_COSTS
           value: "true"
         - name: LOGTS # Variable para medida de tiempo
