@@ -1,0 +1,39 @@
+all:
+  vars:
+    # The generated inventory is assumed to be used from the clab host.
+    # Hence no http proxy should be used. Therefore we make sure the http
+    # module does not attempt using any global http proxy.
+    ansible_httpapi_use_proxy: false
+  children:
+    keysight_ixia-c-one:
+      hosts:
+        clab-across-ixia-c:
+          ansible_host: 172.20.20.7
+    linux:
+      hosts:
+        clab-across-r1:
+          ansible_host: 172.20.20.13
+        clab-across-r10:
+          ansible_host: 172.20.20.4
+        clab-across-r11:
+          ansible_host: 172.20.20.2
+        clab-across-r2:
+          ansible_host: 172.20.20.6
+        clab-across-r3:
+          ansible_host: 172.20.20.8
+        clab-across-r4:
+          ansible_host: 172.20.20.12
+        clab-across-r5:
+          ansible_host: 172.20.20.11
+        clab-across-r6:
+          ansible_host: 172.20.20.9
+        clab-across-r7:
+          ansible_host: 172.20.20.10
+        clab-across-r8:
+          ansible_host: 172.20.20.3
+        clab-across-r9:
+          ansible_host: 172.20.20.5
+        clab-across-rgnb:
+          ansible_host: 172.20.20.5
+        clab-across-rupf:
+          ansible_host: 172.20.20.6

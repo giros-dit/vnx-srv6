@@ -1,0 +1,19 @@
+r10:
+ip -6 route add fd00:0:2::/64 encap seg6 mode encap segs fcff:11::1,fcff:9::1,fcff:3::1 dev eth3
+
+r11:
+ip -6 route add fd00:0:1::/64 encap seg6 mode encap segs fcff:10::1,fcff:6::1,fcff:2::1 dev eth3
+
+wireshark
+
+sudo ip netns exec clab-across-r1 tcpdump -U -n -i eth1 -w - | wireshark -k -i -
+sudo ip netns exec clab-across-r10 tcpdump -U -n -i eth3 -w - | wireshark -k -i -
+sudo ip netns exec clab-across-r11 tcpdump -U -n -i eth3 -w - | wireshark -k -i -
+sudo ip netns exec clab-across-rgnb tcpdump -U -n -i eth2 -w - | wireshark -k -i -
+sudo ip netns exec clab-across-rupf tcpdump -U -n -i eth2 -w - | wireshark -k -i -
+
+docker rm -f $(docker ps -aq)
+
+kubectl exec -n across-tc32 -it $(kubectl get pods -n across-tc32 --no-headers -o custom-columns=":metadata.name" | grep '^r1-[a-z0-9]\{10\}-[a-z0-9]\{5\}$') -- docker exec -it r1 /bin/bash
+kubectl exec -n across-tc32 -it $(kubectl get pods -n across-tc32 --no-headers -o custom-columns=":metadata.name" | grep '^r10-[a-z0-9]\{10\}-[a-z0-9]\{5\}$') -- docker exec -it r10 /bin/bash
+kubectl exec -n across-tc32 -it $(kubectl get pods -n across-tc32 --no-headers -o custom-columns=":metadata.name" | grep '^r11-[a-z0-9]\{10\}-[a-z0-9]\{5\}$') -- docker exec -it r11 /bin/bash
