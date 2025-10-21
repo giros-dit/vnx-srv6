@@ -1,5 +1,5 @@
-# Clabernets ACROSS
-Claberntes scenarios for studying and analyzing SRv6 (Segment Routing over IPv6 dataplane).
+# Clabernets ACROSS - 11 Nodes Topology
+Clabernetes scenario with 11 nodes for studying and analyzing SRv6 (Segment Routing over IPv6 dataplane).
 
 
 ### Before launching the scenarios
@@ -13,7 +13,7 @@ Install:
 ---
 
 ### Kind installation (avoid if not necessary)
-Too launch it, run the next commands:
+To launch it, run the next commands:
 
 
 ```
@@ -63,7 +63,7 @@ kubectl apply -f ./converted
 ```bash
 ./converted/deployment-patcher.sh
 ```
-When al pods with their container inside are up run
+When all pods with their containers inside are up, run:
 
 ```bash
 ./routespatch.sh
@@ -78,18 +78,16 @@ When al pods with their container inside are up run
 | **r1**          | eth3            | **r4**          | eth1            | `fcf0:0:1:4::0/127`      | `fcf0:0:1:4::1/127`        |
 | **r1**          | eth4            | **r7**          | eth1            | `fcf0:0:1:7::0/127`      | `fcf0:0:1:7::1/127`        |
 | **r2**          | eth2            | **r3**          | eth2            | `fcf0:0:2:3::0/127`      | `fcf0:0:2:3::1/127`        |
-| **r2**          | eth3            | **r4**          | eth2            | `fcf0:0:2:4::0/127`      | `fcf0:0:2:4::1/127`        |
-| **r2**          | eth4            | **r6**          | eth1            | `fcf0:0:2:6::0/127`      | `fcf0:0:2:6::1/127`        |
-| **r3**          | eth3            | **r7**          | eth2            | `fcf0:0:3:7::0/127`      | `fcf0:0:3:7::1/127`        |
-| **r3**          | eth4            | **r9**          | eth1            | `fcf0:0:3:9::0/127`      | `fcf0:0:3:9::1/127`        |
-| **r4**          | eth3            | **r5**          | eth1            | `fcf0:0:4:5::0/127`      | `fcf0:0:4:5::1/127`        |
+| **r2**          | eth3            | **r6**          | eth1            | `fcf0:0:2:6::0/127`      | `fcf0:0:2:6::1/127`        |
+| **r3**          | eth3            | **r9**          | eth1            | `fcf0:0:3:9::0/127`      | `fcf0:0:3:9::1/127`        |
+| **r4**          | eth2            | **r5**          | eth1            | `fcf0:0:4:5::0/127`      | `fcf0:0:4:5::1/127`        |
 | **r5**          | eth2            | **r6**          | eth2            | `fcf0:0:5:6::0/127`      | `fcf0:0:5:6::1/127`        |
-| **r5**          | eth3            | **r10**         | eth1            | `fcf0:0:5:10::0/127`     | `fcf0:0:5:10::1/127`       |
-| **r6**          | eth3            | **r10**         | eth2            | `fcf0:0:6:10::0/127`     | `fcf0:0:6:10::1/127`       |
-| **r7**          | eth3            | **r8**          | eth1            | `fcf0:0:7:8::0/127`      | `fcf0:0:7:8::1/127`        |
+| **r5**          | eth3            | **rg**          | eth2            | `fcf0:0:5:11::0/127`     | `fcf0:0:5:11::1/127`       |
+| **r6**          | eth3            | **rg**          | eth3            | `fcf0:0:6:11::0/127`     | `fcf0:0:6:11::1/127`       |
+| **r7**          | eth2            | **r8**          | eth1            | `fcf0:0:7:8::0/127`      | `fcf0:0:7:8::1/127`        |
 | **r8**          | eth2            | **r9**          | eth2            | `fcf0:0:8:9::0/127`      | `fcf0:0:8:9::1/127`        |
-| **r8**          | eth3            | **r11**         | eth1            | `fcf0:0:8:11::0/127`     | `fcf0:0:8:11::1/127`       |
-| **r9**          | eth3            | **r11**         | eth2            | `fcf0:0:9:11::0/127`     | `fcf0:0:9:11::1/127`       |
+| **r8**          | eth3            | **ru**          | eth2            | `fcf0:0:8:13::0/127`     | `fcf0:0:8:13::1/127`       |
+| **r9**          | eth3            | **ru**          | eth3            | `fcf0:0:9:13::0/127`     | `fcf0:0:9:13::1/127`       |
 
 ### Router IDs (Loopback)
 
@@ -104,8 +102,8 @@ When al pods with their container inside are up run
 | **r7**          | `fcff:7::1/32`           |
 | **r8**          | `fcff:8::1/32`           |
 | **r9**          | `fcff:9::1/32`           |
-| **r10**         | `fcff:10::1/32`          |
-| **r11**         | `fcff:11::1/32`          |
+| **rg**          | `fcff:11::1/32`          |
+| **ru**          | `fcff:13::1/32`          |
 | **rgnb**        | `fcff:14::1/32`          |
 | **rupf**        | `fcff:16::1/32`          |
 
@@ -113,22 +111,29 @@ When al pods with their container inside are up run
 
 | **Router**      | **Interface** | **Gateway**     | **Interface** | **Router IPv6**          | **Gateway IPv6**         |
 |-----------------|---------------|-----------------|---------------|--------------------------|--------------------------|
-| **r10**         | eth3          | **rgnb**        | eth2          | `fd00:0:5::0/127`        | `fd00:0:5::1/127`        |
-| **r11**         | eth3          | **rupf**        | eth2          | `fd00:0:4::0/127`        | `fd00:0:4::1/127`        |
+| **rg**          | eth1          | **rgnb**        | eth1          | `fd00:0:5::0/127`        | `fd00:0:5::1/127`        |
+| **ru**          | eth1          | **rupf**        | eth1          | `fd00:0:4::0/127`        | `fd00:0:4::1/127`        |
 
 ### Segmentos de Red de Usuarios
 
 | **Segmento**    | **Gateway**     | **Interface** | **Red IPv6**             |
 |-----------------|-----------------|---------------|--------------------------|
-| **gNB Network** | **rgnb**        | eth1          | `fd00:0:2::/64`          |
-| **UPF Network** | **rupf**        | eth1          | `fd00:0:1::/64`          |
+| **gNB Network** | **rgnb**        | eth2          | `fd00:0:2::/64`          |
+| **UPF Network** | **rupf**        | eth2          | `fd00:0:1::/64`          |
+
+### Conexión con IXIA-C
+
+| **Gateway**     | **Interface** | **IXIA-C**      | **Interface** |
+|-----------------|---------------|-----------------|---------------|
+| **rgnb**        | eth2          | **ixia-c**      | eth2          |
+| **rupf**        | eth2          | **ixia-c**      | eth1          |
 
 ---
 
 
 ### Linux commands for create tunnels
 
-to create the 2 tunnels use the script 
+To create the tunnels use the script:
 
 ```bash
 ./tunnelexample.sh

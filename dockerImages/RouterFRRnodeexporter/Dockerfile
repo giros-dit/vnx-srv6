@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y \
     iperf3 \
     openssh-server
 
+RUN mkdir -p /run/sshd
+
 RUN wget https://deb.frrouting.org/frr/keys.asc && \
     apt-key add keys.asc && \
     rm keys.asc
@@ -58,4 +60,4 @@ RUN bash -c 'echo "ExecStart=/usr/local/bin/node_exporter" >> /etc/systemd/syste
 RUN bash -c 'echo "" >> /etc/systemd/system/node_exporter.service'
 RUN bash -c 'echo "[Install]" >> /etc/systemd/system/node_exporter.service'
 RUN bash -c 'echo "WantedBy=multi-user.target" >> /etc/systemd/system/node_exporter.service'
-ENTRYPOINT service ssh start && /usr/local/bin/node_exporter
+ENTRYPOINT /usr/sbin/sshd && /usr/local/bin/node_exporter
